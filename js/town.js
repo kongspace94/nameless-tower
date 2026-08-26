@@ -91,7 +91,8 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
   const map=$("townmap"), pl=$("tmplayer"), cv=$("tmcanvas"); let walking=false;
   const drawIt=()=>{ try{ drawTownCanvas(cv, blds); }catch(e){} };
-  drawIt(); setTimeout(drawIt,0); if(typeof requestAnimationFrame==="function")requestAnimationFrame(drawIt);   // 즉시+다음틱+rAF (레이아웃 준비 시점 어디서든 확실히 그려지게)
+  drawIt(); setTimeout(drawIt,0); if(typeof requestAnimationFrame==="function")requestAnimationFrame(drawIt);   // 즉시+다음틱+rAF
+  if(typeof ResizeObserver==="function"){ try{ const ro=new ResizeObserver(()=>drawIt()); ro.observe(cv); }catch(e){} }   // 🔧 크기 바뀔 때마다 재그리기(히트박스와 항상 정렬)
   if(typeof startTownPresence==="function")startTownPresence(map, blds);   // 👥 다른 온라인 유저 표시(온라인일 때)
   map.querySelectorAll(".tmhit").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
     btn.onclick=(e)=>{ e.stopPropagation(); if(walking||!pl)return; const b=blds[+btn.dataset.i];
