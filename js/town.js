@@ -300,13 +300,12 @@ function renderChatDock(){ const body=$("chatmsgs"); if(!body)return;
   body.innerHTML=chatLog.slice(-40).map(m=>`<div class="cmsg ${m.me?'me':''}"><span class="cnm">${m.me?'나':m.name}</span><span class="ctx">${(m.text||"").replace(/</g,"&lt;")}</span>${m.ts?`<span class="cts">${fmtChatTime(m.ts)}</span>`:""}</div>`).join("");
   if(atBottom) sc.scrollTop=sc.scrollHeight; }   // 맨 아래에 있을 때만 자동 스크롤(대화 읽는 중이면 방해 안 함)
 function toggleChatDock(){ const d=$("chatdock"); if(d){ d.classList.toggle("collapsed"); d.dataset.userToggled="1"; } }
-function chatSend(){ if(!P){ return; }
+function chatSend(){ if(!P)return; const inp=$("cdinput"); const msg=((inp?inp.value:"")||"").trim(); if(!msg)return;
+  if(inp){ inp.value=""; try{ inp.focus(); }catch(e){} }
   if(P._online && typeof netChatSend==="function"){   // 🌐 온라인: 서버로 전송(SSE로 되돌아옴)
-    const t=prompt("보낼 메시지 (최대 200자):",""); if(t==null)return; const msg=(t.trim()).slice(0,200); if(!msg)return;
-    netChatSend(msg).catch(()=>toast("전송 실패 (연결 확인)")); return;
+    netChatSend(msg.slice(0,200)).catch(()=>toast("전송 실패 (연결 확인)")); return;
   }
-  const t=prompt("보낼 메시지 (최대 60자):",""); if(t==null)return; const msg=(t.trim()).slice(0,60); if(!msg)return;
-  chatPost(msg); renderChatDock();
+  chatPost(msg.slice(0,60)); renderChatDock();   // 오프라인: 로컬 시뮬
   if(chance(0.6))setTimeout(()=>{ if(mode==="town"&&chatTimer){ chatLog.push({name:pick(CHAT_NAMES), text:pick(["ㅇㅋㅇㅋ","오 반가워요","화이팅!","저도요 ㅋㅋ","굿굿","같이해요~","ㄹㅇ"]), ts:Date.now()}); renderChatDock(); } }, 1200); }
 function openChat(){ startTownChat(); }   // 하위호환
 /* 📜 의뢰 현황 (진행중·완료) */

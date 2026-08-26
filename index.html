@@ -296,9 +296,11 @@
   .chatdock .cmsg .cnm{min-width:58px; font-size:11px}
   .chatdock .cmsg .ctx{font-size:12.5px; flex:1; min-width:0; word-break:break-word}
   .chatdock .cmsg .cts{font-size:9px; color:var(--dim); font-family:var(--mono); flex-shrink:0; align-self:flex-end; opacity:.7}
-  .chatdock .cdfoot{padding:7px 10px; border-top:1px solid var(--line); background:#0d1119}
-  .chatdock .cdsend{display:block; text-align:center; padding:6px; border:1px solid var(--line); border-radius:8px; color:var(--dim); cursor:pointer; user-select:none; font-size:12.5px}
-  .chatdock .cdsend:hover{border-color:var(--accent); color:var(--ink)}
+  .chatdock .cdfoot{padding:7px 8px; border-top:1px solid var(--line); background:#0d1119; display:flex; gap:6px; align-items:center}
+  .chatdock .cdinput{flex:1; min-width:0; background:#0a0d13; border:1px solid var(--line); border-radius:8px; padding:8px 10px; color:var(--ink); font-size:13px; outline:none}
+  .chatdock .cdinput:focus{border-color:var(--gold)}
+  .chatdock .cdsendbtn{flex-shrink:0; width:34px; height:34px; border:1px solid var(--line); border-radius:8px; background:#141a2a; color:var(--gold); font-size:14px; cursor:pointer; line-height:1}
+  .chatdock .cdsendbtn:hover{border-color:var(--gold); background:#1b2236}
   .chatdock.collapsed .cdbody, .chatdock.collapsed .cdfoot{display:none}
   .chatdock.collapsed .cdtoggle{transform:rotate(180deg)}
   body.combat .chatdock, body.title .chatdock{display:none !important}
@@ -451,7 +453,7 @@
 <div class="chatdock" id="chatdock" hidden>
   <div class="cdhead" id="cdhead"><span>💬 광장 채팅 <span class="cddot"></span> <span id="cdonline" style="color:var(--dim);font-size:10.5px"></span></span><span class="cdtoggle" id="cdtoggle">▾</span></div>
   <div class="cdbody"><div class="chatbox" id="chatmsgs"></div></div>
-  <div class="cdfoot"><span class="cdsend" id="cdsend">✍ 메시지 보내기</span></div>
+  <div class="cdfoot"><input id="cdinput" class="cdinput" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="메시지 입력…"><button class="cdsendbtn" id="cdsend" title="보내기">➤</button></div>
 </div>
 <div class="toast" id="toast"></div>
 

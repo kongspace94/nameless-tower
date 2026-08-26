@@ -95,7 +95,9 @@ $("btnInv").onclick=()=>{ if(canNav())inventoryMenu(); else toast(enemy?"전투 
 $("btnSkill").onclick=()=>{ if(canNav())skillWindow(); else toast(navBlockMsg()); };
 $("btnTitle").onclick=()=>{ if(canNav())titleMenu(); else toast(enemy?"전투 중엔 볼 수 없어요":navBlockMsg()); };
 $("btnDex").onclick=()=>{ if(P&&!enemy)codexMenu(); else toast("전투 중엔 볼 수 없어요"); };
-{ const ch=$("cdhead"); if(ch)ch.onclick=()=>toggleChatDock(); const cs=$("cdsend"); if(cs)cs.onclick=()=>chatSend(); }
+{ const ch=$("cdhead"); if(ch)ch.onclick=()=>toggleChatDock();
+  const cs=$("cdsend"); if(cs)cs.onclick=()=>chatSend();
+  const ci=$("cdinput"); if(ci)ci.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); chatSend(); } }); }
 $("pname").onclick=()=>{ if(P&&!enemy)profileMenu(); };
 { const po=$("por"); if(po){ po.style.cursor="pointer"; po.onclick=()=>{ if(P&&!enemy)profileMenu(); }; } }
 $("btnAuction").onclick=()=>{ if(canNav())openAuction(); else toast(navBlockMsg()); };
