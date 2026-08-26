@@ -7,13 +7,13 @@ services:
     name: nameless-tower
     runtime: node
     plan: free
-    buildCommand: "echo no-deps"      # 의존성 없음
+    buildCommand: "npm install"       # mongodb 드라이버 설치
     startCommand: "node server/server.js"
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # - key: DATA_DIR            # ↓ 영속 디스크 쓸 때 함께 해제
-      #   value: /data
+      - key: MONGODB_URI            # ← Render 대시보드에서 Atlas 연결문자열 입력(값은 비밀로)
+        sync: false
     # disk:                        # ↓ 세이브 영속용(유료). 해제하면 재배포에도 데이터 유지
     #   name: data
     #   mountPath: /data

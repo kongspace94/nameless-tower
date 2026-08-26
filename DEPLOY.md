@@ -51,6 +51,30 @@ railway domain        # 공개 URL 발급
 
 ---
 
+## 💾 데이터 영구 저장 — MongoDB Atlas (무료)
+
+Render 무료 플랜은 디스크가 임시라 **재배포할 때마다 계정·세이브가 초기화**됩니다.
+MongoDB Atlas(무료 512MB)에 연결하면 **재배포해도 데이터가 영구 유지**됩니다.
+(코드는 이미 대응됨 — `MONGODB_URI` 환경변수만 넣으면 자동으로 Mongo 사용, 없으면 로컬 파일)
+
+### 1) Atlas 무료 클러스터 만들기
+1. https://www.mongodb.com/cloud/atlas 가입 → **Create** → **M0 (Free)** 선택 → 리전 아무거나 → Create
+2. **Database Access** → **Add New Database User** → 사용자명/비밀번호 정하기 (기억해둘 것)
+3. **Network Access** → **Add IP Address** → **Allow Access from Anywhere** (`0.0.0.0/0`) 추가
+   - (Render 서버 IP가 고정이 아니라서 전체 허용이 편함)
+
+### 2) 연결 문자열(Connection String) 받기
+- **Database** → 클러스터의 **Connect** → **Drivers** → Node.js 선택
+- 나오는 문자열 복사: `mongodb+srv://<사용자>:<비밀번호>@cluster0.xxxxx.mongodb.net/?...`
+- `<비밀번호>` 부분을 실제 비밀번호로 바꾸기
+
+### 3) Render에 연결 문자열 넣기
+- Render 대시보드 → 서비스 → **Environment** → **Add Environment Variable**
+- Key: `MONGODB_URI` / Value: 위 연결 문자열 붙여넣기 → **Save** (자동 재배포됨)
+- 배포 로그에 `💾 MongoDB Atlas 연결됨` 이 뜨면 성공! 이제 재배포해도 데이터 안 날아감.
+
+> 로컬에서 Mongo로 테스트하려면: `MONGODB_URI="..." node server/server.js` (Windows PowerShell은 `$env:MONGODB_URI="..."; node server/server.js`)
+
 ## 🔧 참고
 - 서버는 **무의존성**(npm 패키지 0개) — 빌드가 사실상 없음, 배포가 빠릅니다.
 - 포트는 호스트가 주는 `PORT` 환경변수를 자동 사용.

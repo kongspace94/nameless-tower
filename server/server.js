@@ -7,7 +7,8 @@ const http = require("http");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const { db, markDirty, flushNow, CHAT_MAX } = require("./store");
+const store = require("./store");
+const { db, markDirty, flushNow, CHAT_MAX } = store;
 
 const PORT = process.env.PORT || 8787;
 const CLIENT_DIR = path.join(__dirname, "..");   // 게임 정적 파일(index.html·js·assets) 루트
@@ -174,6 +175,9 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`🌐 이름 없는 탑 온라인 서버: http://localhost:${PORT}`));
-process.on("SIGINT", () => { flushNow(); process.exit(0); });
-process.on("SIGTERM", () => { flushNow(); process.exit(0); });
+/* 저장소 로드 완료 후 서버 시작 */
+store.init().then(() => {
+  server.listen(PORT, () => console.log(`🌐 이름 없는 탑 온라인 서버: http://localhost:${PORT}`));
+}).catch((e) => { console.error("❌ 저장소 초기화 실패:", e.message); process.exit(1); });
+process.on("SIGINT", async () => { await flushNow(); process.exit(0); });
+process.on("SIGTERM", async () => { await flushNow(); process.exit(0); });
