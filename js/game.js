@@ -62,8 +62,10 @@ function reincarnate(){ const meta=P.meta||{echoes:0,spent:{},runs:0,bestFloor:0
 /* ============================================================
    세이브 / 시작
    ============================================================ */
-const SAVE_KEY="nameless_tower_save_v4";
-function save(silent){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(P)); if(!silent)toast("저장했습니다"); }catch(e){}
+const SAVE_KEY="nameless_tower_save_v4";           // 오프라인 캐릭터
+const CLOUD_KEY="nameless_tower_cloud_v4";         // 온라인 캐릭터 로컬 캐시 (오프라인과 분리 — 서로 덮어쓰지 않게)
+function save(silent){ const key=(P&&P._online)?CLOUD_KEY:SAVE_KEY;   // 온라인/오프라인 슬롯 분리 저장
+  try{ localStorage.setItem(key,JSON.stringify(P)); if(!silent)toast("저장했습니다"); }catch(e){}
   if(P&&P._online&&typeof netSavePush==="function")netSavePush(P);   // 🌐 온라인: 클라우드 세이브(디바운스)
 }
 function newGame(){ stopAuctionTimer(); auction=null; enemy=null; B=null; mode="town"; if(document.body)document.body.classList.remove("title"); P=freshPlayer(); render(); clearLog(); intro(); }
@@ -301,14 +303,20 @@ async function submitRecover(){ const err=$("recErr"); const setErr=(m,c)=>{ if(
   catch(e){ setErr("복구 실패 — "+e.message); }
 }
 async function enterOnline(){
-  let cloud=null, authErr=false;
-  try{ cloud=await netSaveLoad(); }catch(e){ if(/로그인|401/.test(e&&e.message||""))authErr=true; }
+  let cloud=null, authErr=false, loadErr=false;
+  try{ cloud=await netSaveLoad(); }catch(e){ const m=(e&&e.message)||""; if(/로그인|401/.test(m))authErr=true; else loadErr=true; }
   if(authErr){ netLogout(); toast("세션이 만료됐어요 — 다시 로그인해주세요"); authForm("login"); return; }   // 서버 재시작 등으로 토큰 만료 시
+  if(loadErr){ toast("클라우드 세이브를 불러오지 못했어요 — 잠시 후 다시 시도해주세요"); onlineScreen(); return; }   // ⚠ 로드 실패 시 절대 새 캐릭터로 덮어쓰지 않음(세이브 보호)
   const hasCloud=!!(cloud&&cloud.stats);
-  if(hasCloud){ P=cloud; normalizeP(); if(typeof netSetNick==="function")netSetNick(P.name, P.avatar).catch(()=>{}); }   // 저장된 닉네임·아바타를 서버에 동기화(채팅 표시)
-  else { P=freshPlayer(); if(NET.nick&&NET.nick!==NET.name)P.name=NET.nick; }   // 아이디는 P.name에 넣지 않음 — 닉네임은 intro에서 정함
-  P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog();
-  if(hasCloud){ toast("클라우드에서 불러옴"); townMenu(); } else { toast("새 온라인 캐릭터 — 닉네임을 정하자"); intro(); }
+  if(hasCloud){ P=cloud; normalizeP(); if(typeof netSetNick==="function")netSetNick(P.name, P.avatar).catch(()=>{}); P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog(); toast("클라우드에서 불러옴"); townMenu(); return; }
+  // 클라우드에 세이브 없음 — 오프라인 캐릭터가 있으면 온라인으로 가져올지 물어봄(데이터 보존)
+  let off=null; try{ off=JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); }catch(e){}
+  if(off&&off.stats&&(off.inv&&off.inv.length||off.gold>30||off.floor>1)&&confirm(`온라인 세이브가 없어요.\n오프라인 캐릭터 '${off.name}' (골드 ${off.gold} · ${off.floor||1}층)을(를) 온라인으로 가져올까요?\n\n확인=가져오기 / 취소=새 온라인 캐릭터`)){
+    P=off; normalizeP(); P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog();
+    if(typeof netSetNick==="function")netSetNick(P.name, P.avatar).catch(()=>{}); save(true); toast("오프라인 캐릭터를 온라인으로 가져왔어요"); townMenu(); return;
+  }
+  P=freshPlayer(); if(NET.nick&&NET.nick!==NET.name)P.name=NET.nick;   // 아이디는 P.name에 넣지 않음 — 닉네임은 intro에서 정함
+  P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog(); toast("새 온라인 캐릭터 — 닉네임을 정하자"); intro();
 }
 function loadSaveGame(){ try{ P=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!P||!P.stats)throw 0; normalizeP(); }catch(e){ toast("저장을 읽지 못했어요"); leaveTitle(); newGame(); return; } leaveTitle(); render(); townMenu(); }
 function confirmNewGame(){ if(hasSave()&&!confirm("새로 시작하면 저장된 캐릭터가 삭제됩니다. 계속할까요?"))return; localStorage.removeItem(SAVE_KEY); leaveTitle(); newGame(); }
