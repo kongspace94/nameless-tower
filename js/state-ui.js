@@ -266,7 +266,9 @@ function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=
     n++; const num=n; const b=document.createElement("button"); if(a.full)b.className="full";
     b.innerHTML=`<span class="k">${a.key||num}</span>${a.label}`+(a.desc?`<span class="desc">${a.desc}</span>`:"");
     b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS)return; a.act(); }; box.appendChild(b); }); }
-document.addEventListener("keydown",e=>{ if(!awaiting)return; if(e.code==="Space")return; const n=parseInt(e.key,10);
+document.addEventListener("keydown",e=>{ if(!awaiting)return;
+  const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName||""))return;   // 입력칸 타이핑 중엔 메뉴 숫자키 무시(비번/이름/채팅 입력 보호)
+  if(e.code==="Space")return; const n=parseInt(e.key,10);
   const acts=awaiting.filter(a=>!a.header);   // 번호는 헤더 제외하고 매김
   if(n>=1&&n<=acts.length){ const a=acts[n-1]; if(a&&!a.disabled)a.act(); } });
 
