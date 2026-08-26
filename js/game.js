@@ -98,6 +98,7 @@ $("btnInv").onclick=()=>{ if(canNav())inventoryMenu(); else toast(enemy?"전투 
 $("btnSkill").onclick=()=>{ if(canNav())skillWindow(); else toast(navBlockMsg()); };
 $("btnTitle").onclick=()=>{ if(canNav())titleMenu(); else toast(enemy?"전투 중엔 볼 수 없어요":navBlockMsg()); };
 $("btnDex").onclick=()=>{ if(P&&!enemy)codexMenu(); else toast("전투 중엔 볼 수 없어요"); };
+{ const s5=$("stats5"); if(s5){ s5.style.cursor="pointer"; s5.title="클릭 — 상세 스탯"; s5.onclick=()=>{ if(P&&typeof statsDetail==="function")statsDetail(); }; } }   // 📊 스탯 클릭 → 상세
 { const ch=$("cdhead"); if(ch)ch.onclick=()=>toggleChatDock();
   const cs=$("cdsend"); if(cs)cs.onclick=()=>chatSend();
   const ci=$("cdinput"); if(ci)ci.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); chatSend(); } }); }

@@ -269,6 +269,20 @@ function infoModal(html){ closeModal(); const d=document.createElement("div"); d
   d.innerHTML=`<div class="box">${html}<div class="mclose"><button onclick="closeModal()">닫기</button></div></div>`;
   d.onclick=(e)=>{ if(e.target===d)closeModal(); }; document.body.appendChild(d); }
 function closeModal(){ const d=$("__modal"); if(d)d.remove(); }
+/* 📊 상세 스탯 — HUD 스탯 클릭 시 실효 전투 수치 표시 */
+function statsDetail(){ if(!P)return; const rb=(typeof relicBonus==="function")?relicBonus():{atk:0,def:0,luck:0,vamp:false}; const sb=(typeof setBonus==="function")?setBonus():{vamp:false};
+  const row=(l,v,sub)=>`<div class="sdrow"><span>${l}</span><b>${v}</b></div>${sub?`<div class="sdsub">${sub}</div>`:""}`;
+  const html=`<h3 style="margin:0 0 8px">📊 상세 스탯 — ${P.name}</h3>`+
+    row("⚔ 공격력 (ATK)", ATK(), `힘 ${P.stats.str} · 장비 +${rb.atk}${P.buffs&&P.buffs.atkPct?` · 버프 +${Math.round(P.buffs.atkPct*100)}%`:""}`)+
+    row("🛡 방어력 (DEF)", DEF(), `장비 +${rb.def}${P.buffs&&P.buffs.defBonus?` · 버프 +${P.buffs.defBonus}`:""}`)+
+    row("🔮 마법력", magicPow(), `지능 ${P.stats.int}`)+
+    row("🎯 치명타 확률", Math.round(critChance()*100)+"%", "민첩·행운 기반")+
+    row("🍀 실효 행운", LUKv(), `행운 ${P.stats.luk} · 장비 +${rb.luck}`)+
+    row("❤ 최대 HP", MAXHP())+
+    row("💧 최대 기력", MAXMP())+
+    ((rb.vamp||sb.vamp)?row("🩸 흡혈","보유 (피해의 일부 회복)"):"")+
+    `<div class="sdbase">기본 스탯 · 💪힘 ${P.stats.str} · 🔮지능 ${P.stats.int} · 🏹민첩 ${P.stats.dex} · ❤체력 ${P.stats.vit} · 🍀행운 ${P.stats.luk}</div>`;
+  infoModal(html); }
 function itemInfo(kind,key){ let emoji="❔",name=key,tag="",rows=[];
   if(kind==="gear"){ const g=RELICS[key]||{}; emoji=(IX[relicIco(key)]||["",""])[1]; name=key; tag="장비 · "+(SLOT_LABEL[g.slot]||""); rows.push(g.note||""); if(g.slot==="weapon"&&g.wt)rows.push(`🎯 공격 패턴: ${weaponPatternText(g.wt)}`); rows.push(`판매가 ~${g.val||0}G`); const _st=gearMainStat(g); rows.push(`⚒️ 대장간에서 강화 가능 (레벨당 ${_st==="atk"?"공격":_st==="def"?"방어":"행운"} +1)`); }
   else if(kind==="cons"){ const c=CONS[key]; if(!c)return; emoji=c.emoji; name=c.n; tag=c.use==="learn"?"스킬북":c.use==="buff"?"버프 물약":c.use==="stat"?"능력치 비약":c.use==="slot"?"스킬 슬롯 확장":"소비품"; rows.push(c.note); if(c.use==="learn"&&SKILLS[c.skill])rows.push(`→ <b>${SKILLS[c.skill].n}</b>: ${SKILLS[c.skill].desc}`); }
