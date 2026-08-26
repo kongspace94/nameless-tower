@@ -46,9 +46,14 @@ const BGM_SYNTH = {
     stepMs: 2400,
     chords: [[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196.00],[196.00,246.94,293.66],
              [220,261.63,329.63],[174.61,220,261.63],[146.83,174.61,220.00],[164.81,207.65,246.94]],
-    melody: [440,523.25, 523.25,0, 392,329.63, 587.33,493.88, 523.25,659.25, 440,698.46, 587.33,440, 493.88,415.30],  // 스텝당 2음(0=쉼표), A 단조/E7 리딩톤
+    melody:   [440,523.25, 523.25,0, 392,329.63, 587.33,493.88, 523.25,659.25, 440,698.46, 587.33,440, 493.88,415.30],  // 스텝당 2음(0=쉼표), A 단조/E7 리딩톤
+    harmony:  [349.23,440, 440,0, 329.63,261.63, 493.88,392, 440,523.25, 349.23,587.33, 493.88,349.23, 392,329.63],     // 멜로디 3도 아래(A단조 다이어토닉) — 후반부에만 얹어 풍성하게
   },
-  combat: { stepMs: 250,  bass: [110,110,155.56,110, 98,98,146.83,98] },   // A 펄스 + 트라이톤 긴장음
+  combat: {   // 박진감 전투 테마 — Am–F–G–E 진행(코드당 4스텝) + 드럼 + 파워코드 스탭 + 긴장 리드
+    stepMs: 235,
+    chords: [[110,164.81,220],[87.31,130.81,174.61],[98.00,146.83,196.00],[82.41,123.47,164.81]],   // Am F G E (루트·5도·8도)
+    lead:   [440,523.25,659.25,523.25, 440,523.25,698.46,523.25, 392,493.88,587.33,493.88, 415.30,493.88,659.25,493.88],
+  },
 };
 
 /* ── 엔진 (아래는 손댈 필요 없음) ── */
@@ -131,18 +136,34 @@ function startSynthBgm(name) {   // WebAudio 절차적 배경음악 루프
   const spec = BGM_SYNTH[name]; if (!spec) return;
   const g = ctx.createGain(); g.gain.value = _clamp01(AUDIO.bgmVol); g.connect(ctx.destination);   // BGM 전용 게인(효과음 마스터와 분리)
   let step = 0;
-  const note = (freq, dur, type, vol, delay) => { if (!freq) return; const t0 = ctx.currentTime + (delay || 0), o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
-    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0); ng.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + Math.min(0.2, dur * 0.25)); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  const note = (freq, dur, type, vol, delay, atk) => { if (!freq) return; const t0 = ctx.currentTime + (delay || 0), o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
+    const a = (atk != null ? atk : Math.min(0.2, dur * 0.25));   // atk 지정 시 빠른 어택(피아노 플럭)
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0); ng.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + a); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(ng); ng.connect(g); o.start(t0); o.stop(t0 + dur + 0.03); };
+  const noise = (dur, vol, hp) => { const t0 = ctx.currentTime, buf = ctx.createBuffer(1, Math.max(1, ctx.sampleRate * dur), ctx.sampleRate), dch = buf.getChannelData(0);   // 드럼용 노이즈
+    for (let i = 0; i < dch.length; i++) dch[i] = Math.random() * 2 - 1; const src = ctx.createBufferSource(); src.buffer = buf; let nn = src;
+    if (hp) { const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = hp; src.connect(f); nn = f; }
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(vol, t0); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur); nn.connect(ng); ng.connect(g); src.start(t0); src.stop(t0 + dur + 0.02); };
   const tick = () => {
-    if (name === "combat") { const b = spec.bass[step % spec.bass.length], d = spec.stepMs / 1000;
-      note(b, d * 0.9, "sawtooth", 0.085); note(b / 2, d * 0.9, "square", 0.035); if (step % 8 === 0) note(b * 3, d * 3, "triangle", 0.03); }
+    if (name === "combat") { const d = spec.stepMs / 1000, s16 = step % 16, ci = (s16 / 4) | 0, ch = spec.chords[ci], within = s16 % 4;
+      note(ch[0], d * 0.92, "sawtooth", 0.08); note(ch[0], d * 0.92, "square", 0.026);                 // 갤로핑 베이스 + 서브
+      if (within === 0) { note(ch[0] / 2, d * 4.1, "sine", 0.05); ch.forEach(f => note(f, d * 1.8, "sawtooth", 0.028)); }   // 코드 드론 + 파워코드 스탭
+      if (step % 2 === 0) note(73.42, 0.14, "sine", 0.12, 0, 0.003);                                    // 🥁 킥(D2)
+      noise(0.03, 0.016, 7000); if (within === 2) noise(0.12, 0.05, 1600);                              // 하이햇(매 스텝) + 스네어(백비트)
+      const lf = spec.lead[s16]; if (lf) note(lf, d * 0.85, "triangle", 0.042); }                        // 긴장 리드 모티프
     else { const n = spec.chords.length, idx = step % n, ch = spec.chords[idx], d = spec.stepMs / 1000;
-      ch.forEach(f => { note(f, d * 1.05, "triangle", 0.04); note(f * 1.006, d * 1.05, "triangle", 0.017); });   // 패드 + 따뜻한 디튠
-      note(ch[0] / 2, d * 1.05, "sine", 0.075);                                                                   // 베이스(루트 한 옥타브 아래)
-      note(ch[ch.length - 1] * 2, d * 1.05, "sine", 0.014);                                                       // 상단 은은한 반짝임
-      if (spec.melody) { const mi = idx * 2, m1 = spec.melody[mi % spec.melody.length], m2 = spec.melody[(mi + 1) % spec.melody.length];  // 스텝당 리드 2음
-        note(m1, d * 0.46, "triangle", 0.05, d * 0.04); note(m2, d * 0.44, "triangle", 0.045, d * 0.5); } }
+      const half2 = idx >= 4, build = half2 ? Math.pow((idx - 3) / 4, 1.3) : 0, lift = 1 + 0.5 * build;   // 후반부 크레센도(더 강하게)
+      ch.forEach(f => { note(f, d * 1.05, "triangle", 0.036 * lift); note(f * 1.006, d * 1.05, "triangle", 0.016 * lift); });   // 패드 + 따뜻한 디튠
+      note(ch[0], d * 1.05, "sawtooth", 0.016 * lift); note(ch[2], d * 1.05, "sawtooth", 0.011 * lift);           // 🎺 브라스/현 앙상블 바디(웅장함)
+      note(ch[0] / 2, d * 1.05, "sine", 0.07);                                                                    // 베이스(한 옥타브 아래)
+      note(ch[0] / 4, d * 1.05, "sine", 0.055);                                                                   // 🔊 시네마틱 서브베이스(두 옥타브 아래)
+      note(ch[0] / 2, 0.5, "sine", 0.10 * (idx % 4 === 0 ? 1 : 0.55), 0, 0.004);                                  // 🥁 소프트 팀파니 타격(코드 전환마다, 마디머리 강세)
+      note(ch[ch.length - 1] * 2, d * 1.05, "sine", 0.014 + 0.02 * build);                                        // 상단 반짝임(후반부에 차오름)
+      if (spec.melody) { const mi = idx * 2, m1 = spec.melody[mi % 16], m2 = spec.melody[(mi + 1) % 16];          // 스텝당 리드 2음
+        note(m1, d * 0.46, "triangle", 0.05 * lift, d * 0.04); note(m2, d * 0.44, "triangle", 0.045 * lift, d * 0.5);
+        if (half2 && spec.harmony) { const h1 = spec.harmony[mi % 16], h2 = spec.harmony[(mi + 1) % 16];          // 후반부: 3도 아래 하모니
+          note(h1, d * 0.46, "triangle", 0.012 + 0.03 * build, d * 0.04); note(h2, d * 0.44, "triangle", 0.012 + 0.028 * build, d * 0.5);
+          note(m1 * 2, d * 0.46, "triangle", 0.022 * build, d * 0.04); note(m2 * 2, d * 0.44, "triangle", 0.02 * build, d * 0.5); } } }   // 🌟 멜로디 옥타브 겹침 — 솟구치는 클라이맥스
     step++;
   };
   tick(); const timer = setInterval(tick, spec.stepMs); AUDIO.bgmSynth = { timer, gain: g, name };
