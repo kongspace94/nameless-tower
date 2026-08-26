@@ -37,12 +37,24 @@ async function netPing() {
   } catch (e) { NET.serverUp = false; return false; }
 }
 
+/* 비밀번호 IME 통일: 한글(두벌식)을 항상 같은 영문 키스트로크로 변환 → IME 상태 무관하게 동일 비번
+ * 예) "의주홍1234"(한글) == "dmlwnghd1234"(영문) — 같은 물리 키니까 */
+const KO_CHO=["r","R","s","e","E","f","a","q","Q","t","T","d","w","W","c","z","x","v","g"];
+const KO_JUNG=["k","o","i","O","j","p","u","P","h","hk","ho","hl","y","n","nj","np","nl","b","m","ml","l"];
+const KO_JONG=["","r","R","rt","s","sw","sg","e","f","fr","fa","fq","ft","fx","fv","fg","a","q","qt","t","T","d","w","c","z","x","v","g"];
+const KO_JAMO={"ㄱ":"r","ㄲ":"R","ㄴ":"s","ㄷ":"e","ㄸ":"E","ㄹ":"f","ㅁ":"a","ㅂ":"q","ㅃ":"Q","ㅅ":"t","ㅆ":"T","ㅇ":"d","ㅈ":"w","ㅉ":"W","ㅊ":"c","ㅋ":"z","ㅌ":"x","ㅍ":"v","ㅎ":"g","ㅏ":"k","ㅐ":"o","ㅑ":"i","ㅒ":"O","ㅓ":"j","ㅔ":"p","ㅕ":"u","ㅖ":"P","ㅗ":"h","ㅛ":"y","ㅜ":"n","ㅠ":"b","ㅡ":"m","ㅣ":"l"};
+function pwNormalize(pw){ let out=""; const s=String(pw||"");
+  for(const ch of s){ const code=ch.codePointAt(0);
+    if(code>=0xAC00 && code<=0xD7A3){ const c=code-0xAC00, jong=c%28, jung=((c-jong)/28)%21, cho=(((c-jong)/28)-jung)/21; out+=KO_CHO[cho]+KO_JUNG[jung]+KO_JONG[jong]; }
+    else if(KO_JAMO[ch]) out+=KO_JAMO[ch];
+    else out+=ch;
+  } return out; }
 async function netRegister(name, password) {
-  const d = await netFetch("/api/register", { method: "POST", body: { name, password } });
+  const d = await netFetch("/api/register", { method: "POST", body: { name, password: pwNormalize(password) } });
   netStoreAuth(d); return d;
 }
 async function netLogin(name, password) {
-  const d = await netFetch("/api/login", { method: "POST", body: { name, password } });
+  const d = await netFetch("/api/login", { method: "POST", body: { name, password: pwNormalize(password) } });
   netStoreAuth(d); return d;
 }
 function netStoreAuth(d) {
