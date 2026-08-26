@@ -191,6 +191,10 @@ function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode
   </div>`;
   const eye=$("authEye"), pw=$("authPw"), nmi=$("authName");
   if(eye&&pw)eye.onclick=()=>{ const nowHidden=pw.classList.contains("authpwmask"); pw.classList.toggle("authpwmask",!nowHidden); eye.textContent=nowHidden?"🙈":"👁"; try{pw.focus();}catch(e){} };   // CSS 마스킹 토글(type 유지 → 한글 IME OK)
+  // 🔤 실시간 IME 변환: 한글 입력을 즉시 영문 키스트로크로 → 보이는 것=저장되는 것(한글/영문 통일)
+  if(pw && typeof pwNormalize==="function"){ const conv=()=>{ const c=pwNormalize(pw.value); if(c!==pw.value){ pw.value=c; } };
+    pw.addEventListener("compositionend",conv);
+    pw.addEventListener("input",e=>{ if(!e.isComposing)conv(); }); }
   const onEnter=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); submitAuth(mode); } };
   if(pw)pw.addEventListener("keydown",onEnter); if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
   setTimeout(()=>{ try{ nmi&&nmi.focus(); }catch(e){} },40);
