@@ -153,7 +153,8 @@ function stamEta(){ if(P.stamina>=STAM_MAX)return "가득"; const per=stamRegenM
 function gainStamina(n){ if(P.stamina==null)P.stamina=0; const b=Math.min(n,STAM_MAX-P.stamina); if(b>0){ P.stamina+=b; return b; } return 0; }
 
 /* ---------- 로그 / 무대 / 이펙트 ---------- */
-function line(html,cls){ const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight; }
+function line(html,cls){ const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
+  if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
 function clearLog(){ $("log").innerHTML=""; }
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
@@ -211,7 +212,7 @@ function spawnFloat(text,color,side){ const s=$("stage"); const f=document.creat
   s.appendChild(f); setTimeout(()=>{ f.remove(); _floatActive[key]=Math.max(0,_floatActive[key]-1); },1000); }
 function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
 function fxShake(){ const s=$("stage"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
-function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } }
+function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } if(typeof sfx==="function")sfx("hurt"); }
 
 /* ---------- HUD ---------- */
 function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); if(ub)ub.hidden=false; } regenStamina();
@@ -266,7 +267,7 @@ function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=
     if(a.header){ const h=document.createElement("div"); h.className="acthdr full"; h.innerHTML=`<span>${a.label}</span>`; box.appendChild(h); return; }   // 섹션 헤더
     n++; const num=n; const b=document.createElement("button"); if(a.full)b.className="full";
     b.innerHTML=`<span class="k">${a.key||num}</span>${a.label}`+(a.desc?`<span class="desc">${a.desc}</span>`:"");
-    b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS)return; a.act(); }; box.appendChild(b); }); }
+    b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS)return; if(typeof sfx==="function")sfx("click"); a.act(); }; box.appendChild(b); }); }
 document.addEventListener("keydown",e=>{ if(!awaiting)return;
   const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName||""))return;   // 입력칸 타이핑 중엔 메뉴 숫자키 무시(비번/이름/채팅 입력 보호)
   if(e.code==="Space")return; const n=parseInt(e.key,10);
@@ -280,7 +281,7 @@ function trainStat(stat,pts){ pts=Math.round(pts*(1+metaEff().growth));   // �
   if(up>0){ line(`✦ <b>${STAT_NAME[stat]}</b>이(가) ${up} 올랐다! (현재 ${P.stats[stat]})`,"heal"); checkTitleUnlocks(); }
   return up; }
 function addMat(mat,n){ P.mats[mat]=(P.mats[mat]||0)+n; if(typeof checkQuests==="function")checkQuests(); }
-function heal(n){ n=Math.round(n*(1+(jobMods().healPct||0))); const mhp=MAXHP(); const b=Math.min(n,mhp-P.hp); if(b>0){ P.hp+=b; line(`체력을 ${b} 회복했다.`,"heal"); spawnFloat("+"+b,"#6bcf8a","me"); } render(); }
+function heal(n){ n=Math.round(n*(1+(jobMods().healPct||0))); const mhp=MAXHP(); const b=Math.min(n,mhp-P.hp); if(b>0){ P.hp+=b; line(`체력을 ${b} 회복했다.`,"heal"); spawnFloat("+"+b,"#6bcf8a","me"); if(typeof sfx==="function")sfx("heal"); } render(); }
 function addRelic(name){ const g=RELICS[name];
   if(g&&g.key){ if(!P.questItems.includes(name))P.questItems.push(name); line(`🗝 <b>퀘스트 아이템</b> 획득: <b>${name}</b>`,"loot"); render(); return; }
   const it={k:name,id:newId(),up:0}; P.inv.push(it); let auto="";

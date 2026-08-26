@@ -2,7 +2,7 @@
 /* ============================================================
    죽음 / 승리 (로그라이트: 마을 귀환, 캐릭터 유지)
    ============================================================ */
-function die(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene("💀","");
+function die(){ stopAuctionTimer(); enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); clearLog(); setScene("💀","");
   line(`<b style="color:var(--danger)">탑 ${P.floor}층에서 정신을 잃었다…</b>`);
   line("눈을 떠보니 마을 어귀였다. 누군가 당신을 옮겨준 모양이다.","quote");
   const loss=Math.floor(P.gold*0.1); if(loss>0){ P.gold-=loss; line(`정신없는 사이 금화 ${loss}를 잃었다.`,"dmg"); }
@@ -281,10 +281,18 @@ function confirmNewGame(){ if(hasSave()&&!confirm("새로 시작하면 저장된
 function settingsScreen(){ clearLog(); setScene("⚙️","설정");
   line("이 게임은 브라우저에 <b>자동 저장</b>됩니다. HTML 파일 하나로 어디서든 실행돼요.","sys");
   line(hasSave()?"저장된 캐릭터가 있습니다.":"저장된 캐릭터가 없습니다.","sys");
-  setActions([
-    {label:"🗑 저장 데이터 삭제",desc:"모든 진행 삭제 · 되돌릴 수 없음",disabled:!hasSave(),act:()=>{ if(confirm("정말 저장 데이터를 삭제할까요? 되돌릴 수 없습니다.")){ localStorage.removeItem(SAVE_KEY); toast("저장 데이터 삭제됨"); } titleScreen(); }},
-    {label:"← 뒤로",full:true,act:titleScreen},
-  ]); }
+  const A=(typeof AUDIO!=="undefined")?AUDIO:null;
+  if(A){ line(`🔊 <b>사운드</b> — 효과음 ${A.on?"켜짐":"꺼짐"} · 배경음 ${A.bgmOn?"켜짐":"꺼짐"}`,"sys");
+    const p=document.createElement("p"); p.innerHTML=`<label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim)">🔉 음량 <input id="sfxVol" type="range" min="0" max="1" step="0.05" value="${A.vol}" style="flex:1;accent-color:var(--gold)"><button id="sfxTest" style="background:#0a0d13;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 10px;cursor:pointer">테스트</button></label>`; $("log").appendChild(p);
+    const vs=$("sfxVol"); if(vs)vs.oninput=()=>{ if(typeof sfxSetVol==="function")sfxSetVol(parseFloat(vs.value)); };
+    const tb=$("sfxTest"); if(tb)tb.onclick=()=>{ if(typeof sfx==="function")sfx("loot"); };
+    line("💡 배경음악은 sounds 폴더에 파일을 넣고 js/audio.js의 BGM.src에 경로만 적으면 자동 재생돼요.","sys"); }
+  const acts=[];
+  if(A){ acts.push({label:A.on?"🔊 효과음 끄기":"🔈 효과음 켜기",act:()=>{ if(typeof sfxSetOn==="function")sfxSetOn(!A.on); settingsScreen(); }});
+    acts.push({label:A.bgmOn?"🎵 배경음 끄기":"🎶 배경음 켜기",act:()=>{ if(typeof bgmSetOn==="function")bgmSetOn(!A.bgmOn); settingsScreen(); }}); }
+  acts.push({label:"🗑 저장 데이터 삭제",desc:"모든 진행 삭제 · 되돌릴 수 없음",disabled:!hasSave(),act:()=>{ if(confirm("정말 저장 데이터를 삭제할까요? 되돌릴 수 없습니다.")){ localStorage.removeItem(SAVE_KEY); toast("저장 데이터 삭제됨"); } titleScreen(); }});
+  acts.push({label:"← 뒤로",full:true,act:titleScreen});
+  setActions(acts); }
 function helpScreen(){ clearLog(); setScene("❔","도움말");
   line("🗼 <b>이름 없는 탑</b> — 기억 없는 방랑자가 되어 탑 정상의 진실을 마주하라.");
   line("• <b>거점 마을</b>: 생활 활동으로 스탯을 키우고, 교관에게 스킬을 배우고, 상점·경매장을 이용한다.","sys");

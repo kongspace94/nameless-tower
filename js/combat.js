@@ -93,12 +93,12 @@ function makeEnemy(){ const f=P.floor; const ng=ngMul();
   const e={...base,hp:Math.round(base.hp*s*ng),atk:Math.round(base.atk*s*ng),def:base.def+Math.floor(f/6),g:Math.round(base.g*(1+(f-1)*0.12))};
   e.hpMax=e.hp; e.groggy=0; e.groggyMax=40+f*2; e.staggered=false; e.stagUsed=false; return e; }
 
-function startCombat(e,intro){ enemy=e; if(!enemy.weak)enemy.weak=elemForName(enemy.n); enemy.ail={}; enemy._weakShown=!!(P.codexWeak&&P.codexWeak[enemy.n]);   // 속성 약점(몬스터별 고정) + 상태이상 컨테이너
+function startCombat(e,intro){ if(typeof bgm==="function")bgm("combat"); enemy=e; if(!enemy.weak)enemy.weak=elemForName(enemy.n); enemy.ail={}; enemy._weakShown=!!(P.codexWeak&&P.codexWeak[enemy.n]);   // 속성 약점(몬스터별 고정) + 상태이상 컨테이너
   if(enemy.mech===undefined)enemy.mech=MONSTER_MECH[enemy.n]||null;   // 👹 고유 기믹
   if(enemy.mech==="shield"){ enemy.shieldHp=Math.round(enemy.hpMax*0.28); enemy.shieldMax=enemy.shieldHp; }
   enemy.enraged=false; enemy.splitUsed=false;
   B={comp:buildComp(P.companion),poison:0,diceUsed:false,enemyGuard:0,block:null,parry:null,shield:false,summon:null,quickProcs:0,enemyIntent:null,turn:0,swaps:0,momentum:0};
-  if(intro)line(intro,"sys"); line(`<b style="color:var(--danger)">⚔ ${enemy.n}</b> 이(가) 나타났다! ${pick(enemy.taunt)}`);
+  if(intro)line(intro,"sys"); line(`<b style="color:var(--danger)">⚔ ${enemy.n}</b> 이(가) 나타났다! ${pick(enemy.taunt)}`); if(typeof sfx==="function")sfx("encounter");
   if(B.comp)line(`${B.comp.emoji} ${B.comp.n}이(가) 곁을 지킨다.`,"sys");
   if(EXP)applyRegionDebuff();   // 개척: 지역 디버프 적용
   B.enemyIntent=rollIntent(); startPlayerTurn(); }
@@ -720,6 +720,7 @@ function tickAilments(){ if(!enemy||!enemy.ail)return false; const a=enemy.ail;
     if(froze){ line(`❄️ ${enemy.n}이(가) 얼어붙어 이번 턴 움직이지 못한다!`,"heal"); B.block=null; B.parry=null; B.shield=false; render(); endEnemyTurn(); return true; } }
   return false; }
 function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
+  if(typeof sfx==="function")sfx(color==="#ff8f3c"?"crit":"attack");   // 🔊 타격음(치명타=주황이면 크리트)
   if(B&&B.charge){                                        // 충전(궁극기) 중: 피해가 HP가 아니라 파훼 게이지로 → 다 채우면 저지
     B.charge.filled=(B.charge.filled||0)+dmg;
     line(`${label} — <b style="color:#8fd0ff">충전 저지! 파훼 +${dmg}</b>`,"heal"); fxHit(); spawnFloat("+"+dmg,"#8fd0ff","foe"); setSceneFoe();
@@ -949,7 +950,7 @@ function playerFlee(){ if(chance(fleeChance())){ line("재빠르게 도망쳤다
 function pctRoll(margin){ let c=0; for(let a=0;a<12;a++)for(let b=0;b<12;b++)if(a-b>=margin)c++; return c/144; }
 
 function winCombat(){ P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor;
-  line(`<b style="color:var(--good)">${enemy.n}을(를) 쓰러뜨렸다!</b>`);
+  line(`<b style="color:var(--good)">${enemy.n}을(를) 쓰러뜨렸다!</b>`); if(typeof sfx==="function")sfx("victory");
   if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사
   const g=enemy.g+rnd(6); P.gold+=g; line(`💰 금화 +${g}`,"loot"); spawnFloat("💰+"+g,"#ffe08a","foe");
   const mkeys=Object.keys(MATS); const m=mkeys[rnd(mkeys.length)]; const ma=1+rnd(2); addMat(m,ma); line(`${MATS[m][0]} ${MATS[m][1]} +${ma}`,"loot");
