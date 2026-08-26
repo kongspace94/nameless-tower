@@ -265,8 +265,10 @@
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .authpw{position:relative; display:flex}
   .authpw .authin{padding-right:44px}
-  .authpw .eyebtn{position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:4px 6px; opacity:.6; line-height:0; color:var(--ink); display:flex; align-items:center}
-  .authpw .eyebtn:hover{opacity:1; color:var(--gold)}
+  .authpw .eyebtn{position:absolute; right:5px; top:50%; transform:translateY(-50%); width:30px; height:30px; background:none; border:none; cursor:pointer; padding:0; opacity:.6; line-height:0; color:var(--ink); display:flex; align-items:center; justify-content:center}
+  .authpw .eyebtn:hover{opacity:1; color:var(--gold)} .authpw .eyebtn:active{transform:translateY(-50%)}
+  .authpw .authin::-ms-reveal, .authpw .authin::-ms-clear{ display:none }   /* Edge 기본 비번 아이콘 숨김(우리 눈만) */
+  .authpw .authin::-webkit-credentials-auto-fill-button{ visibility:hidden; display:none !important }
   .autherr{min-height:18px; font-size:12.5px; color:var(--danger); text-align:center}
   .authtip{font-size:11.5px; color:var(--dim); text-align:center; line-height:1.5}
   .chatbox{display:flex; flex-direction:column; gap:5px}
