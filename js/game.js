@@ -208,7 +208,9 @@ async function submitAuth(mode){ const nmi=$("authName"), pwi=$("authPw"), err=$
   }catch(e){ setErr((mode==="login"?"로그인":"가입")+" 실패 — "+e.message); }
 }
 async function enterOnline(){
-  let cloud=null; try{ cloud=await netSaveLoad(); }catch(e){}
+  let cloud=null, authErr=false;
+  try{ cloud=await netSaveLoad(); }catch(e){ if(/로그인|401/.test(e&&e.message||""))authErr=true; }
+  if(authErr){ netLogout(); toast("세션이 만료됐어요 — 다시 로그인해주세요"); authForm("login"); return; }   // 서버 재시작 등으로 토큰 만료 시
   const hasCloud=!!(cloud&&cloud.stats);
   if(hasCloud){ P=cloud; normalizeP(); } else { P=freshPlayer(); P.name=NET.name||P.name; }
   P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog();

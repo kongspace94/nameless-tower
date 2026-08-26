@@ -292,7 +292,8 @@
   .chatdock .cdhead{display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#141a2a; cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--ink); user-select:none; border-bottom:1px solid var(--line)}
   .cddot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 6px var(--good); margin-left:4px; vertical-align:middle; animation:stagpulse 1.6s infinite}
   .chatdock .cdtoggle{color:var(--dim)}
-  .chatdock .cdbody{max-height:186px; overflow-y:auto; padding:9px 11px}
+  .chatdock .cdbody{max-height:186px; overflow-y:auto; padding:9px 11px; scrollbar-width:none; -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 18px)}
+  .chatdock .cdbody::-webkit-scrollbar{ display:none; width:0 }
   .chatdock .cdbody .chatbox{gap:4px}
   .chatdock .cmsg .cnm{min-width:58px; font-size:11px}
   .chatdock .cmsg .ctx{font-size:12.5px; flex:1; min-width:0; word-break:break-word}

@@ -273,7 +273,7 @@ function guildCategory(cat){ if(enemy)return; const g=GUILD_CATS[cat]; clearLog(
     return { label:`📜 ${q.n}`, desc:`${q.desc} → 보상 ${rewardText(q.reward)}`, act:()=>{ acceptQuest(id); toast("의뢰 수락: "+q.n); guildCategory(cat); } }; });
   acts.push({label:"← 다른 종류",act:guildMasterMenu},{label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 /* 💬 광장 채팅 — 오프라인 NPC 시뮬레이션 (추후 서버 채팅으로 교체 가능하도록 chatFetch/chatPost로 분리) */
-let chatTimer=null, chatLog=[];
+let chatTimer=null, chatLog=[], _lastChatSend=0;
 const CHAT_NAMES=["강철나비","달빛사냥꾼","탑돌이","고인물","야간모드","용사김밥","무빙장인","광부왕","초보환영","힐러구함","포션과부하","1등할끄야","은둔고수","길잃은요정","세이버장인"];
 const CHAT_LINES=["탑 20층 보스 왜케 아파요 ㅠㅠ","월광 세이버 파실 분 계신가요?","같이 등반하실 분~ 30층대 구함","경매장 마정석 값 실화냐","단검 2연타 개꿀이네요","방금 정예몹한테 털림 ㅋㅋ","마나 오브 어디서 떨궈요?","길드하우스 토벌 의뢰 보상 좋음","주문 영창 오타나서 파이어볼 불발 ㅋㅋㅋ","50층 최종보스 잡은 사람?","힐러 없이 딜찍누 가능?","칭호 '부호' 조건 빡세네","입문자 세트로 15층까지 옴","이 게임 은근 중독되네","다들 무슨 무기 쓰세요?","천공존 배경 이쁨","함정 해체하다 죽을 뻔"];
 function chatFetch(){ return {name:pick(CHAT_NAMES), text:pick(CHAT_LINES), ts:Date.now()}; }
@@ -301,10 +301,12 @@ function renderChatDock(){ const body=$("chatmsgs"); if(!body)return;
   if(atBottom) sc.scrollTop=sc.scrollHeight; }   // 맨 아래에 있을 때만 자동 스크롤(대화 읽는 중이면 방해 안 함)
 function toggleChatDock(){ const d=$("chatdock"); if(d){ d.classList.toggle("collapsed"); d.dataset.userToggled="1"; } }
 function chatSend(){ if(!P)return; const inp=$("cdinput"); const msg=((inp?inp.value:"")||"").trim(); if(!msg)return;
-  if(inp){ inp.value=""; try{ inp.focus(); }catch(e){} }
   if(P._online && typeof netChatSend==="function"){   // 🌐 온라인: 서버로 전송(SSE로 되돌아옴)
-    netChatSend(msg.slice(0,200)).catch(()=>toast("전송 실패 (연결 확인)")); return;
+    const now=Date.now(); if(now-_lastChatSend<1200){ toast("너무 빨라요 — 잠깐만요"); return; }   // 클라 도배 방지(입력 유지)
+    _lastChatSend=now; if(inp){ inp.value=""; try{ inp.focus(); }catch(e){} }
+    netChatSend(msg.slice(0,200)).catch(e=>toast((e&&e.message)?e.message:"전송 실패 (연결 확인)")); return;
   }
+  if(inp){ inp.value=""; try{ inp.focus(); }catch(e){} }
   chatPost(msg.slice(0,60)); renderChatDock();   // 오프라인: 로컬 시뮬
   if(chance(0.6))setTimeout(()=>{ if(mode==="town"&&chatTimer){ chatLog.push({name:pick(CHAT_NAMES), text:pick(["ㅇㅋㅇㅋ","오 반가워요","화이팅!","저도요 ㅋㅋ","굿굿","같이해요~","ㄹㅇ"]), ts:Date.now()}); renderChatDock(); } }, 1200); }
 function openChat(){ startTownChat(); }   // 하위호환

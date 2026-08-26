@@ -12,6 +12,7 @@ const { db, markDirty, flushNow, CHAT_MAX } = require("./store");
 const PORT = process.env.PORT || 8787;
 const CLIENT_DIR = path.join(__dirname, "..");   // 게임 정적 파일(index.html·js·assets) 루트
 const tokens = new Map();   // token -> userId (인메모리; 재시작 시 재로그인)
+const chatRate = new Map();   // userId -> {ts,text,burst}  도배 방지
 const STATIC_MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8", ".css":"text/css; charset=utf-8",
   ".json":"application/json; charset=utf-8", ".png":"image/png", ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".gif":"image/gif",
   ".svg":"image/svg+xml", ".ico":"image/x-icon", ".webp":"image/webp", ".woff":"font/woff", ".woff2":"font/woff2", ".ttf":"font/ttf" };
@@ -112,6 +113,12 @@ const server = http.createServer(async (req, res) => {
         const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
         const { text } = await body(req); const t = String(text || "").trim().slice(0, 200);
         if (!t) return json(res, 400, { error: "빈 메시지" });
+        const now = Date.now(), last = chatRate.get(user.id) || { ts: 0, text: "", burst: 0 };   // 🚫 도배 방지
+        if (now - last.ts < 1200) return json(res, 429, { error: "너무 빨라요 — 잠시 후 다시" });
+        if (t === last.text && now - last.ts < 8000) return json(res, 429, { error: "같은 말 반복 금지" });
+        last.burst = (now - last.ts < 3000) ? last.burst + 1 : 0;
+        if (last.burst >= 5) { chatRate.set(user.id, { ts: now + 8000, text: t, burst: 0 }); return json(res, 429, { error: "도배 감지 — 8초 대기" }); }
+        chatRate.set(user.id, { ts: now, text: t, burst: last.burst });
         const msg = { id: newId(), name: user.name, text: t, ts: Date.now() };
         db.chat.push(msg); if (db.chat.length > CHAT_MAX) db.chat = db.chat.slice(-CHAT_MAX); markDirty("chat");
         broadcast("chat", msg);

@@ -9,7 +9,7 @@ const NET = {
   token: localStorage.getItem("nt_token") || null,
   userId: localStorage.getItem("nt_uid") || null,
   name: localStorage.getItem("nt_name") || null,
-  online: false,      // 로그인되어 온라인 모드로 플레이 중인가
+  online: !!localStorage.getItem("nt_token"),   // 저장된 토큰 있으면 이미 로그인된 것으로(→ 타이틀서 로그아웃 노출)
   serverUp: false,    // 서버가 살아있는가(감지)
   sse: null,
   onChat: null,       // (msg)=>{}
