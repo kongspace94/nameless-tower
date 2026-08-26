@@ -67,6 +67,7 @@ function nameTaken(name) { return Object.values(db.accounts).some((a) => a.name.
 
 /* ---------- SSE 허브 (실시간 푸시) ---------- */
 const sseClients = new Set();   // { res, userId, name }
+const townPos = new Map();       // 🗺 마을 위치: userId → { name, av, x, y, ts }
 function sseSend(client, event, data) {
   try { client.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (e) {}
 }
@@ -137,6 +138,23 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, nick: user.nick || user.name, avatar: user.av || "" });
     }
 
+    /* 🗺 마을 위치 동기화 — 지도에서 다른 유저를 걸어다니게 표시 */
+    if (p === "/api/town/pos" && req.method === "POST") {
+      const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
+      const b = await body(req);
+      if (b.leave) { townPos.delete(user.id); broadcast("townleave", { id: user.id }); return json(res, 200, { ok: true }); }
+      const x = Math.max(0, Math.min(100, +b.x || 50)), y = Math.max(0, Math.min(100, +b.y || 70));
+      townPos.set(user.id, { name: user.nick || user.name, av: user.av || "", x, y, ts: Date.now() });
+      broadcast("townpos", { id: user.id, name: user.nick || user.name, av: user.av || "", x, y });
+      return json(res, 200, { ok: true });
+    }
+    if (p === "/api/town/pos" && req.method === "GET") {
+      const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
+      const now = Date.now(), players = [];
+      for (const [id, v] of townPos) { if (now - v.ts > 20000) { townPos.delete(id); continue; } players.push({ id, name: v.name, av: v.av, x: v.x, y: v.y }); }
+      return json(res, 200, { players });
+    }
+
     /* 클라우드 세이브 조회/저장 */
     if (p === "/api/save") {
       const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
@@ -198,7 +216,7 @@ const server = http.createServer(async (req, res) => {
       const client = { res, userId: uid, name: acc ? acc.name : "손님" };
       sseClients.add(client);
       broadcast("presence", { online: sseClients.size });
-      req.on("close", () => { sseClients.delete(client); broadcast("presence", { online: sseClients.size }); });
+      req.on("close", () => { sseClients.delete(client); if (client.userId) { townPos.delete(client.userId); broadcast("townleave", { id: client.userId }); } broadcast("presence", { online: sseClients.size }); });
       return;
     }
 

@@ -33,6 +33,36 @@ function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopCh
     {label:`🌌 회귀의 제단`,desc:`메아리 ✦${(P.meta&&P.meta.echoes)||0} · 회귀 ${(P.meta&&P.meta.runs)||0}회 · 영구 강화`,act:altarMenu},
   ]);
   startTownChat(); }   // 상시 광장 채팅 독
+/* 🎨 캔버스 타일 마을 렌더러 — 잔디 타일·광장·연못·나무·모닥불·집 스프라이트를 그린다 */
+function drawTownCanvas(cv, blds){
+  const w=cv.clientWidth||600, h=cv.clientHeight||340, dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); const g=cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0);
+  const X=p=>p/100*w, Y=p=>p/100*h; let s=20260827>>>0; const rnd=()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
+  const greens=["#5aa246","#63ab4e","#549a40","#5ea648"], T=Math.max(20,Math.round(w/22));
+  for(let yy=0;yy<h;yy+=T)for(let xx=0;xx<w;xx+=T){ g.fillStyle=greens[(Math.floor(xx/T)*3+Math.floor(yy/T)*5)%greens.length]; g.fillRect(xx,yy,T+1,T+1);
+    if(rnd()<0.10){ g.fillStyle="rgba(28,74,28,.18)"; g.fillRect(xx+rnd()*T*0.6,yy+rnd()*T*0.6,T*0.32,T*0.32); }
+    if(rnd()<0.05){ g.fillStyle=rnd()<0.5?"#ecd94e":"#ec8fb2"; g.fillRect(xx+rnd()*T,yy+rnd()*T,3,3); } }
+  g.fillStyle="#c8b083"; g.globalAlpha=0.55; g.beginPath(); g.ellipse(X(47),Y(72),w*0.17,h*0.13,0,0,7); g.fill(); g.globalAlpha=1;   // 중앙 광장
+  g.fillStyle="#3f7fbf"; g.beginPath(); g.ellipse(X(90),Y(66),w*0.07,h*0.10,0,0,7); g.fill(); g.fillStyle="#5b9fd6"; g.beginPath(); g.ellipse(X(89),Y(64),w*0.05,h*0.07,0,0,7); g.fill();   // 연못
+  [[26,46],[57,40],[38,74],[8,20],[76,20],[94,86]].forEach(([tx,ty])=>drawTree(g,X(tx),Y(ty)));
+  drawFire(g,X(72),Y(60));
+  const roofs=["#b8524a","#4a6bb8","#7a4ab8","#b88a4a","#4ab88a","#b84a86","#5a7a4a","#8a6a4a"];
+  blds.forEach((b,i)=>drawHouse(g,X(b.x),Y(b.y),b.emo,b.label,roofs[i%roofs.length]));
+}
+function drawTree(g,x,y){ g.fillStyle="rgba(0,0,0,.15)"; g.beginPath(); g.ellipse(x,y+14,12,4,0,0,7); g.fill();
+  g.fillStyle="#6b4a2a"; g.fillRect(x-3,y,6,14); g.fillStyle="#3f8a3a"; [[0,-8,14],[-9,-2,10],[9,-2,10],[0,-16,10]].forEach(([dx,dy,r])=>{ g.beginPath(); g.arc(x+dx,y+dy,r,0,7); g.fill(); });
+  g.fillStyle="#4fa347"; g.beginPath(); g.arc(x-4,y-11,7,0,7); g.fill(); }
+function drawFire(g,x,y){ g.fillStyle="#5a3a1a"; g.fillRect(x-9,y+6,18,4);
+  g.fillStyle="#ff7a1a"; g.beginPath(); g.moveTo(x,y-12); g.quadraticCurveTo(x+9,y,x,y+6); g.quadraticCurveTo(x-9,y,x,y-12); g.fill();
+  g.fillStyle="#ffd24a"; g.beginPath(); g.moveTo(x,y-5); g.quadraticCurveTo(x+5,y+1,x,y+5); g.quadraticCurveTo(x-5,y+1,x,y-5); g.fill(); }
+function drawHouse(g,x,y,emoji,label,roof){ g.save(); g.textAlign="center"; g.textBaseline="middle"; const bw=46,bh=30;
+  g.fillStyle="rgba(0,0,0,.2)"; g.beginPath(); g.ellipse(x,y+bh/2+4,bw*0.55,7,0,0,7); g.fill();
+  g.fillStyle="#ecdcb8"; g.fillRect(x-bw/2,y-bh/2,bw,bh); g.fillStyle="rgba(120,90,50,.18)"; g.fillRect(x-bw/2,y+bh/2-7,bw,7);
+  g.fillStyle="#7a5230"; g.fillRect(x-7,y+bh/2-14,14,14); g.fillStyle="#ffcf6a"; g.fillRect(x-8,y+bh/2-11,4,9);
+  g.fillStyle=roof; g.beginPath(); g.moveTo(x-bw/2-6,y-bh/2); g.lineTo(x+bw/2+6,y-bh/2); g.lineTo(x+bw/2-7,y-bh/2-17); g.lineTo(x-bw/2+7,y-bh/2-17); g.closePath(); g.fill();
+  g.fillStyle="rgba(0,0,0,.18)"; g.fillRect(x-bw/2-6,y-bh/2-1,bw+12,3);
+  g.font="17px serif"; g.fillText(emoji,x,y-1);
+  g.font="bold 11px sans-serif"; g.lineWidth=3; g.strokeStyle="rgba(255,255,255,.85)"; g.strokeText(label,x,y+bh/2+13); g.fillStyle="#10240f"; g.fillText(label,x,y+bh/2+13); g.restore(); }
 /* 🗺 마을 지도(걸어다니는 프리뷰) — 건물 클릭 → 캐릭터가 걸어가서 도착하면 해당 메뉴 오픈 */
 function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; stopChatTimer();
   render(); clearLog(); setScene("🗺️","거점 마을 — 가고 싶은 곳을 누르면 걸어가요.");
@@ -51,28 +81,57 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     {emo:"🌌",label:"제단",x:44,y:82,act:altarMenu,hi:"돌아왔는가…"},
   ];
   if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,act:farmMenu,hi:"일꾼들이 반겨요"});
-  const decos=[{e:"🌳",x:26,y:46},{e:"🌲",x:57,y:40},{e:"🔥",x:72,y:60},{e:"💧",x:90,y:66},{e:"🌿",x:38,y:74},{e:"🪨",x:22,y:20}];
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
-  $("log").innerHTML=`<div class="townmap" id="townmap"><div class="tmpath"></div>
-    ${decos.map(d=>`<span class="tmdeco" style="left:${d.x}%;top:${d.y}%">${d.e}</span>`).join("")}
-    ${blds.map((b,i)=>`<button type="button" class="tmbld" data-i="${i}" tabindex="-1" style="left:${b.x}%;top:${b.y}%"><span class="tmemo">${b.emo}</span><span class="tmlab">${b.label}</span></button>`).join("")}
+  $("log").innerHTML=`<div class="townmap" id="townmap">
+    <canvas class="tmcanvas" id="tmcanvas"></canvas>
+    ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" title="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
+    <div class="tmothers" id="tmothers"></div>
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
-  const map=$("townmap"), pl=$("tmplayer"); let walking=false;
-  map.querySelectorAll(".tmbld").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
+  const map=$("townmap"), pl=$("tmplayer"), cv=$("tmcanvas"); let walking=false;
+  const drawIt=()=>{ try{ drawTownCanvas(cv, blds); }catch(e){} };
+  drawIt(); setTimeout(drawIt,0); if(typeof requestAnimationFrame==="function")requestAnimationFrame(drawIt);   // 즉시+다음틱+rAF (레이아웃 준비 시점 어디서든 확실히 그려지게)
+  if(typeof startTownPresence==="function")startTownPresence(map, blds);   // 👥 다른 온라인 유저 표시(온라인일 때)
+  map.querySelectorAll(".tmhit").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
     btn.onclick=(e)=>{ e.stopPropagation(); if(walking||!pl)return; const b=blds[+btn.dataset.i];
     const px=parseFloat(pl.style.left)||47, py=parseFloat(pl.style.top)||70, tx=b.x, ty=b.y+9;   // 문 앞까지
     const dist=Math.hypot(tx-px,ty-py), dur=Math.max(260,Math.round(dist*24)); walking=true;
     pl.classList.toggle("faceleft", tx<px-0.5);   // 🔄 걷는 방향 좌우 뒤집기
     pl.style.transition=`left ${dur}ms ease-in-out, top ${dur}ms ease-in-out`; pl.classList.add("walking");
     pl.style.left=tx+"%"; pl.style.top=ty+"%";
+    if(P._online&&typeof netTownPos==="function")netTownPos(tx,ty).catch(()=>{});   // 👥 내 이동을 다른 유저에게 브로드캐스트
     const stepT=setInterval(()=>{ if(typeof sfx==="function")sfx("step"); }, 260);   // 🚶 발소리
     setTimeout(()=>{ clearInterval(stepT); pl.classList.remove("walking"); walking=false;
       const bub=document.createElement("div"); bub.className="tmbubble"; bub.textContent=b.hi||(b.label+" 도착!"); bub.style.left=tx+"%"; bub.style.top=(ty-7)+"%"; map.appendChild(bub);   // 💬 도착 인사말
       setTimeout(()=>{ try{ bub.remove(); }catch(e){} }, 900);
       window.__fromMap = (b.act!==startDive);   // 상점류는 나갈 때 지도로 복귀(탑 등반은 예외)
+      if(typeof stopTownPresence==="function")stopTownPresence();
       if(typeof sfx==="function")sfx("click"); setTimeout(()=>b.act(), 260); }, dur+60); }; });
-  setActions([{label:"📋 메뉴(목록)로 보기",full:true,act:()=>{ window.__fromMap=false; townMenu(); }},{label:"🗼 탑 등반",full:true,act:startDive}]); }
+  setActions([{label:"📋 메뉴(목록)로 보기",full:true,act:()=>{ window.__fromMap=false; if(typeof stopTownPresence==="function")stopTownPresence(); townMenu(); }},{label:"🗼 탑 등반",full:true,act:startDive}]); }
+/* 👥 마을 지도 실시간 접속자 표시(온라인) — 내 위치 브로드캐스트 + 다른 유저를 걸어다니게 렌더 */
+let townPresenceTimer=null, townOthers={};
+function tmOtherAv(av){ return (typeof av==="string"&&av.slice(0,5)==="data:")?`<img src="${av}" alt="">`:((av&&[...String(av)].length<=4)?av:"🧑"); }
+function upsertOther(layer, m){ if(!layer||!m||!m.id)return; let el=townOthers[m.id];
+  if(!el){ el=document.createElement("div"); el.className="tmother"; el.style.left=m.x+"%"; el.style.top=m.y+"%";
+    el.innerHTML=`<span class="tmoav"></span><span class="tmonm"></span>`; layer.appendChild(el); townOthers[m.id]=el; }
+  el.querySelector(".tmoav").innerHTML=tmOtherAv(m.av); el.querySelector(".tmonm").textContent=m.name||"?"; el.dataset.ts=Date.now();
+  el.style.left=m.x+"%"; el.style.top=m.y+"%";   // CSS transition(.5s)으로 걸어가듯 이동
+}
+function removeOther(id){ const el=townOthers[id]; if(el){ try{ el.remove(); }catch(e){} delete townOthers[id]; } }
+function startTownPresence(map, blds){ if(!(P&&P._online)||typeof netTownRoster!=="function")return;
+  const layer=map.querySelector("#tmothers"); if(!layer)return; townOthers={};
+  NET.onTownPos=(m)=>{ if(!m||m.id===NET.userId)return; const lay=document.getElementById("tmothers"); if(lay)upsertOther(lay,m); };
+  NET.onTownLeave=(m)=>{ if(m)removeOther(m.id); };
+  netTownRoster().then(list=>{ const lay=document.getElementById("tmothers"); if(!lay)return; list.forEach(m=>{ if(m.id!==NET.userId)upsertOther(lay,m); }); }).catch(()=>{});
+  const sendMe=()=>{ if(!document.getElementById("townmap")){ stopTownPresence(); return; } const pl=document.getElementById("tmplayer"); const x=pl?parseFloat(pl.style.left)||47:47, y=pl?parseFloat(pl.style.top)||70:70;
+    if(typeof netTownPos==="function")netTownPos(x,y).catch(()=>{});
+    const now=Date.now(); for(const id in townOthers){ if(now-(+townOthers[id].dataset.ts||now)>20000)removeOther(id); } };   // 오래된 유저 정리
+  sendMe(); clearInterval(townPresenceTimer); townPresenceTimer=setInterval(sendMe, 3500);   // 하트비트
+}
+function stopTownPresence(){ clearInterval(townPresenceTimer); townPresenceTimer=null;
+  if(typeof NET!=="undefined"){ NET.onTownPos=null; NET.onTownLeave=null; }
+  for(const id in townOthers)removeOther(id); townOthers={};
+  if(P&&P._online&&typeof netTownLeave==="function")netTownLeave(); }
 /* ⛺ 부족 거점 — 일꾼이 시간 기반으로 자원 자동 생산 */
 function farmMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
   if(!P.farm.unlocked){ P.farm.unlocked=true; P.farm.lastTs=Date.now();

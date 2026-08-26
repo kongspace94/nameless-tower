@@ -270,9 +270,14 @@
   .townmap{position:relative; width:100%; height:min(50vh,400px); border-radius:14px; overflow:hidden; border:1px solid var(--line); cursor:pointer;
     background:radial-gradient(120% 90% at 50% 0%, #6fb85a 0%, #58a047 42%, #47883b 100%);
     box-shadow:inset 0 -40px 60px -30px rgba(10,30,10,.6), inset 0 20px 40px -20px rgba(255,255,255,.12)}
+  .townmap .tmcanvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+  .tmhit{position:absolute; transform:translate(-50%,-50%); width:62px; height:58px; background:transparent; border:0; border-radius:12px; cursor:pointer; transition:background .12s}
+  .tmhit:hover{background:rgba(255,255,255,.15)}
+  .tmother{position:absolute; transform:translate(-50%,-50%); z-index:15; display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; transition:left .5s linear, top .5s linear}
+  .tmother .tmoav{font-size:22px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+  .tmother .tmoav img{width:22px; height:22px; object-fit:cover; border-radius:50%}
+  .tmother .tmonm{font-size:9px; color:#fff; background:rgba(0,0,0,.4); padding:0 4px; border-radius:6px; font-family:var(--mono); white-space:nowrap; max-width:70px; overflow:hidden; text-overflow:ellipsis}
   .townmap .tmdeco{position:absolute; transform:translate(-50%,-50%); font-size:26px; pointer-events:none; filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
-  .townmap .tmpath{position:absolute; inset:0; pointer-events:none; opacity:.5;
-    background:radial-gradient(circle at 50% 78%, rgba(200,180,120,.55) 0 8%, transparent 26%)}
   .tmbld{position:absolute; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:2px;
     background:rgba(10,14,22,.42); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:5px 8px 4px; cursor:pointer; transition:transform .12s, background .12s; backdrop-filter:blur(1px)}
   .tmbld:hover{transform:translate(-50%,-50%) scale(1.09); background:rgba(10,14,22,.62); border-color:var(--gold)}

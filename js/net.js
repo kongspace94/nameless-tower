@@ -109,5 +109,11 @@ function netConnectSSE() {
   es.addEventListener("chat", (e) => { try { NET.onChat && NET.onChat(JSON.parse(e.data)); } catch (x) {} });
   es.addEventListener("presence", (e) => { try { const d = JSON.parse(e.data); NET.onPresence && NET.onPresence(d.online); } catch (x) {} });
   es.addEventListener("auction", (e) => { try { NET.onAuction && NET.onAuction(JSON.parse(e.data)); } catch (x) {} });
+  es.addEventListener("townpos", (e) => { try { NET.onTownPos && NET.onTownPos(JSON.parse(e.data)); } catch (x) {} });
+  es.addEventListener("townleave", (e) => { try { NET.onTownLeave && NET.onTownLeave(JSON.parse(e.data)); } catch (x) {} });
   es.onerror = () => { /* EventSource가 자동 재연결 */ };
 }
+/* 🗺 마을 위치 동기화 */
+async function netTownPos(x, y) { return netFetch("/api/town/pos", { method: "POST", body: { x, y } }); }
+async function netTownLeave() { try { return await netFetch("/api/town/pos", { method: "POST", body: { leave: true } }); } catch (e) {} }
+async function netTownRoster() { const d = await netFetch("/api/town/pos"); return d.players || []; }
