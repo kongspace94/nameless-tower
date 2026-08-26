@@ -6,6 +6,9 @@ let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는
 let invTab="gear";   // 🎒 인벤 카테고리 탭(gear/cons/mat/quest)
 function setInvTab(t){ invTab=t; inventoryMenu(); }
 window.setInvTab=setInvTab;
+let whTab="gear";   // 🏦 창고 카테고리 탭(gear/cons/mat)
+function setWhTab(t){ whTab=t; warehouseMenu(); }
+window.setWhTab=setWhTab;
 function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; townReturn=null;
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
   if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
@@ -589,22 +592,26 @@ function warehouseMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
       : `<button class="ibtn on" onclick="whWd(${it.id})">찾기</button>`;
     return `<div class="grow"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),30)}</span><div class="gmeta"><div class="gn">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}</div><div class="ge">${g.note||''}</div></div><div class="gbtns">${btn}</div></div>`; };
   const stackRow=(emoji,name,q,where,fn)=>`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">${emoji}</span><div class="gmeta"><div class="gn">${name} <b>×${q}</b></div></div><div class="gbtns"><button class="ibtn ${where==='bag'?'':'on'}" onclick="${fn}">${where==='bag'?'맡기기':'찾기'}</button></div></div>`;
-  const bagRows=[];
-  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key).forEach(it=>bagRows.push(gearRow(it,"bag")));
-  if(P.potions>0)bagRows.push(stackRow("🧪","물약",P.potions,"bag","whDepPot()"));
-  Object.entries(P.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)bagRows.push(stackRow(c.emoji,c.n,q,"bag",`whDepCons('${k}')`)); });
-  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=P.mats[m]||0; if(q>0)bagRows.push(stackRow(e,nm,q,"bag",`whDepMat('${m}')`)); });
-  const stRows=[];
-  st.inv.filter(it=>RELICS[it.k]).forEach(it=>stRows.push(gearRow(it,"stash")));
-  if((st.potions||0)>0)stRows.push(stackRow("🧪","물약",st.potions,"stash","whWdPot()"));
-  Object.entries(st.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)stRows.push(stackRow(c.emoji,c.n,q,"stash",`whWdCons('${k}')`)); });
-  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=st.mats[m]||0; if(q>0)stRows.push(stackRow(e,nm,q,"stash",`whWdMat('${m}')`)); });
+  const bagItems=[], stItems=[];
+  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key).forEach(it=>bagItems.push({cat:"gear",html:gearRow(it,"bag")}));
+  if(P.potions>0)bagItems.push({cat:"cons",html:stackRow("🧪","물약",P.potions,"bag","whDepPot()")});
+  Object.entries(P.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)bagItems.push({cat:"cons",html:stackRow(c.emoji,c.n,q,"bag",`whDepCons('${k}')`)}); });
+  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=P.mats[m]||0; if(q>0)bagItems.push({cat:"mat",html:stackRow(e,nm,q,"bag",`whDepMat('${m}')`)}); });
+  st.inv.filter(it=>RELICS[it.k]).forEach(it=>stItems.push({cat:"gear",html:gearRow(it,"stash")}));
+  if((st.potions||0)>0)stItems.push({cat:"cons",html:stackRow("🧪","물약",st.potions,"stash","whWdPot()")});
+  Object.entries(st.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)stItems.push({cat:"cons",html:stackRow(c.emoji,c.n,q,"stash",`whWdCons('${k}')`)}); });
+  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=st.mats[m]||0; if(q>0)stItems.push({cat:"mat",html:stackRow(e,nm,q,"stash",`whWdMat('${m}')`)}); });
+  const wt=whTab||"gear", cnt=(a,c)=>a.filter(r=>r.cat===c).length;
+  const bagRows=bagItems.filter(r=>r.cat===wt).map(r=>r.html).join(""), stRows=stItems.filter(r=>r.cat===wt).map(r=>r.html).join("");
+  const whTabBar=`<div class="invtabs">`+[["gear","🗡 장비"],["cons","🧪 소비품"],["mat","🪵 재료"]].map(([t,lab])=>{ const n=cnt(bagItems,t)+cnt(stItems,t); return `<button type="button" class="invtab ${wt===t?'on':''}" onclick="setWhTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`; }).join("")+`</div>`;
   const goldBag=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">골드 <b>${P.gold}G</b></div></div><div class="gbtns"><button class="ibtn" ${P.gold<=0?'disabled':''} onclick="whDepGold()">맡기기</button></div></div>`;
   const goldStash=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">보관 골드 <b>${st.gold||0}G</b></div></div><div class="gbtns"><button class="ibtn on" ${(st.gold||0)<=0?'disabled':''} onclick="whWdGold()">찾기</button></div></div>`;
   $("log").innerHTML=`<div class="invv">
-    <div class="ge" style="color:var(--dim);margin-bottom:2px">🎒 가방 = 탑에 들고 가는 개인 소지품 · 🏦 창고 = 마을에서만 꺼내는 보관함 (골드도 보관 가능)</div>
-    <div><div class="ih"><span>🎒 가방 → 창고 (맡기기)</span><span class="cnt">${bagRows.length}</span></div><div class="glist">${goldBag}${bagRows.join("")}</div></div>
-    <div><div class="ih"><span>🏦 창고 → 가방 (찾기)</span><span class="cnt">${stashCount()}칸 · ${st.gold||0}G</span></div><div class="glist">${goldStash}${stRows.length?stRows.join(""):`<div class="inv-empty">창고에 아이템이 없다.</div>`}</div></div>
+    <div class="ge" style="color:var(--dim);margin-bottom:2px">🎒 가방=탑에 들고 가는 소지품 · 🏦 창고=마을 보관함 (골드도 보관)</div>
+    <div class="glist" style="margin-bottom:4px">${goldBag}${goldStash}</div>
+    ${whTabBar}
+    <div><div class="ih"><span>🎒 가방 → 창고 (맡기기)</span></div><div class="glist">${bagRows||`<div class="inv-empty">이 분류에 가방 아이템 없음</div>`}</div></div>
+    <div><div class="ih"><span>🏦 창고 → 가방 (찾기)</span><span class="cnt">${stashCount()}칸</span></div><div class="glist">${stRows||`<div class="inv-empty">이 분류에 창고 아이템 없음</div>`}</div></div>
   </div>`;
   setActions([{label:"🎒 소지품 열기",act:inventoryMenu},{label:"🏘 마을로",full:true,act:townMenu}]); }
 function whDep(id){ const i=P.inv.findIndex(x=>x.id===id); if(i<0)return; const it=P.inv[i];
