@@ -56,7 +56,10 @@ const ELEM_KEYS=Object.keys(ELEMENTS);
 /* 🎭 프로필 커스터마이징 — 아바타(이모지) · 첫 변경 무료, 이후 💎크리스탈(유료재화) */
 const AVATARS=["🧑","🧔","👩","🧙","🧝","🧛","🥷","🦹","🧟","👺","🤖","👻","🐺","🦊","🐲","🦁","👑","💀","🔥","⚔️"];
 const AVATAR_COST=3, NAME_COST=5;   // 두 번째 변경부터 크리스탈 비용
-function playerIco(size){ return (typeof P!=="undefined"&&P&&P.avatar) ? `<span class="pavatar" style="font-size:${Math.round(size*0.82)}px;line-height:1;display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px">${P.avatar}</span>` : ico("player",size); }
+function isImgAvatar(a){ return typeof a==="string" && a.slice(0,5)==="data:"; }   // 📷 업로드한 사진(데이터 URL)인지
+function playerIco(size){ if(!(typeof P!=="undefined"&&P&&P.avatar)) return ico("player",size);
+  if(isImgAvatar(P.avatar)) return `<span class="pavatar pavimg" style="width:${size}px;height:${size}px;display:inline-flex;border-radius:50%;overflow:hidden;background:#0a0d13"><img src="${P.avatar}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></span>`;
+  return `<span class="pavatar" style="font-size:${Math.round(size*0.82)}px;line-height:1;display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px">${P.avatar}</span>`; }
 function elemForName(name){ if(!name)return ELEM_KEYS[0]; let h=0; for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0; return ELEM_KEYS[h%ELEM_KEYS.length]; }
 const LIFE={
   logging:{n:"벌목",emoji:"🪓",stat:"str",mat:"wood",note:"힘 단련 · 원목"},

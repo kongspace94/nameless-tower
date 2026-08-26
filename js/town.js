@@ -90,25 +90,46 @@ function confirmReincarnate(){ if(enemy){ toast("전투 중엔 안 돼요"); ret
   setActions([{label:"🌌 제단에서 강화하기",full:true,act:altarMenu},{label:"🏘 마을로",full:true,act:townMenu}]); }
 /* 🎭 프로필 — 아바타/닉네임 (첫 변경 무료, 이후 💎크리스탈) */
 function profileMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; render(); clearLog();
-  setScene(P.avatar||"🧑","프로필 — 나를 꾸미자.");
+  setScene(isImgAvatar(P.avatar)?playerIco(72):(P.avatar||"🧑"),"프로필 — 나를 꾸미자.");
   line(`이름 <b>${P.name}</b> · 💎 크리스탈 <b>${P.gems||0}</b>`,"sys");
   line("💎 크리스탈은 유료 재화 — 첫 변경은 무료, 이후 변경마다 소모돼요. (보스 처치·통신판매로 획득)","quote");
   const nameFree=!P.flags.nameChanged, avaFree=!P.flags.avatarChanged;
   setActions([
-    {label:`🎭 프로필 아이콘 변경 ${avaFree?"— 첫 회 무료":`— 💎${AVATAR_COST}`}`,desc:P.avatar?`현재 ${P.avatar}`:"현재 기본 아이콘",disabled:!avaFree&&(P.gems||0)<AVATAR_COST,act:avatarPick},
+    {label:`🎭 프로필 아이콘 변경 ${avaFree?"— 첫 회 무료":`— 💎${AVATAR_COST}`}`,desc:P.avatar?(isImgAvatar(P.avatar)?"현재 내 사진":`현재 ${P.avatar}`):"현재 기본 아이콘",disabled:!avaFree&&(P.gems||0)<AVATAR_COST,act:avatarPick},
     {label:`✏️ 닉네임 변경 ${nameFree?"— 첫 회 무료":`— 💎${NAME_COST}`}`,desc:`현재 ${P.name}`,disabled:!nameFree&&(P.gems||0)<NAME_COST,act:renameChar},
     {label:"🏘 마을로",full:true,act:townMenu},
   ]); }
 function avatarPick(){ if(enemy)return; const free=!P.flags.avatarChanged;
   if(!free&&(P.gems||0)<AVATAR_COST){ toast("크리스탈 부족"); return; }
   const acts=[{header:true,label:free?"아이콘 선택 — 첫 회 무료":`아이콘 선택 — 💎${AVATAR_COST}`}];
+  acts.push({label:"📷 내 사진 업로드",full:true,desc:isImgAvatar(P.avatar)?"현재 내 사진 사용 중 · 다시 고르기":"기기에서 이미지를 골라 프로필로",act:avatarUpload});
   AVATARS.forEach(a=>acts.push({label:a,desc:P.avatar===a?"현재 사용 중":"",disabled:P.avatar===a,act:()=>setAvatar(a)}));
   acts.push({label:"↺ 기본 아이콘으로",full:true,desc:P.avatar==null?"현재 사용 중":"",disabled:P.avatar==null,act:()=>setAvatar(null)});
   acts.push({label:"← 뒤로",full:true,act:profileMenu}); setActions(acts); }
+/* 📷 기기 이미지 → canvas로 128px 정사각 크롭 → JPEG data URL(수 KB)로 저장. 클라우드 세이브에 그대로 실림 */
+function avatarUpload(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } const free=!P.flags.avatarChanged;
+  if(!free&&(P.gems||0)<AVATAR_COST){ toast("크리스탈 부족"); return; }
+  const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
+    if(!/^image\//.test(f.type||"")){ toast("이미지 파일만 가능해요"); return; }
+    toast("이미지 처리 중…"); const rd=new FileReader();
+    rd.onload=()=>{ const img=new Image();
+      img.onload=()=>{ try{
+          const S=128, cv=document.createElement("canvas"); cv.width=S; cv.height=S; const cx=cv.getContext("2d");
+          const scale=Math.max(S/img.width,S/img.height), w=img.width*scale, h=img.height*scale;   // 중앙 커버-크롭
+          cx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+          let url=cv.toDataURL("image/jpeg",0.72); if(url.length>180000)url=cv.toDataURL("image/jpeg",0.5);
+          setAvatar(url);
+        }catch(e){ toast("이미지 처리 실패 — 다른 파일로 시도해줘"); } };
+      img.onerror=()=>toast("이미지를 열 수 없어요"); img.src=rd.result; };
+    rd.onerror=()=>toast("파일을 읽지 못했어요"); rd.readAsDataURL(f); };
+  inp.click(); }
 function setAvatar(a){ const free=!P.flags.avatarChanged;
   if(!free){ if((P.gems||0)<AVATAR_COST){ toast("크리스탈 부족"); return; } P.gems-=AVATAR_COST; }
-  P.avatar=a; P.flags.avatarChanged=true; render(); toast(a?("아이콘: "+a):"기본 아이콘");
-  line(`🎭 프로필 아이콘을 ${a||"기본"}(으)로 바꿨다.${free?" (첫 회 무료)":` (💎${AVATAR_COST} 소모)`}`,"loot"); save(true); profileMenu(); }
+  P.avatar=a; P.flags.avatarChanged=true; render();
+  const lbl = a==null?"기본 아이콘" : (isImgAvatar(a)?"내 사진":a);
+  toast("프로필: "+lbl);
+  line(`🎭 프로필 아이콘을 ${lbl}(으)로 바꿨다.${free?" (첫 회 무료)":` (💎${AVATAR_COST} 소모)`}`,"loot"); save(true); profileMenu(); }
 function renameChar(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } const free=!P.flags.nameChanged;
   if(!free && (P.gems||0)<NAME_COST){ toast("크리스탈 부족"); return; }
   const n=prompt(`새 이름을 입력하세요 (${free?"첫 회 무료":`💎${NAME_COST} 소모`}):`, P.name); if(n==null)return;
