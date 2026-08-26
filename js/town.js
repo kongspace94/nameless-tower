@@ -45,19 +45,20 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     {emo:"🏛️",label:"경매장",x:82,y:52,act:openAuction},
     {emo:"🛖",label:"길드",x:63,y:70,act:guildHouse},
     {emo:"🌲",label:"생활터전",x:88,y:26,act:lifeMenu},
-    {emo:"📖",label:"수련관",x:10,y:80,act:skillMenu},
-    {emo:"🌌",label:"제단",x:47,y:86,act:altarMenu},
+    {emo:"📖",label:"수련관",x:10,y:78,act:skillMenu},
+    {emo:"🌌",label:"제단",x:44,y:82,act:altarMenu},
   ];
-  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:74,y:86,act:farmMenu});
+  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,act:farmMenu});
   const decos=[{e:"🌳",x:26,y:46},{e:"🌲",x:57,y:40},{e:"🔥",x:72,y:60},{e:"💧",x:90,y:66},{e:"🌿",x:38,y:74},{e:"🪨",x:22,y:20}];
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap"><div class="tmpath"></div>
     ${decos.map(d=>`<span class="tmdeco" style="left:${d.x}%;top:${d.y}%">${d.e}</span>`).join("")}
-    ${blds.map((b,i)=>`<button type="button" class="tmbld" data-i="${i}" style="left:${b.x}%;top:${b.y}%"><span class="tmemo">${b.emo}</span><span class="tmlab">${b.label}</span></button>`).join("")}
+    ${blds.map((b,i)=>`<button type="button" class="tmbld" data-i="${i}" tabindex="-1" style="left:${b.x}%;top:${b.y}%"><span class="tmemo">${b.emo}</span><span class="tmlab">${b.label}</span></button>`).join("")}
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
   const pl=$("tmplayer"); let walking=false;
-  $("townmap").querySelectorAll(".tmbld").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); if(walking||!pl)return; const b=blds[+btn.dataset.i];
+  $("townmap").querySelectorAll(".tmbld").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
+    btn.onclick=(e)=>{ e.stopPropagation(); if(walking||!pl)return; const b=blds[+btn.dataset.i];
     const px=parseFloat(pl.style.left)||47, py=parseFloat(pl.style.top)||70, tx=b.x, ty=b.y+9;   // 문 앞까지
     const dist=Math.hypot(tx-px,ty-py), dur=Math.max(260,Math.round(dist*24)); walking=true;
     pl.style.transition=`left ${dur}ms ease-in-out, top ${dur}ms ease-in-out`; pl.classList.add("walking");
