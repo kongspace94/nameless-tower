@@ -75,7 +75,7 @@ function intro(){ setScene("🗼","끝이 보이지 않는 탑이 하늘을 찌�
   line("당신도 그중 하나다. 이름도, 어제도 기억나지 않는 채 — 탑 아래 <b>거점 마을</b>에서 눈을 떴다.");
   line("먼저, 당신을 뭐라 부를까?","sys");
   setActions([{label:"닉네임을 정한다",act:askName},{label:"'방랑자'로 시작",act:()=>{ P.name="방랑자"; syncNick(); render(); chooseCompanion(); }}]); }
-function syncNick(){ if(P&&P._online&&typeof netSetNick==="function")netSetNick(P.name).catch(()=>{}); }   // 닉네임을 서버에 반영(채팅 표시명)
+function syncNick(){ if(P&&P._online&&typeof netSetNick==="function")netSetNick(P.name, P.avatar).catch(()=>{}); }   // 닉네임+아바타를 서버에 반영(채팅 표시명·프로필 사진)
 function askName(){ const n=prompt("게임에서 쓸 닉네임은? (남들에게 보여요)","방랑자"); P.name=(n&&n.trim())?n.trim().slice(0,12):"방랑자"; syncNick(); render(); chooseCompanion(); }
 function chooseCompanion(){ clearLog(); setScene("🧚","작은 정령 셋이 당신을 바라본다.");
   line(`<b>${P.name}</b>. 함께 탑을 오를 <b>서포트 동료</b>를 고르자. 전투마다 자동으로 돕는다.`);
@@ -271,7 +271,7 @@ async function enterOnline(){
   try{ cloud=await netSaveLoad(); }catch(e){ if(/로그인|401/.test(e&&e.message||""))authErr=true; }
   if(authErr){ netLogout(); toast("세션이 만료됐어요 — 다시 로그인해주세요"); authForm("login"); return; }   // 서버 재시작 등으로 토큰 만료 시
   const hasCloud=!!(cloud&&cloud.stats);
-  if(hasCloud){ P=cloud; normalizeP(); if(NET.nick&&NET.nick!==P.name)netSetNick(P.name).catch(()=>{}); }   // 저장된 닉네임을 서버에 동기화(채팅 표시명)
+  if(hasCloud){ P=cloud; normalizeP(); if(typeof netSetNick==="function")netSetNick(P.name, P.avatar).catch(()=>{}); }   // 저장된 닉네임·아바타를 서버에 동기화(채팅 표시)
   else { P=freshPlayer(); if(NET.nick&&NET.nick!==NET.name)P.name=NET.nick; }   // 아이디는 P.name에 넣지 않음 — 닉네임은 intro에서 정함
   P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog();
   if(hasCloud){ toast("클라우드에서 불러옴"); townMenu(); } else { toast("새 온라인 캐릭터 — 닉네임을 정하자"); intro(); }

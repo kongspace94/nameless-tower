@@ -213,7 +213,8 @@
   body.combat .stage{ height:296px; border-radius:14px 14px 0 0 }
   body.combat .bme{ bottom:12px }
   /* 메시지 박스: 5줄 높이 고정 → 텍스트 길이와 무관하게 항상 같은 크기 (아래 커맨드 버튼이 안 움직임) */
-  body.combat .log{ height:124px; max-height:124px; margin:0; padding:14px 16px 10px; font-size:14.5px; line-height:1.55;
+  body.combat .log{ height:124px; max-height:124px; margin:0; padding:14px 16px 12px; font-size:14.5px; line-height:1.55;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px); mask-image:linear-gradient(180deg,transparent 0,#000 14px);
     border:1px solid var(--line); border-top:0; border-bottom:0; border-radius:0; background:#0d1119;
     -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 22px, #000 100%); mask-image:linear-gradient(180deg, transparent 0, #000 22px, #000 100%) }   /* 위로 넘친 옛 줄은 하드컷 대신 페이드 */
   body.combat .actions{ margin:0; padding:12px 14px 14px; border:1px solid var(--line); border-top:0; border-radius:0 0 14px 14px; background:#0b0e15 }
@@ -264,6 +265,20 @@
   .authin:focus{border-color:var(--gold)}
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .reccode{font-family:var(--mono); font-size:22px; letter-spacing:.12em; font-weight:700; color:var(--gold); text-align:center; background:#0a0d13; border:1px dashed var(--gold); border-radius:10px; padding:16px 10px; user-select:all; -webkit-user-select:all; word-break:break-all}
+  .cropmodal{position:fixed; inset:0; z-index:9999; background:rgba(4,6,12,.82); display:flex; align-items:center; justify-content:center; padding:16px}
+  .cropbox{background:var(--panel,#11151f); border:1px solid var(--line); border-radius:16px; padding:18px; max-width:300px; width:100%; display:flex; flex-direction:column; gap:12px; align-items:center; box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .croptitle{font-size:14px; color:var(--ink); font-weight:700}
+  .cropstage{position:relative; border-radius:12px; overflow:hidden; background:#0a0d13; touch-action:none; cursor:grab; user-select:none}
+  .cropstage:active{cursor:grabbing}
+  .cropcanvas{display:block; width:100%; height:100%; pointer-events:none}
+  .cropring{position:absolute; inset:0; pointer-events:none; box-shadow:0 0 0 9999px rgba(0,0,0,.45); border-radius:50%; border:2px solid rgba(255,255,255,.85)}
+  .croprow{display:flex; align-items:center; gap:10px; width:100%}
+  .croprow input[type=range]{flex:1; accent-color:var(--gold)}
+  .crophint{font-size:11px; color:var(--dim); text-align:center}
+  .cropbtns{display:flex; gap:10px; width:100%}
+  .cropbtn{flex:1; padding:10px; border-radius:9px; border:1px solid var(--line); background:#0a0d13; color:var(--ink); cursor:pointer; font-size:13px}
+  .cropbtn.cropok{border-color:var(--gold); color:var(--gold); font-weight:700}
+  .cropbtn:hover{filter:brightness(1.15)}
   .authpw{position:relative; display:flex}
   .authpw .authin{padding-right:44px}
   /* transform 없이 top:0/bottom:0/margin:auto 로 수직 중앙 고정 → 클릭/active에도 절대 안 밀림 */
@@ -274,8 +289,10 @@
   .autherr{min-height:18px; font-size:12.5px; color:var(--danger); text-align:center}
   .authtip{font-size:11.5px; color:var(--dim); text-align:center; line-height:1.5}
   .chatbox{display:flex; flex-direction:column; gap:5px}
-  .cmsg{display:flex; gap:8px; align-items:baseline; padding:2px 0}
-  .cmsg .cnm{font-family:var(--mono); font-size:12px; color:var(--mp); min-width:72px; flex-shrink:0; text-align:right}
+  .cmsg{display:flex; gap:8px; align-items:center; padding:2px 0}
+  .cmsg .cav{width:20px; height:20px; flex-shrink:0; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; background:#0a0d13; font-size:13px; line-height:1}
+  .cmsg .cav img{width:100%; height:100%; object-fit:cover; display:block}
+  .cmsg .cnm{font-family:var(--mono); font-size:12px; color:var(--mp); min-width:64px; flex-shrink:0; text-align:right}
   .cmsg .ctx{font-size:14px; color:var(--ink)}
   .cmsg.me .cnm{color:var(--good)} .cmsg.me .ctx{color:var(--good)}
   /* 도감 */

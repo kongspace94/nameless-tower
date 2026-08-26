@@ -217,6 +217,7 @@ function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ 
 function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); if(ub)ub.hidden=false; } regenStamina();
   if(document.body){ document.body.classList.toggle("combat",!!enemy);
     document.body.classList.toggle("intower", !!enemy || mode==="dive" || (typeof EXP!=="undefined"&&!!EXP)); }   // 탑/전투/개척 중엔 상단 타이틀 숨김
+  if(enemy){ const lg=$("log"); if(lg)requestAnimationFrame(()=>{ try{ lg.scrollTop=lg.scrollHeight; }catch(e){} }); }   // 전투 로그(고정 높이)에서 마지막 줄이 잘리지 않게 항상 맨 아래로
   { const cd=$("chatdock"); if(cd && (mode!=="town"||enemy)){ cd.hidden=true; if(typeof stopChatTimer==="function")stopChatTimer(); } }   // 마을 밖에선 채팅 독 숨김
   const stg=$("stage"); if(stg){ const f=P.floor||0, dv=(mode==="dive"); stg.classList.toggle("zoneSky", dv&&f>=16&&f<=30); stg.classList.toggle("zoneVoid", dv&&f>=31); }   // 존별 배경
   $("por").innerHTML=playerIco(56); $("pname").textContent=P.name;

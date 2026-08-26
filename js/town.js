@@ -119,19 +119,42 @@ function avatarUpload(){ if(enemy){ toast("전투 중엔 안 돼요"); return; }
     if(!/^image\//.test(f.type||"")){ toast("이미지 파일만 가능해요"); return; }
     toast("이미지 처리 중…"); const rd=new FileReader();
     rd.onload=()=>{ const img=new Image();
-      img.onload=()=>{ try{
-          const S=128, cv=document.createElement("canvas"); cv.width=S; cv.height=S; const cx=cv.getContext("2d");
-          const scale=Math.max(S/img.width,S/img.height), w=img.width*scale, h=img.height*scale;   // 중앙 커버-크롭
-          cx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
-          let url=cv.toDataURL("image/jpeg",0.72); if(url.length>180000)url=cv.toDataURL("image/jpeg",0.5);
-          setAvatar(url);
-        }catch(e){ toast("이미지 처리 실패 — 다른 파일로 시도해줘"); } };
+      img.onload=()=>{ try{ avatarCropModal(img, (url)=>setAvatar(url)); }catch(e){ toast("이미지 처리 실패 — 다른 파일로 시도해줘"); } };
       img.onerror=()=>toast("이미지를 열 수 없어요"); img.src=rd.result; };
     rd.onerror=()=>toast("파일을 읽지 못했어요"); rd.readAsDataURL(f); };
   inp.click(); }
+/* 🖼 프로필 사진 크롭 미리보기 — 드래그로 위치·슬라이더로 확대. 원 안이 실제 프로필(128px)로 들어감 */
+function avatarCropModal(img, onDone){
+  const PREVIEW=240, OUT=128, iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height, minSide=Math.min(iw,ih);
+  let zoom=1, cx=iw/2, cy=ih/2;
+  const ov=document.createElement("div"); ov.className="cropmodal";
+  ov.innerHTML=`<div class="cropbox">
+    <div class="croptitle">🖼 사진 위치·크기 맞추기</div>
+    <div class="cropstage" style="width:${PREVIEW}px;height:${PREVIEW}px"><canvas class="cropcanvas" width="${PREVIEW}" height="${PREVIEW}"></canvas><div class="cropring"></div></div>
+    <div class="croprow"><span>🔍</span><input type="range" class="cropzoom" min="1" max="3" step="0.01" value="1"></div>
+    <div class="crophint">드래그해 위치 이동 · 원 안이 프로필로 들어가요</div>
+    <div class="cropbtns"><button type="button" class="cropbtn cropcancel">취소</button><button type="button" class="cropbtn cropok">✅ 적용</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const cv=ov.querySelector(".cropcanvas"), ctx=cv.getContext("2d"), zoomEl=ov.querySelector(".cropzoom"), stage=ov.querySelector(".cropstage");
+  const clampC=()=>{ const half=(minSide/zoom)/2; cx=Math.max(half,Math.min(iw-half,cx)); cy=Math.max(half,Math.min(ih-half,cy)); };
+  const draw=()=>{ clampC(); const src=minSide/zoom; ctx.clearRect(0,0,PREVIEW,PREVIEW); ctx.drawImage(img, cx-src/2, cy-src/2, src, src, 0,0, PREVIEW,PREVIEW); };
+  draw();
+  zoomEl.oninput=()=>{ zoom=parseFloat(zoomEl.value)||1; draw(); };
+  let drag=null;
+  stage.addEventListener("pointerdown",e=>{ try{stage.setPointerCapture(e.pointerId);}catch(x){} drag={x:e.clientX,y:e.clientY}; });
+  stage.addEventListener("pointermove",e=>{ if(!drag)return; const k=(minSide/zoom)/PREVIEW; cx-=(e.clientX-drag.x)*k; cy-=(e.clientY-drag.y)*k; drag={x:e.clientX,y:e.clientY}; draw(); });
+  const endDrag=()=>{ drag=null; }; stage.addEventListener("pointerup",endDrag); stage.addEventListener("pointercancel",endDrag);
+  const close=()=>{ try{ document.body.removeChild(ov); }catch(e){} };
+  ov.querySelector(".cropcancel").onclick=close;
+  ov.querySelector(".cropok").onclick=()=>{ clampC(); const src=minSide/zoom; const oc=document.createElement("canvas"); oc.width=OUT; oc.height=OUT;
+    const octx=oc.getContext("2d"); octx.drawImage(img, cx-src/2, cy-src/2, src, src, 0,0, OUT,OUT);
+    let url; try{ url=oc.toDataURL("image/jpeg",0.72); if(url.length>180000)url=oc.toDataURL("image/jpeg",0.5); }catch(e){ toast("이미지 처리 실패"); close(); return; }
+    close(); if(typeof onDone==="function")onDone(url); }; }
 function setAvatar(a){ const free=!P.flags.avatarChanged;
   if(!free){ if((P.gems||0)<AVATAR_COST){ toast("크리스탈 부족"); return; } P.gems-=AVATAR_COST; }
   P.avatar=a; P.flags.avatarChanged=true; render();
+  if(typeof syncNick==="function")syncNick();   // 🖼 아바타를 서버에 반영(광장 채팅에 표시)
   const lbl = a==null?"기본 아이콘" : (isImgAvatar(a)?"내 사진":a);
   toast("프로필: "+lbl);
   line(`🎭 프로필 아이콘을 ${lbl}(으)로 바꿨다.${free?" (첫 회 무료)":` (💎${AVATAR_COST} 소모)`}`,"loot"); save(true); profileMenu(); }
@@ -306,6 +329,10 @@ const CHAT_LINES=["탑 20층 보스 왜케 아파요 ㅠㅠ","월광 세이버 �
 function chatFetch(){ return {name:pick(CHAT_NAMES), text:pick(CHAT_LINES), ts:Date.now()}; }
 function chatPost(text){ chatLog.push({name:P.name, text, me:true, ts:Date.now()}); }
 function fmtChatTime(ts){ if(!ts)return ""; const d=new Date(ts); const h=d.getHours(), m=d.getMinutes(); return (h<10?"0":"")+h+":"+(m<10?"0":"")+m; }
+/* 💬 채팅 프로필 사진: data:image → 원형 img, 이모지 → 그대로, 없으면 기본 🧑 */
+function chatAvatarHtml(av){ if(av&&typeof av==="string"&&av.slice(0,5)==="data:")return `<span class="cav"><img src="${av}" alt=""></span>`;
+  if(av&&typeof av==="string"&&[...av].length<=4&&av.slice(0,5)!=="data:")return `<span class="cav cavemo">${av.replace(/</g,"&lt;")}</span>`;
+  return `<span class="cav cavemo">🧑</span>`; }
 function stopChatTimer(){ if(chatTimer){ clearInterval(chatTimer); chatTimer=null; } }
 function chatSeed(){ if(chatLog.length)return; for(let i=0;i<7;i++)chatLog.push(chatFetch()); }
 /* 상시 광장 채팅 독 — 마을에서 항상 떠서 실시간 갱신 */
@@ -313,9 +340,10 @@ function startTownChat(){ if(!P||enemy||mode!=="town")return; const d=$("chatdoc
   if((window.innerWidth||999)<=640 && !d.dataset.userToggled)d.classList.add("collapsed");   // 모바일: 기본 접힘
   stopChatTimer();
   if(P._online && typeof netChatHistory==="function"){   // 🌐 온라인: 진짜 광장 채팅(SSE)
-    NET.onChat=(m)=>{ chatLog.push({name:m.name,text:m.text,me:(m.name===NET.name),ts:m.ts}); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); };
+    const myNick=()=>NET.nick||NET.name;   // 채팅 표시명은 닉네임 기준으로 '나' 판별
+    NET.onChat=(m)=>{ chatLog.push({name:m.name,av:m.av,text:m.text,me:(m.name===myNick()),ts:m.ts}); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); };
     NET.onPresence=(n)=>{ const el=$("cdonline"); if(el)el.textContent=n+"명 접속"; };
-    netChatHistory().then(msgs=>{ chatLog=msgs.map(m=>({name:m.name,text:m.text,me:(m.name===NET.name),ts:m.ts})); renderChatDock(); }).catch(()=>{});
+    netChatHistory().then(msgs=>{ chatLog=msgs.map(m=>({name:m.name,av:m.av,text:m.text,me:(m.name===myNick()),ts:m.ts})); renderChatDock(); }).catch(()=>{});
     renderChatDock(); return;
   }
   chatSeed(); renderChatDock();   // 오프라인: 로컬 시뮬
@@ -324,7 +352,7 @@ function hideChatDock(){ stopChatTimer(); const d=$("chatdock"); if(d)d.hidden=t
 function renderChatDock(){ const body=$("chatmsgs"); if(!body)return;
   const sc=body.parentElement||body;   // 실제 스크롤 컨테이너는 .cdbody(부모)
   const atBottom = (sc.scrollHeight - sc.scrollTop - sc.clientHeight) < 40;   // 이미 위로 올려봤으면 강제 스크롤 안 함
-  body.innerHTML=chatLog.slice(-40).map(m=>`<div class="cmsg ${m.me?'me':''}"><span class="cnm">${m.me?'나':m.name}</span><span class="ctx">${(m.text||"").replace(/</g,"&lt;")}</span>${m.ts?`<span class="cts">${fmtChatTime(m.ts)}</span>`:""}</div>`).join("");
+  body.innerHTML=chatLog.slice(-40).map(m=>`<div class="cmsg ${m.me?'me':''}">${chatAvatarHtml(m.me?(P&&P.avatar):m.av)}<span class="cnm">${m.me?'나':m.name}</span><span class="ctx">${(m.text||"").replace(/</g,"&lt;")}</span>${m.ts?`<span class="cts">${fmtChatTime(m.ts)}</span>`:""}</div>`).join("");
   if(atBottom) sc.scrollTop=sc.scrollHeight; }   // 맨 아래에 있을 때만 자동 스크롤(대화 읽는 중이면 방해 안 함)
 function toggleChatDock(){ const d=$("chatdock"); if(d){ d.classList.toggle("collapsed"); d.dataset.userToggled="1"; } }
 function chatSend(){ if(!P)return; const inp=$("cdinput"); const msg=((inp?inp.value:"")||"").trim(); if(!msg)return;

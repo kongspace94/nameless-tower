@@ -71,8 +71,9 @@ function netStoreAuth(d) {
   localStorage.setItem("nt_token", d.token); localStorage.setItem("nt_uid", d.userId); localStorage.setItem("nt_name", d.name);
   localStorage.setItem("nt_nick", NET.nick);
 }
-async function netSetNick(nick) {   // 🏷 게임 닉네임을 서버에 반영(채팅 표시명)
-  const d = await netFetch("/api/nick", { method: "POST", body: { nick: String(nick || "") } });
+async function netSetNick(nick, avatar) {   // 🏷 닉네임 + 아바타를 서버에 반영(채팅 표시명·프로필 사진)
+  const body = { nick: String(nick || "") }; if (avatar !== undefined) body.avatar = (avatar == null ? "" : avatar);
+  const d = await netFetch("/api/nick", { method: "POST", body });
   NET.nick = d.nick; try { localStorage.setItem("nt_nick", d.nick); } catch (e) {}
   return d.nick;
 }

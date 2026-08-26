@@ -55,6 +55,8 @@ function newId() { return crypto.randomBytes(9).toString("hex"); }
 const REC_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function genRecovery() { const b = crypto.randomBytes(12); let s = ""; for (let i = 0; i < 12; i++) s += REC_ALPHA[b[i] % REC_ALPHA.length]; return s.slice(0, 4) + "-" + s.slice(4, 8) + "-" + s.slice(8, 12); }
 function normRec(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }   // 대소문자·하이픈·공백 무시하고 비교
+/* 아바타 검증: 이모지(≤4코드포인트) 또는 소형 data:image URL만 허용. ""=기본으로 초기화. 그 외는 무시(undefined) */
+function cleanAvatar(av) { if (typeof av !== "string") return undefined; if (av === "") return ""; if (av.length <= 6000 && /^data:image\//.test(av)) return av; if (!/^data:/.test(av) && [...av].length <= 4) return av; return undefined; }
 function authUser(req) {
   const h = req.headers["authorization"] || "";
   const tok = h.replace(/^Bearer\s+/i, "");
@@ -125,13 +127,14 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { token, userId: acc.id, name: acc.name, nick: acc.nick || acc.name });
     }
 
-    /* 🏷 닉네임(게임 표시명) 설정 — 로그인 상태. 아이디(name)와 별개 */
+    /* 🏷 프로필 동기화(로그인 상태): 닉네임(표시명) + 아바타(채팅에 노출). 아이디(name)와 별개 */
     if (p === "/api/nick" && req.method === "POST") {
       const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
-      const { nick } = await body(req); const nk = String(nick || "").trim().slice(0, 16);
-      if (nk.length < 1) return json(res, 400, { error: "닉네임이 비었어요" });
-      user.nick = nk; markDirty("accounts");
-      return json(res, 200, { ok: true, nick: nk });
+      const { nick, avatar } = await body(req);
+      const nk = String(nick || "").trim().slice(0, 16); if (nk.length >= 1) user.nick = nk;
+      const av = cleanAvatar(avatar); if (av !== undefined) user.av = av;   // 이모지 or 소형 data:image, ""=기본
+      markDirty("accounts");
+      return json(res, 200, { ok: true, nick: user.nick || user.name, avatar: user.av || "" });
     }
 
     /* 클라우드 세이브 조회/저장 */
@@ -154,7 +157,7 @@ const server = http.createServer(async (req, res) => {
         last.burst = (now - last.ts < 3000) ? last.burst + 1 : 0;
         if (last.burst >= 5) { chatRate.set(user.id, { ts: now + 8000, text: t, burst: 0 }); return json(res, 429, { error: "도배 감지 — 8초 대기" }); }
         chatRate.set(user.id, { ts: now, text: t, burst: last.burst });
-        const msg = { id: newId(), name: user.nick || user.name, text: t, ts: Date.now() };   // 채팅엔 닉네임 표시(아이디 비공개)
+        const msg = { id: newId(), name: user.nick || user.name, av: user.av || "", text: t, ts: Date.now() };   // 채팅엔 닉네임 + 아바타(아이디 비공개)
         db.chat.push(msg); if (db.chat.length > CHAT_MAX) db.chat = db.chat.slice(-CHAT_MAX); markDirty("chat");
         broadcast("chat", msg);
         return json(res, 200, { ok: true });
