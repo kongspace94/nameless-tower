@@ -102,7 +102,8 @@ $("pname").onclick=()=>{ if(P&&!enemy)profileMenu(); };
 { const po=$("por"); if(po){ po.style.cursor="pointer"; po.onclick=()=>{ if(P&&!enemy)profileMenu(); }; } }
 $("btnAuction").onclick=()=>{ if(canNav())openAuction(); else toast(navBlockMsg()); };
 $("btnSave").onclick=()=>{ if(P)save(); };
-$("btnReset").onclick=()=>{ if(confirm("정말 처음부터? 캐릭터가 삭제됩니다.")){ localStorage.removeItem(SAVE_KEY); newGame(); } };
+$("btnReset").onclick=()=>{ if(enemy){ toast("전투 중엔 나갈 수 없어요"); return; }   // 🚪 메인화면(타이틀)로 — 저장 후 나가기 (캐릭터 삭제 아님. 새로 시작은 타이틀의 '새로 시작')
+  if(P&&!confirm("메인화면으로 나갈까요? (진행은 자동 저장돼요)"))return; if(P)save(true); titleScreen(); };
 
 /* ---------- 타이틀 화면 ---------- */
 function titleBgSvg(){   // 인라인 SVG로 그린 '끝이 보이지 않는 탑' 배경 (외부 이미지 없이 자급자족)
