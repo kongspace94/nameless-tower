@@ -2,7 +2,8 @@
 /* ============================================================
    거점 마을
    ============================================================ */
-function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={};
+let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는지 기억 → 거기로 복귀
+function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; townReturn=null;
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
   if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
   if(P._divePotBank){ P.potions+=P._divePotBank; P._divePotBank=0; }   // 다이브 때 마을에 맡겨둔 물약 회수
@@ -281,7 +282,7 @@ function itemStatVal(it,extra){ const g=RELICS[it.k]; const up=(it.up||0)+(extra
 function bsFind(id){ let it=P.inv.find(x=>x.id===id); if(it)return it; it=((P.stash&&P.stash.inv)||[]).find(x=>x.id===id); return it||null; }
 function bsGearList(){ const bag=P.inv.filter(it=>RELICS[it.k]&&RELICS[it.k].slot).map(it=>({it,loc:"bag"}));
   const stash=((P.stash&&P.stash.inv)||[]).filter(it=>RELICS[it.k]&&RELICS[it.k].slot).map(it=>({it,loc:"stash"})); return [...bag,...stash]; }
-function blacksmithMenu(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
+function blacksmithMenu(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="town"; townReturn=blacksmithMenu; render(); clearLog();
   setScene("⚒️","대장간 — 대장장이 고르드가 망치를 든다.");
   line('고르드: <span class="quote">"강화할 장비를 고르게. 가방이든 창고든, 착용 여부와 상관없이 다 강화해주지. 강화 전·후 능력치를 보여주겠네."</span>');
   const gear=bsGearList();
@@ -332,7 +333,7 @@ function doUpgradeSel(id){ const it=bsFind(id); if(!it||!RELICS[it.k]||!RELICS[i
 function fxOk(){ const s=$("stage"); if(s){ s.classList.remove("flash"); void s.offsetWidth; s.classList.add("flash"); } }
 /* 🛒 잡화점 — 즉시 구매/판매 (경매장과 달리 고정가) */
 /* 🛡 장비 상점 — 무기/방어구 구매 (기본 아이템 확보용) */
-function gearShop(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
+function gearShop(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="town"; townReturn=gearShop; render(); clearLog();
   setScene("🛡","장비 상점 — 무기와 방어구를 판다.");
   line(`상점주: <span class="quote">"무기와 방어구는 여기서. 처음엔 기본 장비부터 갖추게."</span>`);
   setActions([
@@ -354,7 +355,7 @@ function armorShop(){ if(enemy)return; render(); clearLog(); setScene("🛡","�
   const acts=list.map(([n,g])=>{ const price=g.val||50; const slot=SLOT_LABEL[g.slot]||"장비";
     return {label:`${n} — ${price}G`,desc:`${slot} · ${g.note}`,disabled:P.gold<price,act:()=>buyGear(n,price,armorShop)}; });
   acts.push({label:"← 장비 상점",act:gearShop},{label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
-function generalStore(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
+function generalStore(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="town"; townReturn=generalStore; render(); clearLog();
   setScene("🛒","잡화점 — 상점주 미나가 반긴다.");
   line('미나: <span class="quote">"어서 와요! 물약이든 재료든, 사고파는 건 여기서."</span>');
   setActions([{label:"🛒 구매",desc:"물약·재료·비약·마나 오브",act:storeBuy},{label:"💰 판매 (즉시)",desc:"장비·재료를 바로 현금화",act:storeSell},{label:"🏘 마을로",full:true,act:townMenu}]); }
@@ -514,7 +515,7 @@ function craftConsCost(k){ const v=CONS[k].val||150; return {gold:Math.round(v*0
 function canAfford(cost){ if(P.gold<cost.gold)return false; for(const m in cost.mats){ if((P.mats[m]||0)<cost.mats[m])return false; } return true; }
 function payCost(cost){ P.gold-=cost.gold; for(const m in cost.mats)P.mats[m]=Math.max(0,(P.mats[m]||0)-cost.mats[m]); }
 function craftCostText(cost){ let s=`💰${cost.gold}`; for(const m in cost.mats)s+=` ${MATS[m][0]}${cost.mats[m]}`; return s; }
-function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; render(); clearLog(); setScene("🔨","제작소 — 재료로 장비를 만든다");
+function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; townReturn=workshopMenu; render(); clearLog(); setScene("🔨","제작소 — 재료로 장비를 만든다");
   line(`보유 💰 <b>${P.gold}</b> · 재료 ${Object.entries(MATS).map(([k,[e]])=>`${e}${P.mats[k]||0}`).join(" ")}`,"sys");
   const acts=[];
   for(const sk in SETS){ acts.push({header:true,label:`✦ ${SETS[sk].n}`});
@@ -563,11 +564,13 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
   </div>`;
   setActions(inDive
     ? [{label:"← 탑으로 돌아가기",full:true,act:backToClimb}]
-    : [{label:"🏛 경매장에서 팔기",act:openAuction},{label:"🏘 마을로",full:true,act:townMenu}]); }
+    : (typeof townReturn==="function"
+        ? [{label:"← 돌아가기",full:true,act:townReturn},{label:"🏛 경매장에서 팔기",act:openAuction},{label:"🏘 마을로",act:townMenu}]
+        : [{label:"🏛 경매장에서 팔기",act:openAuction},{label:"🏘 마을로",full:true,act:townMenu}])); }
 /* 🏦 창고 (은행) — 마을 보관함. 가방(개인 소지품)↔창고 이동. 탑에서는 접근 불가(추후 캐쉬 아이템으로 원격 개방 예정). */
 function stashCount(){ if(!P||!P.stash)return 0; const s=P.stash; let n=(Array.isArray(s.inv)?s.inv.length:0)+(s.potions||0);
   for(const m in (s.mats||{}))n+=s.mats[m]||0; for(const k in (s.consumables||{}))n+=s.consumables[k]||0; return n; }
-function warehouseMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; render(); setScene("🏦","창고 — 마을 보관함");
+function warehouseMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; townReturn=warehouseMenu; render(); setScene("🏦","창고 — 마을 보관함");
   const st=P.stash;
   const gearRow=(it,where)=>{ const g=RELICS[it.k]||{}; const eq=(where==="bag")&&isEquippedItem(it);
     const btn = where==="bag"
@@ -679,7 +682,9 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
   </div>`;
   setActions(inDive
     ? [{label:"← 탑으로 돌아가기",full:true,act:backToClimb}]
-    : [{label:"📖 수련관 (스킬 습득)",act:skillMenu},{label:"🏘 마을로",full:true,act:townMenu}]); }
+    : (typeof townReturn==="function"
+        ? [{label:"← 돌아가기",full:true,act:townReturn},{label:"📖 수련관 (스킬 습득)",act:skillMenu},{label:"🏘 마을로",act:townMenu}]
+        : [{label:"📖 수련관 (스킬 습득)",act:skillMenu},{label:"🏘 마을로",full:true,act:townMenu}])); }
 window.skillEquip=k=>{ equipSkill(k); skillWindow(); };
 window.skillUnequip=k=>{ unequipSkill(k); skillWindow(); };
 function learnSkill(k){ if(canLearn(k)!=="ok"){ toast("조건이 부족하다"); return; } const s=SKILLS[k];
