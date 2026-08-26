@@ -29,9 +29,11 @@ function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene
   const firstClear = !(P.flags.cleared>0);
   P.flags.cleared=(P.flags.cleared||0)+1;
   if(firstClear){ P.flags.continentUnlocked=true;   // 정상 도달 → 대륙 개척 해금 + 세계관 확장
-    line("— 그러나, 탑을 내려서던 순간 —","sys");
-    line("끝이라 믿었던 하늘 너머로, <b>광대한 대륙</b>과 그 위에 솟은 <b>수많은 탑</b>이 모습을 드러낸다.","loot");
-    line("이 탑은 시작에 불과했다. 진짜 여정은 이제부터다 — <b>🧭 대륙 개척</b>이 열렸다!","loot");
+    setScene("🪟","탑 꼭대기의 창 — 처음으로, 바깥이 보인다.");
+    line("— 정상의 창을 열어젖힌 순간 —","sys");
+    line("끝이라 믿었던 하늘 너머로, <b>광대한 대륙</b>이 펼쳐진다. 그리고 그 위에 점점이 — <b>수많은 탑</b>이 솟아 있다.","loot");
+    line("<span class=\"quote\">저마다의 탑엔 저마다의 수호자가 잠들어 있다. 네가 오른 이 탑은… 그중 가장 낮은 하나였을 뿐이다.</span>");
+    line("진짜 여정은 이제부터다 — <b>🧭 대륙 개척</b>으로 대륙을 누비며 <b>새로운 탑들을 찾아 오르자!</b>","loot");
     toast("🧭 대륙 개척 해금!");
   }
   line(`— 회귀 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");   // 로그라이트 회귀 암시
