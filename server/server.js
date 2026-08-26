@@ -92,9 +92,10 @@ const server = http.createServer(async (req, res) => {
 
     /* 로그인 */
     if (p === "/api/login" && req.method === "POST") {
-      const { name, password } = await body(req);
+      const { name, password, passwordRaw } = await body(req);
       const acc = Object.values(db.accounts).find((a) => a.name.toLowerCase() === String(name || "").toLowerCase());
-      if (!acc || acc.hash !== hashPw(password, acc.salt)) return json(res, 401, { error: "이름 또는 비밀번호가 틀림" });
+      const ok = acc && (acc.hash === hashPw(password, acc.salt) || (passwordRaw != null && acc.hash === hashPw(passwordRaw, acc.salt)));   // 변환값/원본 둘 다 허용(옛 계정 호환)
+      if (!ok) return json(res, 401, { error: "이름 또는 비밀번호가 틀림" });
       const token = newId() + newId(); tokens.set(token, acc.id);
       return json(res, 200, { token, userId: acc.id, name: acc.name });
     }

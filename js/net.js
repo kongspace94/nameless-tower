@@ -54,7 +54,8 @@ async function netRegister(name, password) {
   netStoreAuth(d); return d;
 }
 async function netLogin(name, password) {
-  const d = await netFetch("/api/login", { method: "POST", body: { name, password: pwNormalize(password) } });
+  // 변환값 + 원본 둘 다 보냄 → 옛 계정(변환 전 저장)도 로그인되게(서버가 둘 중 하나 일치하면 통과)
+  const d = await netFetch("/api/login", { method: "POST", body: { name, password: pwNormalize(password), passwordRaw: String(password || "") } });
   netStoreAuth(d); return d;
 }
 function netStoreAuth(d) {
