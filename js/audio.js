@@ -42,7 +42,12 @@ const AMB = {   // 환경음 (바람·풀벌레·마을 소음 등, 배경음악
 /* 🎼 임시 합성 배경음악 루프 — BGM에 src가 없을 때 자동으로 이 루프가 재생됨(파일 넣으면 파일 우선).
    town=잔잔한 단조 패드 진행 / combat=긴박한 베이스 오스티나토. 나중에 참고용/자리표시자. */
 const BGM_SYNTH = {
-  town:   { stepMs: 2400, chords: [[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196.00],[196.00,246.94,293.66]] },  // Am–F–C–G
+  town: {   // 잔잔한 단조 진행 Am–F–C–G–Am–F–Dm–E (E로 강한 단조 해결) + 애절한 리드 멜로디
+    stepMs: 2400,
+    chords: [[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196.00],[196.00,246.94,293.66],
+             [220,261.63,329.63],[174.61,220,261.63],[146.83,174.61,220.00],[164.81,207.65,246.94]],
+    melody: [440,523.25, 523.25,0, 392,329.63, 587.33,493.88, 523.25,659.25, 440,698.46, 587.33,440, 493.88,415.30],  // 스텝당 2음(0=쉼표), A 단조/E7 리딩톤
+  },
   combat: { stepMs: 250,  bass: [110,110,155.56,110, 98,98,146.83,98] },   // A 펄스 + 트라이톤 긴장음
 };
 
@@ -126,14 +131,18 @@ function startSynthBgm(name) {   // WebAudio 절차적 배경음악 루프
   const spec = BGM_SYNTH[name]; if (!spec) return;
   const g = ctx.createGain(); g.gain.value = _clamp01(AUDIO.bgmVol); g.connect(ctx.destination);   // BGM 전용 게인(효과음 마스터와 분리)
   let step = 0;
-  const note = (freq, dur, type, vol) => { const t0 = ctx.currentTime, o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
+  const note = (freq, dur, type, vol, delay) => { if (!freq) return; const t0 = ctx.currentTime + (delay || 0), o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
     const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0); ng.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + Math.min(0.2, dur * 0.25)); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(ng); ng.connect(g); o.start(t0); o.stop(t0 + dur + 0.03); };
   const tick = () => {
     if (name === "combat") { const b = spec.bass[step % spec.bass.length], d = spec.stepMs / 1000;
       note(b, d * 0.9, "sawtooth", 0.085); note(b / 2, d * 0.9, "square", 0.035); if (step % 8 === 0) note(b * 3, d * 3, "triangle", 0.03); }
-    else { const ch = spec.chords[step % spec.chords.length], d = spec.stepMs / 1000;
-      ch.forEach(f => note(f, d * 1.05, "triangle", 0.045)); note(ch[0] / 2, d * 1.05, "sine", 0.08); if (step % 2 === 0) note(ch[ch.length - 1] * 2, d * 0.5, "triangle", 0.03); }
+    else { const n = spec.chords.length, idx = step % n, ch = spec.chords[idx], d = spec.stepMs / 1000;
+      ch.forEach(f => { note(f, d * 1.05, "triangle", 0.04); note(f * 1.006, d * 1.05, "triangle", 0.017); });   // 패드 + 따뜻한 디튠
+      note(ch[0] / 2, d * 1.05, "sine", 0.075);                                                                   // 베이스(루트 한 옥타브 아래)
+      note(ch[ch.length - 1] * 2, d * 1.05, "sine", 0.014);                                                       // 상단 은은한 반짝임
+      if (spec.melody) { const mi = idx * 2, m1 = spec.melody[mi % spec.melody.length], m2 = spec.melody[(mi + 1) % spec.melody.length];  // 스텝당 리드 2음
+        note(m1, d * 0.46, "triangle", 0.05, d * 0.04); note(m2, d * 0.44, "triangle", 0.045, d * 0.5); } }
     step++;
   };
   tick(); const timer = setInterval(tick, spec.stepMs); AUDIO.bgmSynth = { timer, gain: g, name };
