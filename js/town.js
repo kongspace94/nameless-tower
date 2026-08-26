@@ -294,9 +294,6 @@ function storeSell(){ clearLog(); setScene("💰","무엇을 팔까? (즉시 현
     act:()=>{ P.gold+=n*4; P.mats[mk]=0; render(); checkQuests(); toast("재료 판매"); storeSell(); }}); }
   if(acts.length===0)acts.push({label:"팔 물건이 없다 (미착용 장비·재료)",disabled:true,act:()=>{}});
   acts.push({label:"← 뒤로",full:true,act:generalStore}); setActions(acts); }
-function stubBuilding(emoji,name,npc,lines){ if(enemy)return; clearLog(); setScene(emoji,name);
-  line(`<b>${name}</b> — ${npc}`,"sys"); lines.forEach(l=>line(l.startsWith('"')?`<span class="quote">${l}</span>`:l, l.startsWith('"')?"":"sys"));
-  setActions([{label:"🏘 마을로",full:true,act:townMenu}]); }
 /* 🏛 길드하우스 — 메인은 스토리로 자동 진행 · 서브는 여기서 길드마스터가 카테고리로 준다 */
 const GUILD_CATS={ reco:{n:"추천 의뢰",emoji:"⭐"}, village:{n:"마을 의뢰",emoji:"🏘"}, hunt:{n:"토벌 의뢰",emoji:"⚔"} };
 function guildAvail(cat){ return Object.keys(QUESTS).filter(id=>{ const q=QUESTS[id]; return q.type==="sub"&&!q.tower&&q.cat===cat&&!P.quests[id]; }); }
@@ -348,7 +345,6 @@ function startTownChat(){ if(!P||enemy||mode!=="town")return; const d=$("chatdoc
   }
   chatSeed(); renderChatDock();   // 오프라인: 로컬 시뮬
   chatTimer=setInterval(()=>{ if(mode!=="town"||enemy){ stopChatTimer(); return; } chatLog.push(chatFetch()); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); }, 4500); }
-function hideChatDock(){ stopChatTimer(); const d=$("chatdock"); if(d)d.hidden=true; }
 function renderChatDock(){ const body=$("chatmsgs"); if(!body)return;
   const sc=body.parentElement||body;   // 실제 스크롤 컨테이너는 .cdbody(부모)
   const atBottom = (sc.scrollHeight - sc.scrollTop - sc.clientHeight) < 40;   // 이미 위로 올려봤으면 강제 스크롤 안 함
@@ -364,7 +360,6 @@ function chatSend(){ if(!P)return; const inp=$("cdinput"); const msg=((inp?inp.v
   if(inp){ inp.value=""; try{ inp.focus(); }catch(e){} }
   chatPost(msg.slice(0,60)); renderChatDock();   // 오프라인: 로컬 시뮬
   if(chance(0.6))setTimeout(()=>{ if(mode==="town"&&chatTimer){ chatLog.push({name:pick(CHAT_NAMES), text:pick(["ㅇㅋㅇㅋ","오 반가워요","화이팅!","저도요 ㅋㅋ","굿굿","같이해요~","ㄹㅇ"]), ts:Date.now()}); renderChatDock(); } }, 1200); }
-function openChat(){ startTownChat(); }   // 하위호환
 /* 📜 의뢰 현황 (진행중·완료) */
 function questBoard(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } stopAuctionTimer(); auction=null; mode="town"; checkQuests();
   render(); clearLog(); setScene("📋","의뢰 현황 — 진행 중과 완료.");

@@ -443,20 +443,6 @@ function weaponMultiHit(w,i,lbl){ startGauge("attack",q=>{
   }, w.gauge, `${lbl} (연타 ${i+1}/${w.hits})`); }
 function weaponLabel(w,q){ return q==="perfect"?`⚡ <b>${w.n} 완벽 타격!</b>`:q==="good"?`${w.n}으로 베어냈다`:"빗맞았다"; }
 /* 급소 포인트 미니게임 (단검류): 가운데 인간형 위로 빨간 급소가 뜨면 제한시간 안에 빠르게 클릭 · 반응속도로 판정 */
-function runSequence(count,cb){ awaiting=null; setActions([]);
-  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb(Array(count).fill("good")); return; }
-  const results=[]; const s=$("stage"); const box=document.createElement("div"); box.className="ecdown seq";
-  box.innerHTML=`<div class="et" style="color:#7fd6c0">🗡 급소를 노려라! 빨간 포인트가 뜨면 빠르게 (${count}회)</div>`+
-    `<div class="seqarea"><div class="dummy">🧍</div><div class="pts" id="seqpts"></div></div>`;
-  s.appendChild(box); const pts=box.querySelector("#seqpts"); let i=0,tmr=null,done=false,t0=0;
-  const finish=()=>{ if(done)return; done=true; if(tmr)clearTimeout(tmr); box.remove(); cb(results); };
-  const next=()=>{ if(done)return; if(i>=count){ finish(); return; }
-    pts.innerHTML=""; const bt=document.createElement("button"); bt.className="wpt"; bt.textContent="◎";
-    bt.style.left=(34+rnd(32))+"%"; bt.style.top=(12+rnd(60))+"%"; t0=Date.now();
-    bt.onclick=(e)=>{ if(e)e.stopPropagation(); if(tmr)clearTimeout(tmr); const dt=Date.now()-t0; results.push(dt<400?"perfect":dt<850?"good":"weak"); i++; next(); };
-    pts.appendChild(bt);
-    tmr=setTimeout(()=>{ results.push("weak"); i++; next(); }, 1250); };
-  next(); }
 function skillProf(k){ if(!P.skillProf)P.skillProf={}; if(!P.skillProf[k])P.skillProf[k]={lv:1,xp:0}; return P.skillProf[k]; }
 function skillMul(k){ return 1 + (skillProf(k).lv-1)*0.08; }
 function gainSkillXp(k,n){ const p=skillProf(k); p.xp+=n; let up=false; while(p.xp>=p.lv*30){ p.xp-=p.lv*30; p.lv++; up=true; }
@@ -510,7 +496,6 @@ function useConsumableCombat(key){ if((P.consumables[key]||0)<=0)return; const c
   else if(c.use==="resist"){ P.buffs.regionResist=c.resKey; line(`${c.emoji} ${c.n} 사용 · ${c.note}`,"heal"); toast("지역 내성 획득"); if(EXP&&EXP.debuff&&EXP.debuffKey===c.resKey&&B){ /* 이미 걸린 정적 디버프는 다음 전투부터 무효 */ } }
   else if(c.use==="heal"){ heal(c.amount||25); }
   P.consumables[key]--; if(P.consumables[key]<=0)delete P.consumables[key]; render(); afterPlayerAction(); }
-function attackLabel(q){ return q==="perfect"?"⚡ <b>완벽 타격!</b>":q==="good"?"베어냈다":"빗맞았다"; }
 /* 그로기 */
 function addGroggy(n){ if(!enemy||enemy.staggered||(B&&B.charge))return; enemy.groggy=(enemy.groggy||0)+n;
   if(enemy.groggy>=enemy.groggyMax){ enemy.staggered=true; enemy.groggy=enemy.groggyMax;
@@ -890,7 +875,6 @@ function runEmergency(ev,done){ awaiting=null; setActions([]); const s=$("stage"
   if(globalThis.__SIM__){ finish(ev.opts[0].resolve); return; }
   let t=ev.time*1000; const total=t; iv=setInterval(()=>{ t-=100; if(bar)bar.style.width=Math.max(0,t/total*100)+"%"; if(t<=0)finish(ev.timeout); },100); }
 
-function doHeavy(){ /* legacy 미사용 */ }
 function doGuard(){ startGauge("block",q=>{ B.block=q; line(q==="perfect"?"완벽한 타이밍! 방어 자세를 잡았다.":q==="good"?"제때 막을 준비를 했다.":"급하게 막는다.","heal"); P.mp=clamp(P.mp+3,0,MAXMP()); render(); afterPlayerAction(); }); }
 /* ⚔️ 패링 — 줄어드는 원이 정중앙일 때 단 한 번. 완벽=무효+반격+큰 그로기 / 양호=피해 감소 / 실패=피해 증가 */
 /* ⚔️ 돌발 패링 — 적 공격 중 확률로 튀어나오는 반응 QTE. 결과를 resolveEnemyAttack로 전달 */
