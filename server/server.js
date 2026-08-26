@@ -31,7 +31,7 @@ function serveStatic(req, res, pathname) {
 
 /* ---------- 유틸 ---------- */
 function json(res, code, obj) {
-  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", ...cors() });
+  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...cors() });
   res.end(JSON.stringify(obj));
 }
 function cors() {

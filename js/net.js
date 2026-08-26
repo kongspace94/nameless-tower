@@ -22,7 +22,7 @@ async function netFetch(path, opts) {
   opts = opts || {};
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (NET.token) headers["Authorization"] = "Bearer " + NET.token;
-  const r = await fetch(NET.url + path, { method: opts.method || "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const r = await fetch(NET.url + path, { method: opts.method || "GET", headers, cache: "no-store", body: opts.body ? JSON.stringify(opts.body) : undefined });
   let data = null; try { data = await r.json(); } catch (e) {}
   if (!r.ok) throw new Error((data && data.error) || ("HTTP " + r.status));
   return data;
@@ -31,8 +31,8 @@ async function netFetch(path, opts) {
 /* 서버 존재 감지 (2초 타임아웃) */
 async function netPing() {
   try {
-    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 2000);
-    const r = await fetch(NET.url + "/api/ping", { signal: ctrl.signal }); clearTimeout(t);
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 60000);   // 무료 콜드스타트 대비 넉넉히
+    const r = await fetch(NET.url + "/api/ping?t=" + Date.now(), { signal: ctrl.signal, cache: "no-store" }); clearTimeout(t);   // 캐시버스터
     NET.serverUp = r.ok; return r.ok;
   } catch (e) { NET.serverUp = false; return false; }
 }
