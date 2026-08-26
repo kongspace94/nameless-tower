@@ -238,7 +238,24 @@ function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); i
     return it
       ? `<span class="eqic" title="${nm}: ${it.k}${it.up?' +'+it.up:''} — ${RELICS[it.k]?RELICS[it.k].note:''}">${ico(relicIco(it.k),36)}${it.up?`<i class="uplv">+${it.up}</i>`:''}</span>`
       : `<span class="emo" title="${nm} 비어 있음" style="width:36px;height:36px;font-size:17px;opacity:.35">${e}</span>`; }).join("");
+  { const hs=$("hudstatus"); if(hs){ const html=activeStatusHtml(); hs.innerHTML=html; hs.hidden=!html; } }   // ✨ 활성 버프·세트·재료 상시 표시
   setFloorTag(); porMini(); renderQuestTrack(); if(enemy)updateBattleBars(); }
+/* 상시 상태줄: 활성 버프 + 세트 효과 + 보유 재료 (인벤 안 열어도 보이게) */
+function activeStatusHtml(){ if(!P)return ""; const parts=[];
+  const b=P.buffs||{}, bf=[];
+  if(b.atkPct)bf.push(`⚔공+${Math.round(b.atkPct*100)}%`);
+  if(b.magicPct)bf.push(`🔮마+${Math.round(b.magicPct*100)}%`);
+  if(b.critBonus)bf.push(`🎯치+${Math.round(b.critBonus*100)}%`);
+  if(b.defBonus)bf.push(`🛡방+${b.defBonus}`);
+  if(b.luck)bf.push(`🍀운+${b.luck}`);
+  if(b.weaponElem&&typeof ELEMENTS!=="undefined"&&ELEMENTS[b.weaponElem])bf.push(`${ELEMENTS[b.weaponElem].ic}${ELEMENTS[b.weaponElem].n}`);
+  if(b.regionResist)bf.push(`🧿내성`);
+  if(bf.length)parts.push(`<span class="hs-lab">✨버프</span>${bf.join(" ")}`);
+  if(typeof setCounts==="function"){ const sc=setCounts(); const sets=Object.entries(sc).filter(([k,n])=>n>=2&&SETS[k]).map(([k,n])=>{ const tier=n>=4?4:2; const note=(SETS[k].bonus[tier]||{}).note||""; return `${SETS[k].n}(${n})${note?" "+note:""}`; });
+    if(sets.length)parts.push(`<span class="hs-lab">🧩세트</span>${sets.join(" · ")}`); }
+  const mats=Object.entries(P.mats||{}).filter(([m,n])=>n>0&&MATS[m]).sort((a,c)=>c[1]-a[1]);
+  if(mats.length)parts.push(`<span class="hs-lab">🎒재료</span>${mats.map(([m,n])=>`${MATS[m][0]}${n}`).join(" ")}`);
+  return parts.length?parts.join(`<span class="hs-sep">|</span>`):""; }
 /* 항상 표시되는 퀘스트 추적기 */
 function renderQuestTrack(){ const el=$("qtrack"); if(!el)return;
   const active=P&&P.quests?Object.keys(P.quests).filter(id=>P.quests[id].status==="active"&&QUESTS[id]):[];

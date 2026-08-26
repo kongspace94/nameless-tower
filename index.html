@@ -20,7 +20,7 @@
   .wrap{width:100%; max-width:820px}
   h1{font-size:clamp(24px,5vw,38px); letter-spacing:.06em; margin:.1em 0 0; text-align:center; font-weight:600; text-shadow:0 2px 24px rgba(232,197,106,.28)}
   .sub{text-align:center; color:var(--dim); margin:2px 0 14px; font-size:13px; letter-spacing:.24em}
-  body.intower h1, body.intower .sub{ display:none }   /* 탑/전투/개척 중엔 타이틀 숨겨 화면 확보 */
+  body:not(.title) h1, body:not(.title) .sub{ display:none }   /* 타이틀 텍스트는 타이틀 화면에서만 (게임 중엔 숨겨 화면 확보) */
   /* 타이틀(시작) 화면: 게임명 크게 + 메뉴 */
   body.title h1{ font-size:clamp(46px,10vw,78px); margin:.4em 0 0; text-shadow:0 3px 34px rgba(232,197,106,.4) }
   body.title .sub{ font-size:15px; letter-spacing:.34em; margin:8px 0 26px }
@@ -267,6 +267,10 @@
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .reccode{font-family:var(--mono); font-size:22px; letter-spacing:.12em; font-weight:700; color:var(--gold); text-align:center; background:#0a0d13; border:1px dashed var(--gold); border-radius:10px; padding:16px 10px; user-select:all; -webkit-user-select:all; word-break:break-all}
   /* 🗺 마을 지도(걸어다니는 프리뷰) */
+  .hudstatus{margin:8px 2px 2px; font-size:11.5px; color:var(--dim); line-height:1.7; display:flex; flex-wrap:wrap; gap:3px 8px; align-items:center; padding:7px 11px; background:#0c0f16; border:1px solid var(--line); border-radius:10px}
+  .hudstatus .hs-lab{color:var(--mp); font-weight:700; margin-right:2px}
+  .hudstatus .hs-sep{color:var(--line)}
+  body.combat .hudstatus, body.mapview .hudstatus{ display:none }   /* 전투/지도 뷰에선 화면 확보 위해 숨김 */
   body.mapview .stage{ display:none }                               /* 지도 뷰: 상단 씬 숨김(공간 확보) */
   body.mapview .log{ max-height:none; padding:0; border:none; background:transparent }
   body.mapview .townmap{ height:min(72vh,560px) }                   /* 확보한 공간만큼 지도 확대 */
@@ -274,8 +278,8 @@
     background:radial-gradient(120% 90% at 50% 0%, #6fb85a 0%, #58a047 42%, #47883b 100%);
     box-shadow:inset 0 -40px 60px -30px rgba(10,30,10,.6), inset 0 20px 40px -20px rgba(255,255,255,.12)}
   .townmap .tmcanvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-  .tmhit{position:absolute; transform:translate(-50%,-50%); width:62px; height:58px; background:transparent; border:0; border-radius:12px; cursor:pointer; transition:background .12s}
-  .tmhit:hover{background:rgba(255,255,255,.15)}
+  .tmhit{position:absolute; transform:translate(-50%,-50%); width:58px; height:56px; background:transparent; border:0; cursor:pointer}
+  .tmhit:active{transform:translate(-50%,-50%) scale(.92)}   /* 누를 때 살짝 눌리는 느낌만 */
   .tmother{position:absolute; transform:translate(-50%,-50%); z-index:15; display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; transition:left .5s linear, top .5s linear}
   .tmother .tmoav{font-size:22px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
   .tmother .tmoav img{width:22px; height:22px; object-fit:cover; border-radius:50%}
@@ -498,6 +502,8 @@
       <div class="invgrid" id="sinv"></div>
     </div>
   </div>
+
+  <div class="hudstatus" id="hudstatus" hidden></div>
 
   <div class="uibar" id="uibar" hidden>
     <span class="uibtn" id="btnInv">🎒 인벤토리</span>

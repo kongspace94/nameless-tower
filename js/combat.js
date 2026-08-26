@@ -929,7 +929,10 @@ function fleeChance(){ if(typeof enemy==="undefined"||!enemy)return clamp(0.5+LU
   const ps=DEF()*1.5+LUKv()*2+6, es=(enemy.atk||6)*(enemy.boss?1.4:1);   // 적이 강할수록(특히 보스) 도망 어려움
   return clamp(0.30 + (ps/(ps+es))*0.55 + LUKv()*0.01, 0.10, 0.92); }
 function fleeText(){ return `행운 판정 · 성공 ~${Math.round(fleeChance()*100)}%`; }
-function playerFlee(){ if(chance(fleeChance())){ line("재빠르게 도망쳤다!","sys"); enemy=null; B=null; if(expReturn){ const r=expReturn; expReturn=null; r(); return; } showClimb(); } else{ line("도망 실패!","dmg"); afterPlayerAction(); } }
+function playerFlee(){ if(chance(fleeChance())){ line("재빠르게 도망쳤다!","sys"); enemy=null; B=null;
+    if(expReturn){ const r=expReturn; expReturn=null; r(); return; }   // 대륙 개척: 개척 허브로 복귀
+    returnToTown(); return;   // 🏃 도망 성공 → 마을로 (탑 계속 등반 방지)
+  } else{ line("도망 실패!","dmg"); afterPlayerAction(); } }
 /* 확률 헬퍼: 두 주사위(rnd12) 대결에서 이길 확률 등 */
 function pctRoll(margin){ let c=0; for(let a=0;a<12;a++)for(let b=0;b<12;b++)if(a-b>=margin)c++; return c/144; }
 
@@ -972,7 +975,7 @@ function showClimb(){ setActions([
   {label:"🚪 마을로 귀환",desc:"다이브 종료 · 획득물 유지",act:returnToTown},
 ]); }
 function backToClimb(){ if(EXP&&!enemy){ expeditionHub(); return; } clearLog(); setScene("🪜",`${P.floor}층 계단 앞 — 위로 오를까?`); line("계단 앞으로 돌아왔다.","sys"); showClimb(); }
-function nextFloor(){ P.floor++; P.mp=clamp(P.mp+2,0,MAXMP()); render(); save(true); enterFloor(); }
+function nextFloor(){ P.floor=Math.min((P.floor||1)+1,50); P.mp=clamp(P.mp+2,0,MAXMP()); render(); save(true); enterFloor(); }   // 탑은 50층까지(정상). 그 위는 대륙 개척으로.
 function checkpointTown(f){ const c=CHECKPOINTS[f]; clearLog();
   if(!P.portals.includes(f)){ P.portals.push(f); line(`🌀 <b>${c.zone} 거점 '${c.n}'</b> 도착! 포탈이 열렸다 — 다음 다이브부터 여기서 시작할 수 있다.`,"loot"); toast("포탈 해금: "+c.n); }
   save(true); setScene(f>=31?"🌌":f>=16?"⛅":"🏘️",`${c.zone} · ${c.n}`); line(`탑 ${f}층 <b>${c.n}</b>. 탑 속 작은 거점, 잠시 숨 돌릴 안전지대다.`,"sys");
