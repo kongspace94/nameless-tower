@@ -2,7 +2,7 @@
 /* ============================================================
    거점 마을
    ============================================================ */
-function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; if(typeof bgm==="function")bgm("town"); checkTitleUnlocks(); checkQuests();
+function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
   if(P._divePotBank){ P.potions+=P._divePotBank; P._divePotBank=0; }   // 다이브 때 마을에 맡겨둔 물약 회수
   P.hp=MAXHP(); P.mp=MAXMP(); render(); clearLog(); setScene("🏘️","거점 마을 — 준비를 갖추고 탑으로.");
   line("거점 마을. 탑에 오를 준비를 하자.","sys"); save(true);

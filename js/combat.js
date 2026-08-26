@@ -8,7 +8,7 @@ function startDive(){ if(!P.portals||P.portals.length<=1){ beginDive(1); return;
   line("탑 곳곳의 거점으로 통하는 포탈이 열려 있다. 시작 지점을 고르자.","sys");
   const acts=P.portals.slice().sort((a,b)=>a-b).map(f=>({ label: f===1?"🚪 1층 (탑 입구)":`🌀 ${f}층 · ${CHECKPOINTS[f]?CHECKPOINTS[f].zone+" "+CHECKPOINTS[f].n:"거점"}`, desc:f===1?"처음부터":"거점에서 시작", act:()=>beginDive(f) }));
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
-function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null;
+function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(typeof amb==="function")amb("tower");
   const total=(P.potions||0)+(P._divePotBank||0); P._divePotBank=Math.max(0,total-DIVE_POTION_MAX); P.potions=Math.min(total,DIVE_POTION_MAX);  // 반입 제한
   render(); clearLog(); setScene("🚪","탑의 문이 열린다."); line(`탑 ${floor}층에서 등반을 시작한다. 얻은 것은 마을로 가져갈 수 있다.`,"sys");
   if(P._divePotBank>0)line(`🧪 물약은 최대 ${DIVE_POTION_MAX}개만 반입 — 나머지 ${P._divePotBank}개는 마을에 두고 왔다.`,"sys");

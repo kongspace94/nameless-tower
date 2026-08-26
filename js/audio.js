@@ -6,12 +6,14 @@
  *  ─ 파일은 D:\text-rpg\sounds\ 같은 폴더에 두고 상대경로로 지정. 온라인 배포 시 서버가 자동 서빙.
  *  ─ 볼륨/음소거는 설정 화면에서. 첫 클릭/키입력 때 오디오가 활성화됩니다(브라우저 자동재생 정책).
  */
+function _lsNum(k, d) { if (typeof localStorage === "undefined") return d; const v = parseFloat(localStorage.getItem(k)); return isNaN(v) ? d : v; }
+function _lsOn(k) { return (typeof localStorage === "undefined") ? true : localStorage.getItem(k) !== "off"; }
+function _clamp01(v) { return Math.max(0, Math.min(1, v)); }
 const AUDIO = {
-  on:  (typeof localStorage !== "undefined" ? localStorage.getItem("nt_sfx") !== "off" : true),
-  vol: (typeof localStorage !== "undefined" ? (parseFloat(localStorage.getItem("nt_vol")) || 0.6) : 0.6),
-  bgmOn:  (typeof localStorage !== "undefined" ? localStorage.getItem("nt_bgm") !== "off" : true),
-  bgmVol: (typeof localStorage !== "undefined" ? (parseFloat(localStorage.getItem("nt_bgmvol")) || 0.35) : 0.35),
-  ctx: null, master: null, bufs: {}, bgmEl: null, bgmName: null, _last: {}, _unlocked: false,
+  on:     _lsOn("nt_sfx"),   vol:    _lsNum("nt_vol", 0.6),      // 효과음
+  bgmOn:  _lsOn("nt_bgm"),   bgmVol: _lsNum("nt_bgmvol", 0.6),   // 배경음악
+  ambOn:  _lsOn("nt_amb"),   ambVol: _lsNum("nt_ambvol", 0.5),   // 환경음
+  ctx: null, master: null, bufs: {}, bgmEl: null, bgmName: null, ambEl: null, ambName: null, _last: {}, _unlocked: false,
 };
 
 /* ══════════ 여기만 바꾸면 됨: 이벤트별 사운드 ══════════
@@ -29,9 +31,13 @@ const SFX = {
   defeat:    { synth: "sweep", from: 400, to: 70, dur: 0.7, type: "sine", gain: 0.34 },
   // 예) 파일 교체:  click: { src:"sounds/click.mp3", gain:0.5 }
 };
-const BGM = {
-  town:   { src: "", vol: 0.35, loop: true },   // 예) src:"sounds/bgm-town.mp3"
-  combat: { src: "", vol: 0.40, loop: true },
+const BGM = {   // 배경음악 (src 없으면 무음 대기). vol=트랙별 기본 볼륨(0~1), 최종=vol×설정마스터
+  town:   { src: "", vol: 0.6, loop: true },   // 예) src:"sounds/bgm-town.mp3"
+  combat: { src: "", vol: 0.7, loop: true },
+};
+const AMB = {   // 환경음 (바람·풀벌레·마을 소음 등, 배경음악과 별도 레이어). src 넣으면 재생
+  town:   { src: "", vol: 0.6, loop: true },   // 예) src:"sounds/amb-town.mp3"
+  tower:  { src: "", vol: 0.6, loop: true },
 };
 
 /* ── 엔진 (아래는 손댈 필요 없음) ── */
@@ -43,10 +49,11 @@ function audioInit() {
   } catch (e) { AUDIO.ctx = null; }
   return AUDIO.ctx;
 }
-function audioUnlock() {   // 첫 사용자 제스처에 호출 → 오디오 활성화 + 대기 중이던 BGM 재생
+function audioUnlock() {   // 첫 사용자 제스처에 호출 → 오디오 활성화 + 대기 중이던 BGM/환경음 재생
   if (AUDIO._unlocked) return; AUDIO._unlocked = true; audioInit();
   try { if (AUDIO.ctx && AUDIO.ctx.state === "suspended") AUDIO.ctx.resume(); } catch (e) {}
   if (AUDIO.bgmName) bgm(AUDIO.bgmName, true);
+  if (AUDIO.ambName) amb(AUDIO.ambName, true);
 }
 if (typeof document !== "undefined") { ["pointerdown", "keydown", "touchstart"].forEach(ev => document.addEventListener(ev, audioUnlock, { once: false })); }
 
@@ -92,14 +99,26 @@ function sfx(name) {   // ★ 메인 진입점: sfx("attack") 처럼 호출
 function bgm(name, force) {   // 배경음악 전환 (src 없으면 조용히 대기)
   AUDIO.bgmName = name; if (!audioSupported()) return; const def = BGM[name];
   if (!AUDIO.bgmOn || !def || !def.src) { bgmStop(); return; }
-  if (AUDIO.bgmEl && AUDIO.bgmName === name && !force && !AUDIO.bgmEl.paused) return;
+  if (AUDIO.bgmEl && AUDIO._bgmSrc === def.src && !force && !AUDIO.bgmEl.paused) return;
   bgmStop();
-  try { const el = new Audio(def.src); el.loop = def.loop !== false; el.volume = (def.vol != null ? def.vol : AUDIO.bgmVol) * (AUDIO.bgmVol / 0.35);
-    el.play().catch(() => {}); AUDIO.bgmEl = el; } catch (e) {}
+  try { const el = new Audio(def.src); el.loop = def.loop !== false; el.volume = _clamp01(AUDIO.bgmVol * (def.vol != null ? def.vol : 1));
+    el.play().catch(() => {}); AUDIO.bgmEl = el; AUDIO._bgmSrc = def.src; } catch (e) {}
 }
-function bgmStop() { if (AUDIO.bgmEl) { try { AUDIO.bgmEl.pause(); } catch (e) {} AUDIO.bgmEl = null; } }
+function bgmStop() { if (AUDIO.bgmEl) { try { AUDIO.bgmEl.pause(); } catch (e) {} AUDIO.bgmEl = null; AUDIO._bgmSrc = null; } }
+function amb(name, force) {   // 환경음 전환 (src 없으면 조용히 대기) — 배경음악과 별도 레이어
+  AUDIO.ambName = name; if (!audioSupported()) return; const def = AMB[name];
+  if (!AUDIO.ambOn || !def || !def.src) { ambStop(); return; }
+  if (AUDIO.ambEl && AUDIO._ambSrc === def.src && !force && !AUDIO.ambEl.paused) return;
+  ambStop();
+  try { const el = new Audio(def.src); el.loop = def.loop !== false; el.volume = _clamp01(AUDIO.ambVol * (def.vol != null ? def.vol : 1));
+    el.play().catch(() => {}); AUDIO.ambEl = el; AUDIO._ambSrc = def.src; } catch (e) {}
+}
+function ambStop() { if (AUDIO.ambEl) { try { AUDIO.ambEl.pause(); } catch (e) {} AUDIO.ambEl = null; AUDIO._ambSrc = null; } }
 
-/* 설정 훅 (설정 화면에서 사용) */
+/* 설정 훅 (설정 화면/모달에서 사용) */
 function sfxSetOn(b) { AUDIO.on = !!b; try { localStorage.setItem("nt_sfx", b ? "on" : "off"); } catch (e) {} if (b) sfx("click"); }
-function sfxSetVol(v) { AUDIO.vol = Math.max(0, Math.min(1, v)); if (AUDIO.master) AUDIO.master.gain.value = AUDIO.vol; try { localStorage.setItem("nt_vol", String(AUDIO.vol)); } catch (e) {} }
+function sfxSetVol(v) { AUDIO.vol = _clamp01(v); if (AUDIO.master) AUDIO.master.gain.value = AUDIO.vol; try { localStorage.setItem("nt_vol", String(AUDIO.vol)); } catch (e) {} }
 function bgmSetOn(b) { AUDIO.bgmOn = !!b; try { localStorage.setItem("nt_bgm", b ? "on" : "off"); } catch (e) {} if (b) bgm(AUDIO.bgmName || "town", true); else bgmStop(); }
+function bgmSetVol(v) { AUDIO.bgmVol = _clamp01(v); try { localStorage.setItem("nt_bgmvol", String(AUDIO.bgmVol)); } catch (e) {} if (AUDIO.bgmEl && AUDIO.bgmName && BGM[AUDIO.bgmName]) { const def = BGM[AUDIO.bgmName]; AUDIO.bgmEl.volume = _clamp01(AUDIO.bgmVol * (def.vol != null ? def.vol : 1)); } }
+function ambSetOn(b) { AUDIO.ambOn = !!b; try { localStorage.setItem("nt_amb", b ? "on" : "off"); } catch (e) {} if (b) amb(AUDIO.ambName || "town", true); else ambStop(); }
+function ambSetVol(v) { AUDIO.ambVol = _clamp01(v); try { localStorage.setItem("nt_ambvol", String(AUDIO.ambVol)); } catch (e) {} if (AUDIO.ambEl && AUDIO.ambName && AMB[AUDIO.ambName]) { const def = AMB[AUDIO.ambName]; AUDIO.ambEl.volume = _clamp01(AUDIO.ambVol * (def.vol != null ? def.vol : 1)); } }

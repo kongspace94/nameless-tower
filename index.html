@@ -30,6 +30,7 @@
   /* 풀스크린 탑 배경 (인라인 SVG) */
   #titlebg{ position:fixed; inset:0; z-index:0; pointer-events:none; display:none; background:#0a0e1c }
   #titlebg svg{ display:block; width:100%; height:100% }
+  #titlebg .titlebgimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
   body.title #titlebg{ display:block }
   body.title .wrap{ position:relative; z-index:1 }
   body.title h1{ margin-top:9vh }
@@ -265,6 +266,21 @@
   .authin:focus{border-color:var(--gold)}
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .reccode{font-family:var(--mono); font-size:22px; letter-spacing:.12em; font-weight:700; color:var(--gold); text-align:center; background:#0a0d13; border:1px dashed var(--gold); border-radius:10px; padding:16px 10px; user-select:all; -webkit-user-select:all; word-break:break-all}
+  .setmodal{position:fixed; inset:0; z-index:9999; background:rgba(4,6,12,.82); display:flex; align-items:center; justify-content:center; padding:16px}
+  .setbox{background:var(--panel,#11151f); border:1px solid var(--line); border-radius:16px; padding:18px; max-width:320px; width:100%; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .settitle{font-size:15px; color:var(--ink); font-weight:700; text-align:center}
+  .setrow{display:flex; flex-direction:column; gap:7px}
+  .setrowtop{display:flex; align-items:center; justify-content:space-between}
+  .setlbl{font-size:13.5px; color:var(--ink)}
+  .settgl{background:#0a0d13; border:1px solid var(--line); color:var(--dim); border-radius:20px; padding:3px 12px; font-size:11px; cursor:pointer; min-width:52px}
+  .settgl.on{border-color:var(--gold); color:var(--gold)}
+  .setsld{width:100%; accent-color:var(--gold)}
+  .setsld:disabled{opacity:.35}
+  .setnote{font-size:10.5px; color:var(--dim)}
+  .setbtns{display:flex; gap:10px; margin-top:2px}
+  .setbtn{flex:1; padding:9px; border-radius:9px; border:1px solid var(--line); background:#0a0d13; color:var(--ink); cursor:pointer; font-size:12.5px}
+  .setbtn.setclose{border-color:var(--gold); color:var(--gold); font-weight:700}
+  .setbtn:hover{filter:brightness(1.15)}
   .cropmodal{position:fixed; inset:0; z-index:9999; background:rgba(4,6,12,.82); display:flex; align-items:center; justify-content:center; padding:16px}
   .cropbox{background:var(--panel,#11151f); border:1px solid var(--line); border-radius:16px; padding:18px; max-width:300px; width:100%; display:flex; flex-direction:column; gap:12px; align-items:center; box-shadow:0 20px 60px rgba(0,0,0,.5)}
   .croptitle{font-size:14px; color:var(--ink); font-weight:700}
@@ -469,7 +485,7 @@
 
   <p class="foot">
     <span class="link" id="btnTown">🏘 마을</span>·<span class="link" id="btnAuction">🏛 경매장</span>·
-    <span class="link" id="btnSave">저장</span>·<span class="link" id="btnReset">🚪 메인화면</span>
+    <span class="link" id="btnSave">저장</span>·<span class="link" id="btnSettings">⚙ 설정</span>·<span class="link" id="btnReset">🚪 메인화면</span>
     &nbsp;|&nbsp; 자동 저장됨
   </p>
 </div>

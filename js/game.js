@@ -105,8 +105,42 @@ $("btnAuction").onclick=()=>{ if(canNav())openAuction(); else toast(navBlockMsg(
 $("btnSave").onclick=()=>{ if(P)save(); };
 $("btnReset").onclick=()=>{ if(enemy){ toast("전투 중엔 나갈 수 없어요"); return; }   // 🚪 메인화면(타이틀)로 — 저장 후 나가기 (캐릭터 삭제 아님. 새로 시작은 타이틀의 '새로 시작')
   if(P&&!confirm("메인화면으로 나갈까요? (진행은 자동 저장돼요)"))return; if(P)save(true); titleScreen(); };
+{ const bs=$("btnSettings"); if(bs)bs.onclick=()=>openSettings(); }
+/* ⚙ 사운드 설정 모달 — 배경음악·효과음·환경음 각각 on/off + 음량 바 */
+function openSettings(){ if(document.querySelector(".setmodal"))return; if(typeof sfx==="function")sfx("click");
+  const A=(typeof AUDIO!=="undefined")?AUDIO:null;
+  const row=(k,ic,label,on,vol,note)=>`<div class="setrow">
+    <div class="setrowtop"><span class="setlbl">${ic} ${label}</span><button type="button" class="settgl ${on?'on':''}" data-k="${k}">${on?"켜짐":"꺼짐"}</button></div>
+    <input type="range" class="setsld" data-k="${k}" min="0" max="1" step="0.02" value="${vol}" ${on?"":"disabled"}>
+    ${note?`<div class="setnote">${note}</div>`:""}</div>`;
+  const ov=document.createElement("div"); ov.className="setmodal";
+  ov.innerHTML=`<div class="setbox">
+    <div class="settitle">⚙ 설정 · 사운드</div>
+    ${A?row("bgm","🎵","배경음악",A.bgmOn,A.bgmVol,"sounds 폴더에 파일 넣으면 재생"):""}
+    ${A?row("sfx","🔊","효과음",A.on,A.vol,"지금도 나요"):""}
+    ${A?row("amb","🌬️","환경음",A.ambOn,A.ambVol,"바람·마을 소음 등 · 파일 넣으면 재생"):""}
+    ${A?"":'<div class="setnote">오디오를 사용할 수 없는 환경이에요.</div>'}
+    <div class="setbtns"><button type="button" class="setbtn settest">🔊 효과음 테스트</button><button type="button" class="setbtn setclose">닫기</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>{ try{ document.body.removeChild(ov); }catch(e){} };
+  ov.addEventListener("click",e=>{ if(e.target===ov)close(); });
+  const cb=ov.querySelector(".setclose"); if(cb)cb.onclick=close;
+  const tb=ov.querySelector(".settest"); if(tb)tb.onclick=()=>{ if(typeof sfx==="function")sfx("loot"); };
+  ov.querySelectorAll(".setsld").forEach(s=>{ s.oninput=()=>{ const v=parseFloat(s.value), k=s.dataset.k;
+    if(k==="bgm"&&typeof bgmSetVol==="function")bgmSetVol(v);
+    else if(k==="sfx"&&typeof sfxSetVol==="function")sfxSetVol(v);
+    else if(k==="amb"&&typeof ambSetVol==="function")ambSetVol(v); }; });
+  ov.querySelectorAll(".settgl").forEach(b=>{ b.onclick=()=>{ const k=b.dataset.k; let on=false;
+    if(k==="bgm"){ on=!A.bgmOn; bgmSetOn(on); } else if(k==="sfx"){ on=!A.on; sfxSetOn(on); } else { on=!A.ambOn; ambSetOn(on); }
+    b.textContent=on?"켜짐":"꺼짐"; b.classList.toggle("on",on); const sld=ov.querySelector('.setsld[data-k="'+k+'"]'); if(sld)sld.disabled=!on; }; });
+}
 
 /* ---------- 타이틀 화면 ---------- */
+/* 🖼 메인(타이틀) 배경 이미지 — 지금은 아래 인라인 SVG가 임시 배경.
+ * 진짜 이미지로 바꾸려면: bg 폴더에 파일 넣고 MAIN_BG="bg/title.jpg" 처럼 경로만 지정.
+ * (파일이 없거나 로드 실패하면 자동으로 SVG 배경으로 폴백) */
+const MAIN_BG = "";
 function titleBgSvg(){   // 인라인 SVG로 그린 '끝이 보이지 않는 탑' 배경 (외부 이미지 없이 자급자족)
   const cx=720, halfW=y=>48+60*((y-130)/770);
   let stars=""; for(let i=0;i<82;i++){ const x=Math.round(Math.random()*1440), y=Math.round(Math.random()*560);
@@ -150,7 +184,7 @@ function leaveTitle(){ if(document.body)document.body.classList.remove("title");
 function titleScreen(){ stopAuctionTimer(); auction=null; enemy=null; B=null; mode="town";
   if(document.body){ document.body.classList.remove("combat","intower"); document.body.classList.add("title"); }
   const hud=$("hud"); if(hud)hud.hidden=true; const ub=$("uibar"); if(ub)ub.hidden=true; const qt=$("qtrack"); if(qt)qt.hidden=true;
-  const bg=$("titlebg"); if(bg&&!bg.firstChild)bg.innerHTML=titleBgSvg();   // 탑 배경 주입(1회)
+  const bg=$("titlebg"); if(bg&&!bg.firstChild)bg.innerHTML=titleBgSvg()+(MAIN_BG?`<img class="titlebgimg" src="${MAIN_BG}" alt="" onerror="this.remove()">`:"");   // 임시=SVG 배경, MAIN_BG 지정 시 그 이미지로 덮음(실패 시 SVG)
   clearLog(); setScene("🗼","끝이 보이지 않는 탑이 하늘을 찌른다.");
   let info=""; try{ const p=JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); if(p&&p.stats)info=`이어할 캐릭터 — <b>${p.name}</b> · 다이브 ${p.dives||0}회 · 처치 ${p.kills||0}`; }catch(e){}
   line(info || '기억 없는 방랑자가 되어, 탑 정상의 진실을 마주하라.', info?"sys":"quote");

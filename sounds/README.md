@@ -18,10 +18,19 @@ const SFX = {
 ## 배경음악(BGM) 교체 예시
 ```js
 const BGM = {
-  town:   { src: "sounds/bgm-town.mp3",   vol: 0.35, loop: true },
-  combat: { src: "sounds/bgm-combat.mp3", vol: 0.40, loop: true },
+  town:   { src: "sounds/bgm-town.mp3",   vol: 0.6, loop: true },
+  combat: { src: "sounds/bgm-combat.mp3", vol: 0.7, loop: true },
 };
 ```
+
+## 환경음(Ambient) 교체 예시 — 배경음악과 별도 레이어(바람·마을 소음 등)
+```js
+const AMB = {
+  town:   { src: "sounds/amb-town.mp3",  vol: 0.6, loop: true },
+  tower:  { src: "sounds/amb-tower.mp3", vol: 0.6, loop: true },
+};
+```
+> 배경음악 / 효과음 / 환경음은 게임 내 **⚙ 설정**(마을 하단)에서 각각 켜기·끄기·음량 조절돼요. `vol`은 트랙별 기본 볼륨이고, 최종 음량 = `vol × 설정 슬라이더`.
 
 ## 이벤트 목록 (소리가 울리는 순간)
 | 이름 | 언제 |
