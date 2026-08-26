@@ -276,8 +276,9 @@ function guildCategory(cat){ if(enemy)return; const g=GUILD_CATS[cat]; clearLog(
 let chatTimer=null, chatLog=[];
 const CHAT_NAMES=["강철나비","달빛사냥꾼","탑돌이","고인물","야간모드","용사김밥","무빙장인","광부왕","초보환영","힐러구함","포션과부하","1등할끄야","은둔고수","길잃은요정","세이버장인"];
 const CHAT_LINES=["탑 20층 보스 왜케 아파요 ㅠㅠ","월광 세이버 파실 분 계신가요?","같이 등반하실 분~ 30층대 구함","경매장 마정석 값 실화냐","단검 2연타 개꿀이네요","방금 정예몹한테 털림 ㅋㅋ","마나 오브 어디서 떨궈요?","길드하우스 토벌 의뢰 보상 좋음","주문 영창 오타나서 파이어볼 불발 ㅋㅋㅋ","50층 최종보스 잡은 사람?","힐러 없이 딜찍누 가능?","칭호 '부호' 조건 빡세네","입문자 세트로 15층까지 옴","이 게임 은근 중독되네","다들 무슨 무기 쓰세요?","천공존 배경 이쁨","함정 해체하다 죽을 뻔"];
-function chatFetch(){ return {name:pick(CHAT_NAMES), text:pick(CHAT_LINES)}; }   // TODO: 서버 연동 시 여기만 교체
-function chatPost(text){ chatLog.push({name:P.name, text, me:true}); }            // TODO: 서버 전송으로 교체
+function chatFetch(){ return {name:pick(CHAT_NAMES), text:pick(CHAT_LINES), ts:Date.now()}; }
+function chatPost(text){ chatLog.push({name:P.name, text, me:true, ts:Date.now()}); }
+function fmtChatTime(ts){ if(!ts)return ""; const d=new Date(ts); const h=d.getHours(), m=d.getMinutes(); return (h<10?"0":"")+h+":"+(m<10?"0":"")+m; }
 function stopChatTimer(){ if(chatTimer){ clearInterval(chatTimer); chatTimer=null; } }
 function chatSeed(){ if(chatLog.length)return; for(let i=0;i<7;i++)chatLog.push(chatFetch()); }
 /* 상시 광장 채팅 독 — 마을에서 항상 떠서 실시간 갱신 */
@@ -285,17 +286,19 @@ function startTownChat(){ if(!P||enemy||mode!=="town")return; const d=$("chatdoc
   if((window.innerWidth||999)<=640 && !d.dataset.userToggled)d.classList.add("collapsed");   // 모바일: 기본 접힘
   stopChatTimer();
   if(P._online && typeof netChatHistory==="function"){   // 🌐 온라인: 진짜 광장 채팅(SSE)
-    NET.onChat=(m)=>{ chatLog.push({name:m.name,text:m.text,me:(m.name===NET.name)}); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); };
+    NET.onChat=(m)=>{ chatLog.push({name:m.name,text:m.text,me:(m.name===NET.name),ts:m.ts}); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); };
     NET.onPresence=(n)=>{ const el=$("cdonline"); if(el)el.textContent=n+"명 접속"; };
-    netChatHistory().then(msgs=>{ chatLog=msgs.map(m=>({name:m.name,text:m.text,me:(m.name===NET.name)})); renderChatDock(); }).catch(()=>{});
+    netChatHistory().then(msgs=>{ chatLog=msgs.map(m=>({name:m.name,text:m.text,me:(m.name===NET.name),ts:m.ts})); renderChatDock(); }).catch(()=>{});
     renderChatDock(); return;
   }
   chatSeed(); renderChatDock();   // 오프라인: 로컬 시뮬
   chatTimer=setInterval(()=>{ if(mode!=="town"||enemy){ stopChatTimer(); return; } chatLog.push(chatFetch()); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); }, 4500); }
 function hideChatDock(){ stopChatTimer(); const d=$("chatdock"); if(d)d.hidden=true; }
 function renderChatDock(){ const body=$("chatmsgs"); if(!body)return;
-  body.innerHTML=chatLog.slice(-30).map(m=>`<div class="cmsg ${m.me?'me':''}"><span class="cnm">${m.me?'나':m.name}</span><span class="ctx">${(m.text||"").replace(/</g,"&lt;")}</span></div>`).join("");
-  body.scrollTop=body.scrollHeight; }
+  const sc=body.parentElement||body;   // 실제 스크롤 컨테이너는 .cdbody(부모)
+  const atBottom = (sc.scrollHeight - sc.scrollTop - sc.clientHeight) < 40;   // 이미 위로 올려봤으면 강제 스크롤 안 함
+  body.innerHTML=chatLog.slice(-40).map(m=>`<div class="cmsg ${m.me?'me':''}"><span class="cnm">${m.me?'나':m.name}</span><span class="ctx">${(m.text||"").replace(/</g,"&lt;")}</span>${m.ts?`<span class="cts">${fmtChatTime(m.ts)}</span>`:""}</div>`).join("");
+  if(atBottom) sc.scrollTop=sc.scrollHeight; }   // 맨 아래에 있을 때만 자동 스크롤(대화 읽는 중이면 방해 안 함)
 function toggleChatDock(){ const d=$("chatdock"); if(d){ d.classList.toggle("collapsed"); d.dataset.userToggled="1"; } }
 function chatSend(){ if(!P){ return; }
   if(P._online && typeof netChatSend==="function"){   // 🌐 온라인: 서버로 전송(SSE로 되돌아옴)
@@ -304,7 +307,7 @@ function chatSend(){ if(!P){ return; }
   }
   const t=prompt("보낼 메시지 (최대 60자):",""); if(t==null)return; const msg=(t.trim()).slice(0,60); if(!msg)return;
   chatPost(msg); renderChatDock();
-  if(chance(0.6))setTimeout(()=>{ if(mode==="town"&&chatTimer){ chatLog.push({name:pick(CHAT_NAMES), text:pick(["ㅇㅋㅇㅋ","오 반가워요","화이팅!","저도요 ㅋㅋ","굿굿","같이해요~","ㄹㅇ"])}); renderChatDock(); } }, 1200); }
+  if(chance(0.6))setTimeout(()=>{ if(mode==="town"&&chatTimer){ chatLog.push({name:pick(CHAT_NAMES), text:pick(["ㅇㅋㅇㅋ","오 반가워요","화이팅!","저도요 ㅋㅋ","굿굿","같이해요~","ㄹㅇ"]), ts:Date.now()}); renderChatDock(); } }, 1200); }
 function openChat(){ startTownChat(); }   // 하위호환
 /* 📜 의뢰 현황 (진행중·완료) */
 function questBoard(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } stopAuctionTimer(); auction=null; mode="town"; checkQuests();
