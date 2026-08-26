@@ -267,7 +267,7 @@
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .reccode{font-family:var(--mono); font-size:22px; letter-spacing:.12em; font-weight:700; color:var(--gold); text-align:center; background:#0a0d13; border:1px dashed var(--gold); border-radius:10px; padding:16px 10px; user-select:all; -webkit-user-select:all; word-break:break-all}
   /* 🗺 마을 지도(걸어다니는 프리뷰) */
-  .hudstatus{margin:8px 2px 2px; font-size:11.5px; color:var(--dim); line-height:1.7; display:flex; flex-wrap:wrap; gap:3px 8px; align-items:center; padding:7px 11px; background:#0c0f16; border:1px solid var(--line); border-radius:10px}
+  .hudstatus{margin:9px 0 0; padding:9px 0 0; border-top:1px solid var(--line); font-size:11px; color:var(--dim); line-height:1.6; display:flex; flex-wrap:wrap; gap:3px 7px; align-items:center}
   .hudstatus .hs-lab{color:var(--mp); font-weight:700; margin-right:2px}
   .sdrow{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line)}
   .sdrow b{color:var(--gold); font-size:15px}
@@ -280,7 +280,6 @@
   .invtab:hover{filter:brightness(1.2)}
   .grow[title]{cursor:default}
   .hudstatus .hs-sep{color:var(--line)}
-  body.combat .hudstatus, body.mapview .hudstatus{ display:none }   /* 전투/지도 뷰에선 화면 확보 위해 숨김 */
   body.mapview .stage{ display:none }                               /* 지도 뷰: 상단 씬 숨김(공간 확보) */
   body.mapview .log{ max-height:none; padding:0; border:none; background:transparent }
   body.mapview .townmap{ height:min(72vh,560px) }                   /* 확보한 공간만큼 지도 확대 */
@@ -510,10 +509,9 @@
       <div class="stat">🌿 생활력 <span id="stamTxt">100/100</span></div><div class="bar"><i class="fill-stam" id="stamBar" style="width:100%"></i></div>
       <div class="invtitle">장착 장비</div>
       <div class="invgrid" id="sinv"></div>
+      <div class="hudstatus" id="hudstatus" hidden></div>
     </div>
   </div>
-
-  <div class="hudstatus" id="hudstatus" hidden></div>
 
   <div class="uibar" id="uibar" hidden>
     <span class="uibtn" id="btnInv">🎒 인벤토리</span>
