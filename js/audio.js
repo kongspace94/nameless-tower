@@ -65,11 +65,14 @@ function audioInit() {
   } catch (e) { AUDIO.ctx = null; }
   return AUDIO.ctx;
 }
-function audioUnlock() {   // 첫 사용자 제스처에 호출 → 오디오 활성화 + 대기 중이던 BGM/환경음 재생
-  if (AUDIO._unlocked) return; AUDIO._unlocked = true; audioInit();
-  try { if (AUDIO.ctx && AUDIO.ctx.state === "suspended") AUDIO.ctx.resume(); } catch (e) {}
-  if (AUDIO.bgmName) bgm(AUDIO.bgmName, true);
-  if (AUDIO.ambName) amb(AUDIO.ambName, true);
+function audioUnlock() {   // 사용자 제스처마다 호출(멱등) → ctx 깨우고, 울려야 할 BGM/환경음이 안 울리고 있으면 시작
+  if (!audioInit()) return; const ctx = AUDIO.ctx; const wasSuspended = (ctx.state === "suspended");
+  const after = () => {   // ctx가 잠겨있다 깨어난 직후엔(또는 루프 미가동 시) 확실히 (재)시작
+    if (AUDIO.bgmName && (wasSuspended || !AUDIO.bgmSynth)) bgm(AUDIO.bgmName, true);
+    if (AUDIO.ambName && AMB[AUDIO.ambName] && AMB[AUDIO.ambName].src) amb(AUDIO.ambName, true);
+    AUDIO._unlocked = true;
+  };
+  try { if (wasSuspended) ctx.resume().then(after, after); else after(); } catch (e) { after(); }
 }
 if (typeof document !== "undefined") { ["pointerdown", "keydown", "touchstart"].forEach(ev => document.addEventListener(ev, audioUnlock, { once: false })); }
 
@@ -152,18 +155,14 @@ function startSynthBgm(name) {   // WebAudio 절차적 배경음악 루프
       noise(0.03, 0.016, 7000); if (within === 2) noise(0.12, 0.05, 1600);                              // 하이햇(매 스텝) + 스네어(백비트)
       const lf = spec.lead[s16]; if (lf) note(lf, d * 0.85, "triangle", 0.042); }                        // 긴장 리드 모티프
     else { const n = spec.chords.length, idx = step % n, ch = spec.chords[idx], d = spec.stepMs / 1000;
-      const half2 = idx >= 4, build = half2 ? Math.pow((idx - 3) / 4, 1.3) : 0, lift = 1 + 0.5 * build;   // 후반부 크레센도(더 강하게)
-      ch.forEach(f => { note(f, d * 1.05, "triangle", 0.036 * lift); note(f * 1.006, d * 1.05, "triangle", 0.016 * lift); });   // 패드 + 따뜻한 디튠
-      note(ch[0], d * 1.05, "sawtooth", 0.016 * lift); note(ch[2], d * 1.05, "sawtooth", 0.011 * lift);           // 🎺 브라스/현 앙상블 바디(웅장함)
-      note(ch[0] / 2, d * 1.05, "sine", 0.07);                                                                    // 베이스(한 옥타브 아래)
-      note(ch[0] / 4, d * 1.05, "sine", 0.055);                                                                   // 🔊 시네마틱 서브베이스(두 옥타브 아래)
-      note(ch[0] / 2, 0.5, "sine", 0.10 * (idx % 4 === 0 ? 1 : 0.55), 0, 0.004);                                  // 🥁 소프트 팀파니 타격(코드 전환마다, 마디머리 강세)
-      note(ch[ch.length - 1] * 2, d * 1.05, "sine", 0.014 + 0.02 * build);                                        // 상단 반짝임(후반부에 차오름)
+      const half2 = idx >= 4, build = half2 ? Math.pow((idx - 3) / 4, 1.3) : 0, lift = 1 + 0.3 * build;   // 잔잔하게 — 후반부에 은은한 크레센도만
+      ch.forEach(f => { note(f, d * 1.05, "triangle", 0.04 * lift); note(f * 1.006, d * 1.05, "triangle", 0.017 * lift); });   // 패드 + 따뜻한 디튠
+      note(ch[0] / 2, d * 1.05, "sine", 0.075);                                                                   // 베이스(한 옥타브 아래)
+      note(ch[ch.length - 1] * 2, d * 1.05, "sine", 0.014 + 0.02 * build);                                        // 상단 은은한 반짝임(후반부에 살짝 차오름)
       if (spec.melody) { const mi = idx * 2, m1 = spec.melody[mi % 16], m2 = spec.melody[(mi + 1) % 16];          // 스텝당 리드 2음
         note(m1, d * 0.46, "triangle", 0.05 * lift, d * 0.04); note(m2, d * 0.44, "triangle", 0.045 * lift, d * 0.5);
-        if (half2 && spec.harmony) { const h1 = spec.harmony[mi % 16], h2 = spec.harmony[(mi + 1) % 16];          // 후반부: 3도 아래 하모니
-          note(h1, d * 0.46, "triangle", 0.012 + 0.03 * build, d * 0.04); note(h2, d * 0.44, "triangle", 0.012 + 0.028 * build, d * 0.5);
-          note(m1 * 2, d * 0.46, "triangle", 0.022 * build, d * 0.04); note(m2 * 2, d * 0.44, "triangle", 0.02 * build, d * 0.5); } } }   // 🌟 멜로디 옥타브 겹침 — 솟구치는 클라이맥스
+        if (half2 && spec.harmony) { const h1 = spec.harmony[mi % 16], h2 = spec.harmony[(mi + 1) % 16];          // 후반부: 3도 아래 하모니로 풍성하게(웅장 요소는 제거)
+          note(h1, d * 0.46, "triangle", 0.012 + 0.03 * build, d * 0.04); note(h2, d * 0.44, "triangle", 0.012 + 0.028 * build, d * 0.5); } } }
     step++;
   };
   tick(); const timer = setInterval(tick, spec.stepMs); AUDIO.bgmSynth = { timer, gain: g, name };
