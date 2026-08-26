@@ -177,7 +177,10 @@ async function onlineScreen(){ if(typeof NET==="undefined"){ toast("온라인 �
     {label:"✨ 회원가입",desc:"새 계정 만들기",full:true,act:()=>authForm("register")},
     {label:"← 뒤로",full:true,act:titleScreen}]);
 }
-/* 게임 내 로그인/회원가입 폼 (팝업 대신) — 비번 마스킹 + 👁 토글 + 엔터 제출 */
+/* 눈 아이콘 (뜬/감은) — 비번 표시/숨김 토글용 */
+const EYE_ON_SVG=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF_SVG=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+/* 게임 내 로그인/회원가입 폼 (팝업 대신) — 비번 마스킹 + 눈 토글 + 엔터 제출 */
 function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode==="login");
   clearLog(); setScene("🌐", isLogin?"로그인":"회원가입");
   const nm=(NET.name||"").replace(/[<>"]/g,"");
@@ -185,16 +188,13 @@ function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode
     <div class="authrow"><label>👤 이름</label><input id="authName" class="authin" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="캐릭터 이름 (2~16자)" value="${nm}"></div>
     <div class="authrow"><label>🔒 비밀번호</label>
       <div class="authpw"><input id="authPw" class="authin authpwmask" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="4자 이상 (한글 가능)">
-      <button type="button" class="eyebtn" id="authEye" title="표시/숨기기" tabindex="-1">👁</button></div></div>
+      <button type="button" class="eyebtn" id="authEye" title="표시/숨기기" tabindex="-1">${EYE_OFF_SVG}</button></div></div>
     <div id="authErr" class="autherr"></div>
     <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"이름·비밀번호만 있으면 가입 완료. 잊지 않게 적어두세요!"}</div>
   </div>`;
   const eye=$("authEye"), pw=$("authPw"), nmi=$("authName");
-  if(eye&&pw)eye.onclick=()=>{ const nowHidden=pw.classList.contains("authpwmask"); pw.classList.toggle("authpwmask",!nowHidden); eye.textContent=nowHidden?"🙈":"👁"; try{pw.focus();}catch(e){} };   // CSS 마스킹 토글(type 유지 → 한글 IME OK)
-  // 🔤 실시간 IME 변환: 한글 입력을 즉시 영문 키스트로크로 → 보이는 것=저장되는 것(한글/영문 통일)
-  if(pw && typeof pwNormalize==="function"){ const conv=()=>{ const c=pwNormalize(pw.value); if(c!==pw.value){ pw.value=c; } };
-    pw.addEventListener("compositionend",conv);
-    pw.addEventListener("input",e=>{ if(!e.isComposing)conv(); }); }
+  // 👁 눈 아이콘 on/off 토글 (마스킹만 켰다 껐다 · 필드값은 입력 그대로 유지 → 타이핑 안 끊김, 보이기 시 한글 그대로)
+  if(eye&&pw)eye.onclick=()=>{ const hidden=pw.classList.contains("authpwmask"); pw.classList.toggle("authpwmask",!hidden); eye.innerHTML=hidden?EYE_ON_SVG:EYE_OFF_SVG; try{pw.focus();}catch(e){} };
   const onEnter=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); submitAuth(mode); } };
   if(pw)pw.addEventListener("keydown",onEnter); if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
   setTimeout(()=>{ try{ nmi&&nmi.focus(); }catch(e){} },40);
