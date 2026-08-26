@@ -118,7 +118,7 @@ function openSettings(){ if(document.querySelector(".setmodal"))return; if(typeo
   const ov=document.createElement("div"); ov.className="setmodal";
   ov.innerHTML=`<div class="setbox">
     <div class="settitle">⚙ 설정 · 사운드</div>
-    ${A?row("bgm","🎵","배경음악",A.bgmOn,A.bgmVol,"sounds 폴더에 파일 넣으면 재생"):""}
+    ${A?row("bgm","🎵","배경음악",A.bgmOn,A.bgmVol,"임시 합성곡 재생 중 · 파일 넣으면 교체"):""}
     ${A?row("sfx","🔊","효과음",A.on,A.vol,"지금도 나요"):""}
     ${A?row("amb","🌬️","환경음",A.ambOn,A.ambVol,"바람·마을 소음 등 · 파일 넣으면 재생"):""}
     ${A?"":'<div class="setnote">오디오를 사용할 수 없는 환경이에요.</div>'}

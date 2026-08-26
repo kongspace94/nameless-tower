@@ -39,6 +39,12 @@ const AMB = {   // 환경음 (바람·풀벌레·마을 소음 등, 배경음악
   town:   { src: "", vol: 0.6, loop: true },   // 예) src:"sounds/amb-town.mp3"
   tower:  { src: "", vol: 0.6, loop: true },
 };
+/* 🎼 임시 합성 배경음악 루프 — BGM에 src가 없을 때 자동으로 이 루프가 재생됨(파일 넣으면 파일 우선).
+   town=잔잔한 단조 패드 진행 / combat=긴박한 베이스 오스티나토. 나중에 참고용/자리표시자. */
+const BGM_SYNTH = {
+  town:   { stepMs: 2400, chords: [[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196.00],[196.00,246.94,293.66]] },  // Am–F–C–G
+  combat: { stepMs: 250,  bass: [110,110,155.56,110, 98,98,146.83,98] },   // A 펄스 + 트라이톤 긴장음
+};
 
 /* ── 엔진 (아래는 손댈 필요 없음) ── */
 function audioSupported() { return typeof window !== "undefined" && (typeof AudioContext !== "undefined" || typeof webkitAudioContext !== "undefined"); }
@@ -96,15 +102,42 @@ function sfx(name) {   // ★ 메인 진입점: sfx("attack") 처럼 호출
   if (!audioInit()) return; try { if (AUDIO.ctx.state === "suspended") AUDIO.ctx.resume(); } catch (e) {}
   try { if (spec.src) { if (_playBuf(name, spec.src, spec.gain)) return; } _synth(spec); } catch (e) {}
 }
-function bgm(name, force) {   // 배경음악 전환 (src 없으면 조용히 대기)
+function bgm(name, force) {   // 배경음악 전환. src 있으면 파일, 없으면 합성 루프(자리표시자)
   AUDIO.bgmName = name; if (!audioSupported()) return; const def = BGM[name];
-  if (!AUDIO.bgmOn || !def || !def.src) { bgmStop(); return; }
-  if (AUDIO.bgmEl && AUDIO._bgmSrc === def.src && !force && !AUDIO.bgmEl.paused) return;
-  bgmStop();
-  try { const el = new Audio(def.src); el.loop = def.loop !== false; el.volume = _clamp01(AUDIO.bgmVol * (def.vol != null ? def.vol : 1));
-    el.play().catch(() => {}); AUDIO.bgmEl = el; AUDIO._bgmSrc = def.src; } catch (e) {}
+  if (!AUDIO.bgmOn) { bgmStop(); return; }
+  if (def && def.src) {   // 실제 파일 우선
+    stopSynthBgm();
+    if (AUDIO.bgmEl && AUDIO._bgmSrc === def.src && !force && !AUDIO.bgmEl.paused) return;
+    bgmStopFile();
+    try { const el = new Audio(def.src); el.loop = def.loop !== false; el.volume = _clamp01(AUDIO.bgmVol * (def.vol != null ? def.vol : 1));
+      el.play().catch(() => {}); AUDIO.bgmEl = el; AUDIO._bgmSrc = def.src; } catch (e) {}
+    return;
+  }
+  // 파일 없음 → 합성 루프
+  bgmStopFile();
+  if (BGM_SYNTH[name]) { if (AUDIO.bgmSynth && AUDIO.bgmSynth.name === name && !force) return; startSynthBgm(name); }
+  else stopSynthBgm();
 }
-function bgmStop() { if (AUDIO.bgmEl) { try { AUDIO.bgmEl.pause(); } catch (e) {} AUDIO.bgmEl = null; AUDIO._bgmSrc = null; } }
+function bgmStopFile() { if (AUDIO.bgmEl) { try { AUDIO.bgmEl.pause(); } catch (e) {} AUDIO.bgmEl = null; AUDIO._bgmSrc = null; } }
+function bgmStop() { bgmStopFile(); stopSynthBgm(); }
+function stopSynthBgm() { const s = AUDIO.bgmSynth; if (s) { try { clearInterval(s.timer); } catch (e) {} try { s.gain.gain.setTargetAtTime(0.0001, AUDIO.ctx.currentTime, 0.1); setTimeout(() => { try { s.gain.disconnect(); } catch (e) {} }, 400); } catch (e) {} AUDIO.bgmSynth = null; } }
+function startSynthBgm(name) {   // WebAudio 절차적 배경음악 루프
+  stopSynthBgm(); if (!audioInit()) return; const ctx = AUDIO.ctx; try { if (ctx.state === "suspended") ctx.resume(); } catch (e) {}
+  const spec = BGM_SYNTH[name]; if (!spec) return;
+  const g = ctx.createGain(); g.gain.value = _clamp01(AUDIO.bgmVol); g.connect(ctx.destination);   // BGM 전용 게인(효과음 마스터와 분리)
+  let step = 0;
+  const note = (freq, dur, type, vol) => { const t0 = ctx.currentTime, o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0); ng.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + Math.min(0.2, dur * 0.25)); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(ng); ng.connect(g); o.start(t0); o.stop(t0 + dur + 0.03); };
+  const tick = () => {
+    if (name === "combat") { const b = spec.bass[step % spec.bass.length], d = spec.stepMs / 1000;
+      note(b, d * 0.9, "sawtooth", 0.085); note(b / 2, d * 0.9, "square", 0.035); if (step % 8 === 0) note(b * 3, d * 3, "triangle", 0.03); }
+    else { const ch = spec.chords[step % spec.chords.length], d = spec.stepMs / 1000;
+      ch.forEach(f => note(f, d * 1.05, "triangle", 0.045)); note(ch[0] / 2, d * 1.05, "sine", 0.08); if (step % 2 === 0) note(ch[ch.length - 1] * 2, d * 0.5, "triangle", 0.03); }
+    step++;
+  };
+  tick(); const timer = setInterval(tick, spec.stepMs); AUDIO.bgmSynth = { timer, gain: g, name };
+}
 function amb(name, force) {   // 환경음 전환 (src 없으면 조용히 대기) — 배경음악과 별도 레이어
   AUDIO.ambName = name; if (!audioSupported()) return; const def = AMB[name];
   if (!AUDIO.ambOn || !def || !def.src) { ambStop(); return; }
@@ -119,6 +152,8 @@ function ambStop() { if (AUDIO.ambEl) { try { AUDIO.ambEl.pause(); } catch (e) {
 function sfxSetOn(b) { AUDIO.on = !!b; try { localStorage.setItem("nt_sfx", b ? "on" : "off"); } catch (e) {} if (b) sfx("click"); }
 function sfxSetVol(v) { AUDIO.vol = _clamp01(v); if (AUDIO.master) AUDIO.master.gain.value = AUDIO.vol; try { localStorage.setItem("nt_vol", String(AUDIO.vol)); } catch (e) {} }
 function bgmSetOn(b) { AUDIO.bgmOn = !!b; try { localStorage.setItem("nt_bgm", b ? "on" : "off"); } catch (e) {} if (b) bgm(AUDIO.bgmName || "town", true); else bgmStop(); }
-function bgmSetVol(v) { AUDIO.bgmVol = _clamp01(v); try { localStorage.setItem("nt_bgmvol", String(AUDIO.bgmVol)); } catch (e) {} if (AUDIO.bgmEl && AUDIO.bgmName && BGM[AUDIO.bgmName]) { const def = BGM[AUDIO.bgmName]; AUDIO.bgmEl.volume = _clamp01(AUDIO.bgmVol * (def.vol != null ? def.vol : 1)); } }
+function bgmSetVol(v) { AUDIO.bgmVol = _clamp01(v); try { localStorage.setItem("nt_bgmvol", String(AUDIO.bgmVol)); } catch (e) {}
+  if (AUDIO.bgmEl && AUDIO.bgmName && BGM[AUDIO.bgmName]) { const def = BGM[AUDIO.bgmName]; AUDIO.bgmEl.volume = _clamp01(AUDIO.bgmVol * (def.vol != null ? def.vol : 1)); }
+  if (AUDIO.bgmSynth) { try { AUDIO.bgmSynth.gain.gain.value = _clamp01(AUDIO.bgmVol); } catch (e) {} } }
 function ambSetOn(b) { AUDIO.ambOn = !!b; try { localStorage.setItem("nt_amb", b ? "on" : "off"); } catch (e) {} if (b) amb(AUDIO.ambName || "town", true); else ambStop(); }
 function ambSetVol(v) { AUDIO.ambVol = _clamp01(v); try { localStorage.setItem("nt_ambvol", String(AUDIO.ambVol)); } catch (e) {} if (AUDIO.ambEl && AUDIO.ambName && AMB[AUDIO.ambName]) { const def = AMB[AUDIO.ambName]; AUDIO.ambEl.volume = _clamp01(AUDIO.ambVol * (def.vol != null ? def.vol : 1)); } }
