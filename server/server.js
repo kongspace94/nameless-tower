@@ -184,7 +184,8 @@ const server = http.createServer(async (req, res) => {
 
     /* 경매장: 목록 / 등록 / 구매 */
     if (p === "/api/auctions" && req.method === "GET") {
-      return json(res, 200, { auctions: db.auctions.filter((a) => !a.sold).slice(-100) });
+      const now = Date.now(), TTL = 72 * 3600 * 1000;   // 매물 72시간 만료
+      return json(res, 200, { auctions: db.auctions.filter((a) => !a.sold && (now - a.ts) < TTL).slice(-100) });
     }
     if (p === "/api/auctions" && req.method === "POST") {
       const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });

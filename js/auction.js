@@ -10,7 +10,10 @@ const AUC_PER=10;   // 페이지당 매물 수
 /* ---------- 서버 매물 item 문자열 인코딩/디코딩 ---------- */
 function encodeAucItem(o){ if(o.kind==="mat")return "mat:"+o.mat+":"+(o.amt||1); if(o.kind==="cons")return "cons:"+o.consKey; return o.relicKey; }
 function parseAucItem(item,up){ item=String(item||""); if(item.slice(0,4)==="mat:"){ const p=item.split(":"); return {kind:"mat",mat:p[1],amt:+p[2]||1}; } if(item.slice(0,5)==="cons:")return {kind:"cons",consKey:item.slice(5)}; return {kind:"relic",relicKey:item,up:+up||0}; }
-function srvToListing(a){ const base=parseAucItem(a.item,a.up); const l=Object.assign({id:a.id,sid:a.sellerId,sellerName:a.sellerName||"모험가",buynow:Math.max(1,+a.price||1),mine:!!(typeof NET!=="undefined"&&NET.userId&&a.sellerId===NET.userId)},base); l.base=lBaseVal(l); return l; }
+function srvToListing(a){ const base=parseAucItem(a.item,a.up); const l=Object.assign({id:a.id,sid:a.sellerId,sellerName:a.sellerName||"모험가",buynow:Math.max(1,+a.price||1),ts:+a.ts||Date.now(),mine:!!(typeof NET!=="undefined"&&NET.userId&&a.sellerId===NET.userId)},base); l.base=lBaseVal(l); return l; }
+const AUC_TTL=72*3600*1000;   // 매물 72시간 만료
+function aucRemainMs(ts){ return AUC_TTL-(Date.now()-(+ts||Date.now())); }
+function aucRemainText(ts){ const ms=aucRemainMs(ts); if(ms<=0)return "만료"; const h=Math.floor(ms/3600000); if(h>=1)return h+"시간 남음"; return Math.max(1,Math.floor(ms/60000))+"분 남음"; }
 
 /* ---------- 매물 식별/표시 ---------- */
 function lItemName(l){ if(l.kind==="relic")return l.relicKey; if(l.kind==="mat")return `${MATS[l.mat]?MATS[l.mat][1]:l.mat} ×${l.amt}`; if(l.kind==="cons")return (CONS[l.consKey]||{}).n||l.consKey; return "?"; }
@@ -50,7 +53,7 @@ function grantListing(l){ if(l.kind==="relic")addRelicSilent(l.relicKey,l.up); e
 function addRelicSilent(name,up){ const g=RELICS[name]; if(g&&g.key){ if(!P.questItems.includes(name))P.questItems.push(name); return; } const it={k:name,id:newId(),up:+up||0}; P.inv.push(it); if(P.codex)P.codex[name]=true; if(g&&g.slot&&P.equip[g.slot]==null)P.equip[g.slot]=it.id; }
 
 /* ---------- 필터/검색/페이지 ---------- */
-function filteredListings(){ let arr=auction.listings.slice();
+function filteredListings(){ let arr=auction.listings.filter(l=>aucRemainMs(l.ts)>0);   // 만료 매물 제외
   if(auction.cat&&auction.cat!=="all")arr=arr.filter(l=>lCat(l)===auction.cat);
   if(auction.q){ const q=auction.q.toLowerCase(); arr=arr.filter(l=>lItemName(l).toLowerCase().includes(q)); }
   arr.sort((a,b)=>((b.mine?1:0)-(a.mine?1:0))||(a.buynow-b.buynow)); return arr; }
@@ -66,7 +69,7 @@ function cardHtml(l){ const name=lItemName(l);
     : `<div class="lotbtns"><button class="lb buy" ${P.gold<l.buynow?"disabled":""} onclick="aucBuyNow('${l.id}')">⚡ 구매 ${l.buynow}G</button></div>`;
   return `<div class="lot ${l.mine?'mine':''}"><div>${lIcon(l,42)}</div><div class="li">`+
     `<div class="ln">${name}${l.up?` <span style="color:var(--gold)">+${l.up}</span>`:''}</div>`+
-    `<div class="lmeta">${lNote(l)} · 판매자 <b>${l.mine?'나':(l.sellerName||'모험가')}</b></div>`+
+    `<div class="lmeta">${lNote(l)} · 판매자 <b>${l.mine?'나':(l.sellerName||'모험가')}</b> · <span class="ltime">⏱ ${aucRemainText(l.ts)}</span></div>`+
     `<div class="lbid"><span class="lprice">즉시구매 <b>${l.buynow}G</b></span></div>${btns}</div></div>`; }
 function renderAuctionList(){ if(!auction)return; if(!auction.online)return; const all=filteredListings();
   const maxp=Math.max(0,Math.ceil(all.length/AUC_PER)-1); if((auction.page||0)>maxp)auction.page=maxp; const page=auction.page||0;
