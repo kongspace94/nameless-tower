@@ -1,0 +1,20 @@
+# Render Blueprint — 이름 없는 탑 온라인 서버
+# Render(https://render.com)에서 이 저장소를 연결하면 이 설정으로 자동 배포됩니다.
+# 무료 플랜: 공개 HTTPS URL 제공. (비활동 15분 후 슬립 → 첫 접속 시 ~30초 콜드스타트)
+# ⚠ 무료 디스크는 재배포/재시작 시 초기화됨. 세이브 영속이 필요하면 아래 disk 블록의 주석을 해제(유료).
+services:
+  - type: web
+    name: nameless-tower
+    runtime: node
+    plan: free
+    buildCommand: "echo no-deps"      # 의존성 없음
+    startCommand: "node server/server.js"
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # - key: DATA_DIR            # ↓ 영속 디스크 쓸 때 함께 해제
+      #   value: /data
+    # disk:                        # ↓ 세이브 영속용(유료). 해제하면 재배포에도 데이터 유지
+    #   name: data
+    #   mountPath: /data
+    #   sizeGB: 1

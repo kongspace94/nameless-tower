@@ -1,0 +1,6 @@
+node_modules/
+server/data/*.json
+server/data/*.tmp
+text-rpg-standalone.html
+*.log
+.DS_Store
