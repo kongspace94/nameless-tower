@@ -281,7 +281,11 @@
   .tmplayer{position:absolute; transform:translate(-50%,-50%); z-index:20; font-size:26px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; pointer-events:none; filter:drop-shadow(0 3px 2px rgba(0,0,0,.4))}
   .tmplayer img{width:26px; height:26px; object-fit:cover; border-radius:50%}
   .tmplayer.walking{animation:tmbob .28s linear infinite}
+  .tmplayer.faceleft{transform:translate(-50%,-50%) scaleX(-1)}
   @keyframes tmbob{0%,100%{margin-top:0}50%{margin-top:-3px}}
+  .tmbubble{position:absolute; transform:translate(-50%,-100%); z-index:30; background:#fff; color:#1a1f2b; font-size:11px; font-weight:600; padding:4px 9px; border-radius:10px; white-space:nowrap; pointer-events:none; box-shadow:0 2px 6px rgba(0,0,0,.35); animation:tmpop .2s ease-out}
+  .tmbubble::after{content:""; position:absolute; left:50%; bottom:-5px; transform:translateX(-50%); border:5px solid transparent; border-top-color:#fff; border-bottom:0}
+  @keyframes tmpop{from{opacity:0; transform:translate(-50%,-90%)}to{opacity:1; transform:translate(-50%,-100%)}}
   .tmhint{position:absolute; left:10px; bottom:8px; font-size:10.5px; color:#fff; opacity:.85; text-shadow:0 1px 2px rgba(0,0,0,.7); font-family:var(--mono); pointer-events:none}
   .setmodal{position:fixed; inset:0; z-index:9999; background:rgba(4,6,12,.82); display:flex; align-items:center; justify-content:center; padding:16px}
   .setbox{background:var(--panel,#11151f); border:1px solid var(--line); border-radius:16px; padding:18px; max-width:320px; width:100%; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 60px rgba(0,0,0,.5)}

@@ -29,6 +29,7 @@ const SFX = {
   heal:      { synth: "arp",   notes: [520, 784],       step: 0.09, type: "sine",     gain: 0.24 },
   victory:   { synth: "arp",   notes: [523, 659, 784, 1046], step: 0.12, type: "triangle", gain: 0.34 },
   defeat:    { synth: "sweep", from: 400, to: 70, dur: 0.7, type: "sine", gain: 0.34 },
+  step:      { synth: "noise", dur: 0.05, cut: 700, gain: 0.05 },   // 🚶 지도에서 걷는 발소리(부드럽게)
   // 예) 파일 교체:  click: { src:"sounds/click.mp3", gain:0.5 }
 };
 const BGM = {   // 배경음악 (src 없으면 무음 대기). vol=트랙별 기본 볼륨(0~1), 최종=vol×설정마스터

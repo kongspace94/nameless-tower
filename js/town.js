@@ -2,7 +2,9 @@
 /* ============================================================
    거점 마을
    ============================================================ */
-function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
+function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={};
+  if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
+  if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
   if(P._divePotBank){ P.potions+=P._divePotBank; P._divePotBank=0; }   // 다이브 때 마을에 맡겨둔 물약 회수
   P.hp=MAXHP(); P.mp=MAXMP(); render(); clearLog(); setScene("🏘️","거점 마을 — 준비를 갖추고 탑으로.");
   line("거점 마을. 탑에 오를 준비를 하자.","sys"); save(true);
@@ -36,19 +38,19 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   render(); clearLog(); setScene("🗺️","거점 마을 — 가고 싶은 곳을 누르면 걸어가요.");
   const contUnlocked=(P.flags.cleared||0)>0||P.flags.continentUnlocked;
   const blds=[
-    {emo:"🗼",label:"탑",x:50,y:14,act:startDive},
-    {emo:"🛡️",label:"장비상점",x:15,y:34,act:gearShop},
-    {emo:"⚒️",label:"대장간",x:33,y:28,act:blacksmithMenu},
-    {emo:"🔨",label:"제작소",x:18,y:60,act:workshopMenu},
-    {emo:"🛒",label:"잡화점",x:40,y:56,act:generalStore},
-    {emo:"🏦",label:"창고",x:67,y:32,act:warehouseMenu},
-    {emo:"🏛️",label:"경매장",x:82,y:52,act:openAuction},
-    {emo:"🛖",label:"길드",x:63,y:70,act:guildHouse},
-    {emo:"🌲",label:"생활터전",x:88,y:26,act:lifeMenu},
-    {emo:"📖",label:"수련관",x:10,y:78,act:skillMenu},
-    {emo:"🌌",label:"제단",x:44,y:82,act:altarMenu},
+    {emo:"🗼",label:"탑",x:50,y:14,act:startDive,hi:"탑에 오른다…"},
+    {emo:"🛡️",label:"장비상점",x:15,y:34,act:gearShop,hi:"어서오세요, 손님!"},
+    {emo:"⚒️",label:"대장간",x:33,y:28,act:blacksmithMenu,hi:"강화해 줄까?"},
+    {emo:"🔨",label:"제작소",x:18,y:60,act:workshopMenu,hi:"뭘 만들어볼까?"},
+    {emo:"🛒",label:"잡화점",x:40,y:56,act:generalStore,hi:"물약 필요해요?"},
+    {emo:"🏦",label:"창고",x:67,y:32,act:warehouseMenu,hi:"맡기실 건가요?"},
+    {emo:"🏛️",label:"경매장",x:82,y:52,act:openAuction,hi:"좋은 매물 많아요"},
+    {emo:"🛖",label:"길드",x:63,y:70,act:guildHouse,hi:"의뢰 보러 왔나?"},
+    {emo:"🌲",label:"생활터전",x:88,y:26,act:lifeMenu,hi:"오늘도 수고!"},
+    {emo:"📖",label:"수련관",x:10,y:78,act:skillMenu,hi:"수련하러 왔군"},
+    {emo:"🌌",label:"제단",x:44,y:82,act:altarMenu,hi:"돌아왔는가…"},
   ];
-  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,act:farmMenu});
+  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,act:farmMenu,hi:"일꾼들이 반겨요"});
   const decos=[{e:"🌳",x:26,y:46},{e:"🌲",x:57,y:40},{e:"🔥",x:72,y:60},{e:"💧",x:90,y:66},{e:"🌿",x:38,y:74},{e:"🪨",x:22,y:20}];
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap"><div class="tmpath"></div>
@@ -56,15 +58,21 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     ${blds.map((b,i)=>`<button type="button" class="tmbld" data-i="${i}" tabindex="-1" style="left:${b.x}%;top:${b.y}%"><span class="tmemo">${b.emo}</span><span class="tmlab">${b.label}</span></button>`).join("")}
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
-  const pl=$("tmplayer"); let walking=false;
-  $("townmap").querySelectorAll(".tmbld").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
+  const map=$("townmap"), pl=$("tmplayer"); let walking=false;
+  map.querySelectorAll(".tmbld").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
     btn.onclick=(e)=>{ e.stopPropagation(); if(walking||!pl)return; const b=blds[+btn.dataset.i];
     const px=parseFloat(pl.style.left)||47, py=parseFloat(pl.style.top)||70, tx=b.x, ty=b.y+9;   // 문 앞까지
     const dist=Math.hypot(tx-px,ty-py), dur=Math.max(260,Math.round(dist*24)); walking=true;
+    pl.classList.toggle("faceleft", tx<px-0.5);   // 🔄 걷는 방향 좌우 뒤집기
     pl.style.transition=`left ${dur}ms ease-in-out, top ${dur}ms ease-in-out`; pl.classList.add("walking");
     pl.style.left=tx+"%"; pl.style.top=ty+"%";
-    setTimeout(()=>{ pl.classList.remove("walking"); walking=false; if(typeof sfx==="function")sfx("click"); b.act(); }, dur+70); }; });
-  setActions([{label:"📋 메뉴(목록)로 보기",full:true,act:townMenu},{label:"🗼 탑 등반",full:true,act:startDive}]); }
+    const stepT=setInterval(()=>{ if(typeof sfx==="function")sfx("step"); }, 260);   // 🚶 발소리
+    setTimeout(()=>{ clearInterval(stepT); pl.classList.remove("walking"); walking=false;
+      const bub=document.createElement("div"); bub.className="tmbubble"; bub.textContent=b.hi||(b.label+" 도착!"); bub.style.left=tx+"%"; bub.style.top=(ty-7)+"%"; map.appendChild(bub);   // 💬 도착 인사말
+      setTimeout(()=>{ try{ bub.remove(); }catch(e){} }, 900);
+      window.__fromMap = (b.act!==startDive);   // 상점류는 나갈 때 지도로 복귀(탑 등반은 예외)
+      if(typeof sfx==="function")sfx("click"); setTimeout(()=>b.act(), 260); }, dur+60); }; });
+  setActions([{label:"📋 메뉴(목록)로 보기",full:true,act:()=>{ window.__fromMap=false; townMenu(); }},{label:"🗼 탑 등반",full:true,act:startDive}]); }
 /* ⛺ 부족 거점 — 일꾼이 시간 기반으로 자원 자동 생산 */
 function farmMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
   if(!P.farm.unlocked){ P.farm.unlocked=true; P.farm.lastTs=Date.now();
