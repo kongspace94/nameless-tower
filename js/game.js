@@ -171,16 +171,39 @@ async function onlineScreen(){ if(typeof NET==="undefined"){ toast("온라인 �
     return;
   }
   line("계정으로 로그인하면 어느 기기에서든 이어하고, 광장 채팅·경매장이 <b>실시간</b>으로 연결돼요.","quote");
-  setActions([{label:"🔑 로그인",desc:"기존 계정으로",full:true,act:()=>doAuth("login")},
-    {label:"✨ 회원가입",desc:"새 계정 만들기",full:true,act:()=>doAuth("register")},
+  setActions([{label:"🔑 로그인",desc:"기존 계정으로",full:true,act:()=>authForm("login")},
+    {label:"✨ 회원가입",desc:"새 계정 만들기",full:true,act:()=>authForm("register")},
     {label:"← 뒤로",full:true,act:titleScreen}]);
 }
-async function doAuth(mode){
-  const name=prompt(mode==="login"?"계정 이름:":"새 계정 이름 (2~16자):", NET.name||""); if(name==null)return;
-  const pw=prompt("비밀번호 (4자 이상):",""); if(pw==null)return;
-  try{ if(mode==="login")await netLogin(name.trim(),pw); else await netRegister(name.trim(),pw);
+/* 게임 내 로그인/회원가입 폼 (팝업 대신) — 비번 마스킹 + 👁 토글 + 엔터 제출 */
+function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode==="login");
+  clearLog(); setScene("🌐", isLogin?"로그인":"회원가입");
+  const nm=(NET.name||"").replace(/[<>"]/g,"");
+  $("log").innerHTML=`<div class="authbox">
+    <div class="authrow"><label>👤 이름</label><input id="authName" class="authin" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="캐릭터 이름 (2~16자)" value="${nm}"></div>
+    <div class="authrow"><label>🔒 비밀번호</label>
+      <div class="authpw"><input id="authPw" class="authin" type="password" autocomplete="off" placeholder="4자 이상">
+      <button type="button" class="eyebtn" id="authEye" title="표시/숨기기" tabindex="-1">👁</button></div></div>
+    <div id="authErr" class="autherr"></div>
+    <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"이름·비밀번호만 있으면 가입 완료. 잊지 않게 적어두세요!"}</div>
+  </div>`;
+  const eye=$("authEye"), pw=$("authPw"), nmi=$("authName");
+  if(eye&&pw)eye.onclick=()=>{ const hidden=pw.type==="password"; pw.type=hidden?"text":"password"; eye.textContent=hidden?"🙈":"👁"; try{pw.focus();}catch(e){} };
+  const onEnter=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); submitAuth(mode); } };
+  if(pw)pw.addEventListener("keydown",onEnter); if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
+  setTimeout(()=>{ try{ nmi&&nmi.focus(); }catch(e){} },40);
+  setActions([{label:isLogin?"🔑 로그인":"✨ 가입하고 시작",full:true,act:()=>submitAuth(mode)},
+    {label:isLogin?"→ 계정이 없나요? 회원가입":"→ 이미 계정이 있나요? 로그인",full:true,act:()=>authForm(isLogin?"register":"login")},
+    {label:"← 뒤로",full:true,act:onlineScreen}]);
+}
+async function submitAuth(mode){ const nmi=$("authName"), pwi=$("authPw"), err=$("authErr");
+  const name=(nmi?nmi.value:"").trim(), pw=(pwi?pwi.value:""); const setErr=(m,c)=>{ if(err){ err.textContent=m; err.style.color=c||"var(--danger)"; } };
+  if(name.length<2){ setErr("이름은 2자 이상이어야 해요"); return; }
+  if(pw.length<4){ setErr("비밀번호는 4자 이상이어야 해요"); return; }
+  setErr("서버에 연결 중…","var(--dim)");
+  try{ if(mode==="login")await netLogin(name,pw); else await netRegister(name,pw);
     toast((mode==="login"?"로그인":"가입")+" 성공: "+NET.name); onlineScreen();
-  }catch(e){ toast((mode==="login"?"로그인":"가입")+" 실패: "+e.message); }
+  }catch(e){ setErr((mode==="login"?"로그인":"가입")+" 실패 — "+e.message); }
 }
 async function enterOnline(){
   let cloud=null; try{ cloud=await netSaveLoad(); }catch(e){}
