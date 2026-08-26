@@ -74,8 +74,9 @@ function intro(){ setScene("🗼","끝이 보이지 않는 탑이 하늘을 찌�
   line("그 목소리에 홀려 수많은 이가 올랐고, 아무도 내려오지 않았다.","sys");
   line("당신도 그중 하나다. 이름도, 어제도 기억나지 않는 채 — 탑 아래 <b>거점 마을</b>에서 눈을 떴다.");
   line("먼저, 당신을 뭐라 부를까?","sys");
-  setActions([{label:"이름을 정한다",act:askName},{label:"'방랑자'로 시작",act:()=>{ P.name="방랑자"; render(); chooseCompanion(); }}]); }
-function askName(){ const n=prompt("당신의 이름은?","방랑자"); P.name=(n&&n.trim())?n.trim().slice(0,12):"방랑자"; render(); chooseCompanion(); }
+  setActions([{label:"닉네임을 정한다",act:askName},{label:"'방랑자'로 시작",act:()=>{ P.name="방랑자"; syncNick(); render(); chooseCompanion(); }}]); }
+function syncNick(){ if(P&&P._online&&typeof netSetNick==="function")netSetNick(P.name).catch(()=>{}); }   // 닉네임을 서버에 반영(채팅 표시명)
+function askName(){ const n=prompt("게임에서 쓸 닉네임은? (남들에게 보여요)","방랑자"); P.name=(n&&n.trim())?n.trim().slice(0,12):"방랑자"; syncNick(); render(); chooseCompanion(); }
 function chooseCompanion(){ clearLog(); setScene("🧚","작은 정령 셋이 당신을 바라본다.");
   line(`<b>${P.name}</b>. 함께 탑을 오를 <b>서포트 동료</b>를 고르자. 전투마다 자동으로 돕는다.`);
   Object.entries(COMPANIONS).forEach(([k,c])=>line(`${c.emoji} <b>${c.n}</b> — ${c.note}`,"sys"));
@@ -195,11 +196,11 @@ function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode
   clearLog(); setScene("🌐", isLogin?"로그인":"회원가입");
   const nm=(NET.name||"").replace(/[<>"]/g,"");
   $("log").innerHTML=`<div class="authbox">
-    <div class="authrow"><label>👤 이름</label><input id="authName" class="authin" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="캐릭터 이름 (2~16자)" value="${nm}"></div>
+    <div class="authrow"><label>🆔 아이디</label><input id="authName" class="authin" maxlength="16" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="${isLogin?"로그인 아이디":"로그인에 쓸 아이디 (2~16자)"}" value="${nm}"></div>
     <div class="authrow"><label>🔒 비밀번호</label>${pwFieldHtml("authPw",isLogin?"current-password":"new-password","4자 이상 (한글 가능)")}</div>
     ${isLogin?"":`<div class="authrow"><label>🔒 비밀번호 확인</label>${pwFieldHtml("authPw2","new-password","같은 비밀번호 다시")}</div>`}
     <div id="authErr" class="autherr"></div>
-    <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"가입하면 <b>복구 코드</b>가 나와요 — 비번을 잊어도 그 코드로 되찾을 수 있어요."}</div>
+    <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"아이디는 <b>로그인용</b>이에요. 게임 <b>닉네임</b>은 들어가서 정해요. 가입 시 나오는 <b>복구 코드</b>도 꼭 저장하세요."}</div>
   </div>`;
   const nmi=$("authName");
   const pw=wirePw("authPw", isLogin?()=>submitAuth(mode):null);
@@ -270,9 +271,10 @@ async function enterOnline(){
   try{ cloud=await netSaveLoad(); }catch(e){ if(/로그인|401/.test(e&&e.message||""))authErr=true; }
   if(authErr){ netLogout(); toast("세션이 만료됐어요 — 다시 로그인해주세요"); authForm("login"); return; }   // 서버 재시작 등으로 토큰 만료 시
   const hasCloud=!!(cloud&&cloud.stats);
-  if(hasCloud){ P=cloud; normalizeP(); } else { P=freshPlayer(); P.name=NET.name||P.name; }
+  if(hasCloud){ P=cloud; normalizeP(); if(NET.nick&&NET.nick!==P.name)netSetNick(P.name).catch(()=>{}); }   // 저장된 닉네임을 서버에 동기화(채팅 표시명)
+  else { P=freshPlayer(); if(NET.nick&&NET.nick!==NET.name)P.name=NET.nick; }   // 아이디는 P.name에 넣지 않음 — 닉네임은 intro에서 정함
   P._online=true; netConnectSSE(); leaveTitle(); render(); clearLog();
-  if(hasCloud){ toast("클라우드에서 불러옴"); townMenu(); } else { toast("새 온라인 캐릭터"); intro(); }
+  if(hasCloud){ toast("클라우드에서 불러옴"); townMenu(); } else { toast("새 온라인 캐릭터 — 닉네임을 정하자"); intro(); }
 }
 function loadSaveGame(){ try{ P=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!P||!P.stats)throw 0; normalizeP(); }catch(e){ toast("저장을 읽지 못했어요"); leaveTitle(); newGame(); return; } leaveTitle(); render(); townMenu(); }
 function confirmNewGame(){ if(hasSave()&&!confirm("새로 시작하면 저장된 캐릭터가 삭제됩니다. 계속할까요?"))return; localStorage.removeItem(SAVE_KEY); leaveTitle(); newGame(); }

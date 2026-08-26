@@ -137,9 +137,10 @@ function setAvatar(a){ const free=!P.flags.avatarChanged;
   line(`🎭 프로필 아이콘을 ${lbl}(으)로 바꿨다.${free?" (첫 회 무료)":` (💎${AVATAR_COST} 소모)`}`,"loot"); save(true); profileMenu(); }
 function renameChar(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } const free=!P.flags.nameChanged;
   if(!free && (P.gems||0)<NAME_COST){ toast("크리스탈 부족"); return; }
-  const n=prompt(`새 이름을 입력하세요 (${free?"첫 회 무료":`💎${NAME_COST} 소모`}):`, P.name); if(n==null)return;
-  const nm=(n.trim()).slice(0,12); if(!nm){ toast("이름이 비었어요"); return; } if(nm===P.name)return;
+  const n=prompt(`새 닉네임을 입력하세요 (${free?"첫 회 무료":`💎${NAME_COST} 소모`}):`, P.name); if(n==null)return;
+  const nm=(n.trim()).slice(0,12); if(!nm){ toast("닉네임이 비었어요"); return; } if(nm===P.name)return;
   const old=P.name; if(!free)P.gems-=NAME_COST; P.name=nm; P.flags.nameChanged=true; render(); toast("개명 완료: "+nm);
+  if(typeof syncNick==="function")syncNick();   // 🏷 닉네임 서버 반영(채팅 표시명)
   line(`✏️ '${old}' → <b>${nm}</b>${free?" (첫 회 무료)":` (💎${NAME_COST} 소모)`}`,"sys"); save(true);
   if(!enemy)profileMenu(); }
 /* ⚒️ 대장간 — 장비 강화 (+N) */

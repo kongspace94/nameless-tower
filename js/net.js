@@ -8,7 +8,8 @@ const NET = {
     ((typeof location!=="undefined" && /^https?:$/.test(location.protocol)) ? location.origin : "http://localhost:8787")),
   token: localStorage.getItem("nt_token") || null,
   userId: localStorage.getItem("nt_uid") || null,
-  name: localStorage.getItem("nt_name") || null,
+  name: localStorage.getItem("nt_name") || null,   // 아이디(로그인용)
+  nick: localStorage.getItem("nt_nick") || null,   // 닉네임(게임 표시명)
   online: !!localStorage.getItem("nt_token"),   // 저장된 토큰 있으면 이미 로그인된 것으로(→ 타이틀서 로그아웃 노출)
   serverUp: false,    // 서버가 살아있는가(감지)
   sse: null,
@@ -66,8 +67,14 @@ async function netRecoveryRegen() {   // 🔑 로그인 상태에서 복구 코�
   const d = await netFetch("/api/recovery/regen", { method: "POST", body: {} }); return d.recoveryCode;
 }
 function netStoreAuth(d) {
-  NET.token = d.token; NET.userId = d.userId; NET.name = d.name; NET.online = true;
+  NET.token = d.token; NET.userId = d.userId; NET.name = d.name; NET.nick = d.nick || d.name; NET.online = true;
   localStorage.setItem("nt_token", d.token); localStorage.setItem("nt_uid", d.userId); localStorage.setItem("nt_name", d.name);
+  localStorage.setItem("nt_nick", NET.nick);
+}
+async function netSetNick(nick) {   // 🏷 게임 닉네임을 서버에 반영(채팅 표시명)
+  const d = await netFetch("/api/nick", { method: "POST", body: { nick: String(nick || "") } });
+  NET.nick = d.nick; try { localStorage.setItem("nt_nick", d.nick); } catch (e) {}
+  return d.nick;
 }
 function netLogout() {
   NET.online = false; NET.token = null;

@@ -90,10 +90,10 @@ const server = http.createServer(async (req, res) => {
       if (nameTaken(nm)) return json(res, 409, { error: "이미 존재하는 이름" });
       const id = newId(), salt = crypto.randomBytes(16).toString("hex");
       const code = genRecovery();   // 🔑 가입 시 복구 코드 1회 발급(해시만 저장, 원본은 지금 한 번만 반환)
-      db.accounts[id] = { id, name: nm, salt, hash: hashPw(password, salt), rec: hashPw(normRec(code), salt), created: Date.now() };
+      db.accounts[id] = { id, name: nm, nick: nm, salt, hash: hashPw(password, salt), rec: hashPw(normRec(code), salt), created: Date.now() };   // name=아이디(로그인), nick=게임 표시명(기본은 아이디)
       markDirty("accounts");
       const token = newId() + newId(); tokens.set(token, id);
-      return json(res, 200, { token, userId: id, name: nm, recoveryCode: code });
+      return json(res, 200, { token, userId: id, name: nm, nick: nm, recoveryCode: code });
     }
 
     /* 🔑 계정 복구: 이름 + 복구 코드 → 새 비밀번호로 재설정 */
@@ -105,7 +105,7 @@ const server = http.createServer(async (req, res) => {
       if (!newPassword || String(newPassword).length < 4) return json(res, 400, { error: "새 비밀번호는 4자 이상" });
       acc.hash = hashPw(newPassword, acc.salt); markDirty("accounts");
       const token = newId() + newId(); tokens.set(token, acc.id);
-      return json(res, 200, { token, userId: acc.id, name: acc.name });
+      return json(res, 200, { token, userId: acc.id, name: acc.name, nick: acc.nick || acc.name });
     }
 
     /* 🔑 복구 코드 재발급(로그인 상태) — 기존 계정도 코드를 새로 받을 수 있음 */
@@ -122,7 +122,16 @@ const server = http.createServer(async (req, res) => {
       const ok = acc && (acc.hash === hashPw(password, acc.salt) || (passwordRaw != null && acc.hash === hashPw(passwordRaw, acc.salt)));   // 변환값/원본 둘 다 허용(옛 계정 호환)
       if (!ok) return json(res, 401, { error: "이름 또는 비밀번호가 틀림" });
       const token = newId() + newId(); tokens.set(token, acc.id);
-      return json(res, 200, { token, userId: acc.id, name: acc.name });
+      return json(res, 200, { token, userId: acc.id, name: acc.name, nick: acc.nick || acc.name });
+    }
+
+    /* 🏷 닉네임(게임 표시명) 설정 — 로그인 상태. 아이디(name)와 별개 */
+    if (p === "/api/nick" && req.method === "POST") {
+      const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
+      const { nick } = await body(req); const nk = String(nick || "").trim().slice(0, 16);
+      if (nk.length < 1) return json(res, 400, { error: "닉네임이 비었어요" });
+      user.nick = nk; markDirty("accounts");
+      return json(res, 200, { ok: true, nick: nk });
     }
 
     /* 클라우드 세이브 조회/저장 */
@@ -145,7 +154,7 @@ const server = http.createServer(async (req, res) => {
         last.burst = (now - last.ts < 3000) ? last.burst + 1 : 0;
         if (last.burst >= 5) { chatRate.set(user.id, { ts: now + 8000, text: t, burst: 0 }); return json(res, 429, { error: "도배 감지 — 8초 대기" }); }
         chatRate.set(user.id, { ts: now, text: t, burst: last.burst });
-        const msg = { id: newId(), name: user.name, text: t, ts: Date.now() };
+        const msg = { id: newId(), name: user.nick || user.name, text: t, ts: Date.now() };   // 채팅엔 닉네임 표시(아이디 비공개)
         db.chat.push(msg); if (db.chat.length > CHAT_MAX) db.chat = db.chat.slice(-CHAT_MAX); markDirty("chat");
         broadcast("chat", msg);
         return json(res, 200, { ok: true });
