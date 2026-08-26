@@ -65,7 +65,8 @@ function drawHouse(g,x,y,emoji,label,roof){ g.save(); g.textAlign="center"; g.te
   g.font="bold 11px sans-serif"; g.lineWidth=3; g.strokeStyle="rgba(255,255,255,.85)"; g.strokeText(label,x,y+bh/2+13); g.fillStyle="#10240f"; g.fillText(label,x,y+bh/2+13); g.restore(); }
 /* 🗺 마을 지도(걸어다니는 프리뷰) — 건물 클릭 → 캐릭터가 걸어가서 도착하면 해당 메뉴 오픈 */
 function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; stopChatTimer();
-  render(); clearLog(); setScene("🗺️","거점 마을 — 가고 싶은 곳을 누르면 걸어가요.");
+  render(); clearLog(); setScene("🗺️","거점 마을");
+  if(document.body)document.body.classList.add("mapview");   // 상단 씬 숨기고 지도를 크게 (공간 활용)
   const contUnlocked=(P.flags.cleared||0)>0||P.flags.continentUnlocked;
   const blds=[
     {emo:"🗼",label:"탑",x:50,y:14,act:startDive,hi:"탑에 오른다…"},

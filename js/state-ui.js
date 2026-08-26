@@ -201,7 +201,8 @@ function updateBattleBars(){ if(!enemy)return;
   const om=$("meMomBar"); if(om){ const full=(B&&(B.momentum||0)>=MOM_MAX); om.style.width=clamp((B&&B.momentum||0)/MOM_MAX*100,0,100)+"%"; om.parentElement.classList.toggle("full",full); const onn=$("meMomNum"); if(onn)onn.textContent=full?'🌟':Math.floor((B&&B.momentum)||0); }
   updateGroggyBar(); }
 function updateFoeBar(){ updateBattleBars(); }
-function setScene(emoji,caption){ $("stageContent").innerHTML=`<div><div class="scene-ico">${emoji}</div>`+(caption?`<div class="scene-cap">${caption}</div>`:"")+`</div>`; setFloorTag(); porMini(); }
+function setScene(emoji,caption){ if(document.body)document.body.classList.remove("mapview");   // 지도 뷰 이탈 시 상단 씬 복구(townMap이 자기 setScene 직후 다시 켬)
+  $("stageContent").innerHTML=`<div><div class="scene-ico">${emoji}</div>`+(caption?`<div class="scene-cap">${caption}</div>`:"")+`</div>`; setFloorTag(); porMini(); }
 let _floatActive={me:0,foe:0,mid:0};   // 같은 위치에 동시에 뜬 플로트 수 → 세로로 어긋나게 쌓아 겹침 방지
 function spawnFloat(text,color,side){ const s=$("stage"); const f=document.createElement("div"); f.className="float"; f.style.color=color; f.textContent=text;
   const key=(side==="me"||side==="foe")?side:"mid"; const stack=_floatActive[key]++; const up=Math.min(stack,4)*22;   // 활성 개수만큼 위로 어긋남(최대 4단, 화면 이탈 방지)

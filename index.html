@@ -267,6 +267,9 @@
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .reccode{font-family:var(--mono); font-size:22px; letter-spacing:.12em; font-weight:700; color:var(--gold); text-align:center; background:#0a0d13; border:1px dashed var(--gold); border-radius:10px; padding:16px 10px; user-select:all; -webkit-user-select:all; word-break:break-all}
   /* 🗺 마을 지도(걸어다니는 프리뷰) */
+  body.mapview .stage{ display:none }                               /* 지도 뷰: 상단 씬 숨김(공간 확보) */
+  body.mapview .log{ max-height:none; padding:0; border:none; background:transparent }
+  body.mapview .townmap{ height:min(72vh,560px) }                   /* 확보한 공간만큼 지도 확대 */
   .townmap{position:relative; width:100%; height:min(50vh,400px); border-radius:14px; overflow:hidden; border:1px solid var(--line); cursor:pointer;
     background:radial-gradient(120% 90% at 50% 0%, #6fb85a 0%, #58a047 42%, #47883b 100%);
     box-shadow:inset 0 -40px 60px -30px rgba(10,30,10,.6), inset 0 20px 40px -20px rgba(255,255,255,.12)}
