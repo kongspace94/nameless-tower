@@ -51,6 +51,10 @@ function body(req) {
 }
 function hashPw(pw, salt) { return crypto.scryptSync(String(pw), salt, 64).toString("hex"); }
 function newId() { return crypto.randomBytes(9).toString("hex"); }
+/* 🔑 복구 코드: 헷갈리는 글자(0/O/1/I) 제외한 32진 · NT-XXXX-XXXX-XXXX 형태로 표시 */
+const REC_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function genRecovery() { const b = crypto.randomBytes(12); let s = ""; for (let i = 0; i < 12; i++) s += REC_ALPHA[b[i] % REC_ALPHA.length]; return s.slice(0, 4) + "-" + s.slice(4, 8) + "-" + s.slice(8, 12); }
+function normRec(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }   // 대소문자·하이픈·공백 무시하고 비교
 function authUser(req) {
   const h = req.headers["authorization"] || "";
   const tok = h.replace(/^Bearer\s+/i, "");
@@ -85,10 +89,30 @@ const server = http.createServer(async (req, res) => {
       if (!password || String(password).length < 4) return json(res, 400, { error: "비밀번호는 4자 이상" });
       if (nameTaken(nm)) return json(res, 409, { error: "이미 존재하는 이름" });
       const id = newId(), salt = crypto.randomBytes(16).toString("hex");
-      db.accounts[id] = { id, name: nm, salt, hash: hashPw(password, salt), created: Date.now() };
+      const code = genRecovery();   // 🔑 가입 시 복구 코드 1회 발급(해시만 저장, 원본은 지금 한 번만 반환)
+      db.accounts[id] = { id, name: nm, salt, hash: hashPw(password, salt), rec: hashPw(normRec(code), salt), created: Date.now() };
       markDirty("accounts");
       const token = newId() + newId(); tokens.set(token, id);
-      return json(res, 200, { token, userId: id, name: nm });
+      return json(res, 200, { token, userId: id, name: nm, recoveryCode: code });
+    }
+
+    /* 🔑 계정 복구: 이름 + 복구 코드 → 새 비밀번호로 재설정 */
+    if (p === "/api/recover" && req.method === "POST") {
+      const { name, code, newPassword } = await body(req);
+      const acc = Object.values(db.accounts).find((a) => a.name.toLowerCase() === String(name || "").toLowerCase());
+      if (!acc || !acc.rec) return json(res, 400, { error: "복구 코드가 등록되지 않은 계정이에요" });
+      if (acc.rec !== hashPw(normRec(code), acc.salt)) return json(res, 401, { error: "이름 또는 복구 코드가 틀려요" });
+      if (!newPassword || String(newPassword).length < 4) return json(res, 400, { error: "새 비밀번호는 4자 이상" });
+      acc.hash = hashPw(newPassword, acc.salt); markDirty("accounts");
+      const token = newId() + newId(); tokens.set(token, acc.id);
+      return json(res, 200, { token, userId: acc.id, name: acc.name });
+    }
+
+    /* 🔑 복구 코드 재발급(로그인 상태) — 기존 계정도 코드를 새로 받을 수 있음 */
+    if (p === "/api/recovery/regen" && req.method === "POST") {
+      const user = authUser(req); if (!user) return json(res, 401, { error: "로그인 필요" });
+      const code = genRecovery(); user.rec = hashPw(normRec(code), user.salt); markDirty("accounts");
+      return json(res, 200, { recoveryCode: code });
     }
 
     /* 로그인 */

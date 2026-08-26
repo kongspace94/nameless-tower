@@ -97,8 +97,13 @@ function profileMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } 
   setActions([
     {label:`🎭 프로필 아이콘 변경 ${avaFree?"— 첫 회 무료":`— 💎${AVATAR_COST}`}`,desc:P.avatar?(isImgAvatar(P.avatar)?"현재 내 사진":`현재 ${P.avatar}`):"현재 기본 아이콘",disabled:!avaFree&&(P.gems||0)<AVATAR_COST,act:avatarPick},
     {label:`✏️ 닉네임 변경 ${nameFree?"— 첫 회 무료":`— 💎${NAME_COST}`}`,desc:`현재 ${P.name}`,disabled:!nameFree&&(P.gems||0)<NAME_COST,act:renameChar},
+    ...(P._online&&typeof netRecoveryRegen==="function"?[{label:"🔑 복구 코드 재발급",desc:"비번 분실 대비 · 새 코드 발급(이전 코드는 무효)",act:regenRecovery}]:[]),
     {label:"🏘 마을로",full:true,act:townMenu},
   ]); }
+async function regenRecovery(){ if(typeof netRecoveryRegen!=="function"){ toast("온라인 전용"); return; }
+  if(!confirm("새 복구 코드를 발급할까요? 이전 코드는 더 이상 쓸 수 없어요."))return;
+  try{ const code=await netRecoveryRegen(); if(typeof recoveryCodeScreen==="function")recoveryCodeScreen(code,false); else toast("복구 코드: "+code); }
+  catch(e){ toast("발급 실패 — "+(e&&e.message||"")); } }
 function avatarPick(){ if(enemy)return; const free=!P.flags.avatarChanged;
   if(!free&&(P.gems||0)<AVATAR_COST){ toast("크리스탈 부족"); return; }
   const acts=[{header:true,label:free?"아이콘 선택 — 첫 회 무료":`아이콘 선택 — 💎${AVATAR_COST}`}];

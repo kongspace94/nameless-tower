@@ -58,6 +58,13 @@ async function netLogin(name, password) {
   const d = await netFetch("/api/login", { method: "POST", body: { name, password: pwNormalize(password), passwordRaw: String(password || "") } });
   netStoreAuth(d); return d;
 }
+async function netRecover(name, code, newPassword) {   // 🔑 이름+복구코드로 새 비번 설정 후 로그인
+  const d = await netFetch("/api/recover", { method: "POST", body: { name, code: String(code || ""), newPassword: pwNormalize(newPassword) } });
+  netStoreAuth(d); return d;
+}
+async function netRecoveryRegen() {   // 🔑 로그인 상태에서 복구 코드 재발급
+  const d = await netFetch("/api/recovery/regen", { method: "POST", body: {} }); return d.recoveryCode;
+}
 function netStoreAuth(d) {
   NET.token = d.token; NET.userId = d.userId; NET.name = d.name; NET.online = true;
   localStorage.setItem("nt_token", d.token); localStorage.setItem("nt_uid", d.userId); localStorage.setItem("nt_name", d.name);

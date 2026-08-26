@@ -181,45 +181,89 @@ async function onlineScreen(){ if(typeof NET==="undefined"){ toast("온라인 �
 /* 눈 아이콘 (뜬/감은) — 비번 표시/숨김 토글용 */
 const EYE_ON_SVG=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const EYE_OFF_SVG=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+/* 🔒 비번 입력칸 1개 마크업 — 눈 토글 버튼 포함 */
+function pwFieldHtml(id, ac, ph){ return `<div class="authpw"><input id="${id}" class="authin" type="password" autocomplete="${ac}" autocapitalize="off" spellcheck="false" placeholder="${ph}"><button type="button" class="eyebtn" id="${id}Eye" title="표시/숨기기" tabindex="-1">${EYE_OFF_SVG}</button></div>`; }
+/* 눈 토글 + 한글→QWERTY 실시간 변환 + 엔터 콜백 을 비번칸에 부착 (여러 폼에서 재사용) */
+function wirePw(id, onEnter){ const pw=$(id), eye=$(id+"Eye"); if(!pw)return null;
+  if(eye){ eye.onmousedown=(e)=>e.preventDefault(); eye.onclick=()=>{ const show=pw.type==="password"; pw.type=show?"text":"password"; eye.innerHTML=show?EYE_ON_SVG:EYE_OFF_SVG; }; }
+  if(typeof pwNormalize==="function"){ let composing=false; const normPw=()=>{ try{ const v=pw.value,n=pwNormalize(v); if(n!==v)pw.value=n; }catch(e){} };
+    pw.addEventListener("compositionstart",()=>composing=true); pw.addEventListener("compositionend",()=>{composing=false;normPw();}); pw.addEventListener("input",()=>{ if(!composing)normPw(); }); }
+  if(onEnter)pw.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); onEnter(); } });
+  return pw; }
 /* 게임 내 로그인/회원가입 폼 (팝업 대신) — 비번 마스킹 + 눈 토글 + 엔터 제출 */
 function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode==="login");
   clearLog(); setScene("🌐", isLogin?"로그인":"회원가입");
   const nm=(NET.name||"").replace(/[<>"]/g,"");
   $("log").innerHTML=`<div class="authbox">
     <div class="authrow"><label>👤 이름</label><input id="authName" class="authin" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="캐릭터 이름 (2~16자)" value="${nm}"></div>
-    <div class="authrow"><label>🔒 비밀번호</label>
-      <div class="authpw"><input id="authPw" class="authin" type="password" autocomplete="${isLogin?"current-password":"new-password"}" autocapitalize="off" spellcheck="false" placeholder="4자 이상 (한글 가능)">
-      <button type="button" class="eyebtn" id="authEye" title="표시/숨기기" tabindex="-1">${EYE_OFF_SVG}</button></div></div>
+    <div class="authrow"><label>🔒 비밀번호</label>${pwFieldHtml("authPw",isLogin?"current-password":"new-password","4자 이상 (한글 가능)")}</div>
+    ${isLogin?"":`<div class="authrow"><label>🔒 비밀번호 확인</label>${pwFieldHtml("authPw2","new-password","같은 비밀번호 다시")}</div>`}
     <div id="authErr" class="autherr"></div>
-    <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"이름·비밀번호만 있으면 가입 완료. 잊지 않게 적어두세요!"}</div>
+    <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"가입하면 <b>복구 코드</b>가 나와요 — 비번을 잊어도 그 코드로 되찾을 수 있어요."}</div>
   </div>`;
-  const eye=$("authEye"), pw=$("authPw"), nmi=$("authName");
-  // 👁 눈 아이콘 on/off 토글 (type password↔text · 네이티브 마스킹 = 한글 IME 안전, 보이기 시 한글 그대로)
-  if(eye&&pw)eye.onmousedown=(e)=>e.preventDefault();   // 버튼이 포커스 훔쳐 스크롤/밀림 나는 것 방지
-  if(eye&&pw)eye.onclick=()=>{ const show=pw.type==="password"; pw.type=show?"text":"password"; eye.innerHTML=show?EYE_ON_SVG:EYE_OFF_SVG; };
-  // ⌨ 한글로 쳐도 즉시 영어(QWERTY)로 변환 — 조합 끝(compositionend)마다 정규화해 IME와 덜 싸우게. (변환 순간 렉은 감수)
-  if(pw&&typeof pwNormalize==="function"){
-    let composing=false;
-    const normPw=()=>{ try{ const v=pw.value, n=pwNormalize(v); if(n!==v){ pw.value=n; } }catch(e){} };
-    pw.addEventListener("compositionstart",()=>{ composing=true; });
-    pw.addEventListener("compositionend",()=>{ composing=false; normPw(); });
-    pw.addEventListener("input",()=>{ if(!composing)normPw(); });
-  }
-  const onEnter=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); submitAuth(mode); } };
-  if(pw)pw.addEventListener("keydown",onEnter); if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
+  const nmi=$("authName");
+  const pw=wirePw("authPw", isLogin?()=>submitAuth(mode):null);
+  if(!isLogin)wirePw("authPw2", ()=>submitAuth(mode));
+  if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
   setTimeout(()=>{ try{ nmi&&nmi.focus(); }catch(e){} },40);
-  setActions([{label:isLogin?"🔑 로그인":"✨ 가입하고 시작",full:true,act:()=>submitAuth(mode)},
-    {label:isLogin?"→ 계정이 없나요? 회원가입":"→ 이미 계정이 있나요? 로그인",full:true,act:()=>authForm(isLogin?"register":"login")},
-    {label:"← 뒤로",full:true,act:onlineScreen}]);
+  const acts=[{label:isLogin?"🔑 로그인":"✨ 가입하고 시작",full:true,act:()=>submitAuth(mode)},
+    {label:isLogin?"→ 계정이 없나요? 회원가입":"→ 이미 계정이 있나요? 로그인",full:true,act:()=>authForm(isLogin?"register":"login")}];
+  if(isLogin)acts.push({label:"🔑 비밀번호를 잊으셨나요? — 복구 코드로 찾기",full:true,act:recoverForm});
+  acts.push({label:"← 뒤로",full:true,act:onlineScreen});
+  setActions(acts);
 }
-async function submitAuth(mode){ const nmi=$("authName"), pwi=$("authPw"), err=$("authErr");
+async function submitAuth(mode){ const nmi=$("authName"), pwi=$("authPw"), pwi2=$("authPw2"), err=$("authErr");
   const name=(nmi?nmi.value:"").trim(), pw=(pwi?pwi.value:""); const setErr=(m,c)=>{ if(err){ err.textContent=m; err.style.color=c||"var(--danger)"; } };
   if(name.length<2){ setErr("이름은 2자 이상이어야 해요"); return; }
   if(pw.length<4){ setErr("비밀번호는 4자 이상이어야 해요"); return; }
+  if(mode!=="login"){ const pw2=(pwi2?pwi2.value:""); if(pw!==pw2){ setErr("비밀번호 확인이 일치하지 않아요"); if(pwi2)pwi2.focus(); return; } }
   setErr("서버에 연결 중…","var(--dim)");
-  try{ if(mode==="login")await netLogin(name,pw); else await netRegister(name,pw);
-    toast((mode==="login"?"로그인":"가입")+" 성공: "+NET.name); onlineScreen();
+  try{ if(mode==="login"){ await netLogin(name,pw); toast("로그인 성공: "+NET.name); onlineScreen(); }
+    else { const d=await netRegister(name,pw); toast("가입 성공: "+NET.name); recoveryCodeScreen(d&&d.recoveryCode, true); }
   }catch(e){ setErr((mode==="login"?"로그인":"가입")+" 실패 — "+e.message); }
+}
+/* 🔑 복구 코드 안내 화면 — 가입 직후(첫인자 코드) / 재발급 시 재사용 */
+function recoveryCodeScreen(code, afterRegister){ clearLog(); setScene("🔑","복구 코드");
+  if(!code){ onlineScreen(); return; }
+  try{ localStorage.setItem("nt_reccode", code); localStorage.setItem("nt_reccode_name", NET.name||""); }catch(e){}   // 같은 기기 편의 백업
+  $("log").innerHTML=`<div class="authbox">
+    <div class="authtip" style="color:var(--gold)">⚠ 이 코드를 꼭 저장하세요. 비밀번호를 잊었을 때 계정을 되찾는 <b>유일한 방법</b>이에요. (다시 볼 수 없어요)</div>
+    <div class="reccode" id="recCode">${code}</div>
+    <div id="recCopyMsg" class="authtip" style="text-align:center"></div>
+    <div class="authtip">📌 스크린샷을 찍거나 메모장에 적어두세요. 다른 기기에서 로그인할 때도 필요할 수 있어요.</div>
+  </div>`;
+  setActions([
+    {label:"📋 코드 복사",full:true,act:()=>{ const t=code; const done=()=>{ const m=$("recCopyMsg"); if(m){ m.textContent="복사됐어요 ✓"; m.style.color="var(--good)"; } toast("복사됨"); };
+        try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done)); } else fallbackCopy(t,done); }catch(e){ fallbackCopy(t,done); } }},
+    {label:afterRegister?"✅ 저장했어요 — 시작하기":"✅ 저장했어요 — 뒤로",full:true,act:()=> afterRegister?onlineScreen():profileMenu()},
+  ]);
+}
+function fallbackCopy(t, done){ try{ const ta=document.createElement("textarea"); ta.value=t; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done&&done(); }catch(e){ toast("코드를 길게 눌러 복사하세요"); } }
+/* 🔑 계정 복구 폼 — 이름 + 복구 코드 → 새 비밀번호 */
+function recoverForm(){ if(typeof NET==="undefined")return; clearLog(); setScene("🔑","계정 복구");
+  const guessName=(()=>{ try{ return localStorage.getItem("nt_reccode_name")||NET.name||""; }catch(e){ return NET.name||""; } })().replace(/[<>"]/g,"");
+  const guessCode=(()=>{ try{ return localStorage.getItem("nt_reccode")||""; }catch(e){ return ""; } })().replace(/[<>"]/g,"");
+  $("log").innerHTML=`<div class="authbox">
+    <div class="authtip">가입할 때 받은 <b>복구 코드</b>로 새 비밀번호를 설정해요.</div>
+    <div class="authrow"><label>👤 이름</label><input id="recName" class="authin" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="계정 이름" value="${guessName}"></div>
+    <div class="authrow"><label>🔑 복구 코드</label><input id="recCodeIn" class="authin" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="NT-XXXX-XXXX-XXXX" value="${guessCode}"></div>
+    <div class="authrow"><label>🔒 새 비밀번호</label>${pwFieldHtml("recNewPw","new-password","4자 이상 (한글 가능)")}</div>
+    <div class="authrow"><label>🔒 새 비밀번호 확인</label>${pwFieldHtml("recNewPw2","new-password","같은 비밀번호 다시")}</div>
+    <div id="recErr" class="autherr"></div>
+  </div>`;
+  wirePw("recNewPw"); wirePw("recNewPw2", submitRecover);
+  setActions([{label:"🔑 복구하고 로그인",full:true,act:submitRecover},{label:"← 로그인으로",full:true,act:()=>authForm("login")}]);
+}
+async function submitRecover(){ const err=$("recErr"); const setErr=(m,c)=>{ if(err){ err.textContent=m; err.style.color=c||"var(--danger)"; } };
+  const name=($("recName")?$("recName").value:"").trim(), code=($("recCodeIn")?$("recCodeIn").value:"").trim();
+  const np=($("recNewPw")?$("recNewPw").value:""), np2=($("recNewPw2")?$("recNewPw2").value:"");
+  if(name.length<2){ setErr("이름을 입력하세요"); return; }
+  if(!code){ setErr("복구 코드를 입력하세요"); return; }
+  if(np.length<4){ setErr("새 비밀번호는 4자 이상이어야 해요"); return; }
+  if(np!==np2){ setErr("비밀번호 확인이 일치하지 않아요"); return; }
+  setErr("복구 중…","var(--dim)");
+  try{ await netRecover(name, code, np); toast("복구 완료 — 로그인됐어요: "+NET.name); onlineScreen(); }
+  catch(e){ setErr("복구 실패 — "+e.message); }
 }
 async function enterOnline(){
   let cloud=null, authErr=false;
