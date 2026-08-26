@@ -184,13 +184,13 @@ function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode
   $("log").innerHTML=`<div class="authbox">
     <div class="authrow"><label>👤 이름</label><input id="authName" class="authin" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="캐릭터 이름 (2~16자)" value="${nm}"></div>
     <div class="authrow"><label>🔒 비밀번호</label>
-      <div class="authpw"><input id="authPw" class="authin" type="password" autocomplete="off" placeholder="4자 이상">
+      <div class="authpw"><input id="authPw" class="authin authpwmask" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="4자 이상 (한글 가능)">
       <button type="button" class="eyebtn" id="authEye" title="표시/숨기기" tabindex="-1">👁</button></div></div>
     <div id="authErr" class="autherr"></div>
     <div class="authtip">${isLogin?"처음이면 아래 '회원가입'으로 계정을 먼저 만드세요.":"이름·비밀번호만 있으면 가입 완료. 잊지 않게 적어두세요!"}</div>
   </div>`;
   const eye=$("authEye"), pw=$("authPw"), nmi=$("authName");
-  if(eye&&pw)eye.onclick=()=>{ const hidden=pw.type==="password"; pw.type=hidden?"text":"password"; eye.textContent=hidden?"🙈":"👁"; try{pw.focus();}catch(e){} };
+  if(eye&&pw)eye.onclick=()=>{ const nowHidden=pw.classList.contains("authpwmask"); pw.classList.toggle("authpwmask",!nowHidden); eye.textContent=nowHidden?"🙈":"👁"; try{pw.focus();}catch(e){} };   // CSS 마스킹 토글(type 유지 → 한글 IME OK)
   const onEnter=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); submitAuth(mode); } };
   if(pw)pw.addEventListener("keydown",onEnter); if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
   setTimeout(()=>{ try{ nmi&&nmi.focus(); }catch(e){} },40);
