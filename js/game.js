@@ -196,6 +196,14 @@ function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode
   // 👁 눈 아이콘 on/off 토글 (type password↔text · 네이티브 마스킹 = 한글 IME 안전, 보이기 시 한글 그대로)
   if(eye&&pw)eye.onmousedown=(e)=>e.preventDefault();   // 버튼이 포커스 훔쳐 스크롤/밀림 나는 것 방지
   if(eye&&pw)eye.onclick=()=>{ const show=pw.type==="password"; pw.type=show?"text":"password"; eye.innerHTML=show?EYE_ON_SVG:EYE_OFF_SVG; };
+  // ⌨ 한글로 쳐도 즉시 영어(QWERTY)로 변환 — 조합 끝(compositionend)마다 정규화해 IME와 덜 싸우게. (변환 순간 렉은 감수)
+  if(pw&&typeof pwNormalize==="function"){
+    let composing=false;
+    const normPw=()=>{ try{ const v=pw.value, n=pwNormalize(v); if(n!==v){ pw.value=n; } }catch(e){} };
+    pw.addEventListener("compositionstart",()=>{ composing=true; });
+    pw.addEventListener("compositionend",()=>{ composing=false; normPw(); });
+    pw.addEventListener("input",()=>{ if(!composing)normPw(); });
+  }
   const onEnter=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); submitAuth(mode); } };
   if(pw)pw.addEventListener("keydown",onEnter); if(nmi)nmi.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(pw)pw.focus(); } });
   setTimeout(()=>{ try{ nmi&&nmi.focus(); }catch(e){} },40);
