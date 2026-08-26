@@ -184,6 +184,7 @@ function titleBgSvg(){   // 인라인 SVG로 그린 '끝이 보이지 않는 탑
 function hasSave(){ try{ const s=localStorage.getItem(SAVE_KEY); if(!s)return false; const p=JSON.parse(s); return !!(p&&p.stats); }catch(e){ return false; } }
 function leaveTitle(){ if(document.body)document.body.classList.remove("title"); }
 function titleScreen(){ stopAuctionTimer(); auction=null; enemy=null; B=null; mode="town";
+  if(typeof bgm==="function")bgm("town");   // 🎵 메인화면에도 메인 테마(첫 클릭 순간부터 재생 — 자동재생 정책상 그 전엔 무음)
   if(document.body){ document.body.classList.remove("combat","intower"); document.body.classList.add("title"); }
   const hud=$("hud"); if(hud)hud.hidden=true; const ub=$("uibar"); if(ub)ub.hidden=true; const qt=$("qtrack"); if(qt)qt.hidden=true;
   const bg=$("titlebg"); if(bg&&!bg.firstChild)bg.innerHTML=titleBgSvg()+(MAIN_BG?`<img class="titlebgimg" src="${MAIN_BG}" alt="" onerror="this.remove()">`:"");   // 임시=SVG 배경, MAIN_BG 지정 시 그 이미지로 덮음(실패 시 SVG)
