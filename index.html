@@ -273,6 +273,12 @@
   .sdrow b{color:var(--gold); font-size:15px}
   .sdsub{font-size:11px; color:var(--dim); margin:-3px 0 3px}
   .sdbase{font-size:11.5px; color:var(--dim); margin-top:10px; line-height:1.6}
+  .invtabs{display:flex; gap:6px; margin:10px 0 8px; flex-wrap:wrap}
+  .invtab{background:#0c0f16; border:1px solid var(--line); color:var(--dim); border-radius:9px; padding:6px 11px; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:5px}
+  .invtab i{font-style:normal; font-size:10.5px; background:#1a2030; color:var(--mp); border-radius:8px; padding:0 5px}
+  .invtab.on{border-color:var(--gold); color:var(--gold)} .invtab.on i{background:#2a2312; color:var(--gold)}
+  .invtab:hover{filter:brightness(1.2)}
+  .grow[title]{cursor:default}
   .hudstatus .hs-sep{color:var(--line)}
   body.combat .hudstatus, body.mapview .hudstatus{ display:none }   /* 전투/지도 뷰에선 화면 확보 위해 숨김 */
   body.mapview .stage{ display:none }                               /* 지도 뷰: 상단 씬 숨김(공간 확보) */

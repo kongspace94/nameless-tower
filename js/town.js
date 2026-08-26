@@ -3,6 +3,9 @@
    거점 마을
    ============================================================ */
 let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는지 기억 → 거기로 복귀
+let invTab="gear";   // 🎒 인벤 카테고리 탭(gear/cons/mat/quest)
+function setInvTab(t){ invTab=t; inventoryMenu(); }
+window.setInvTab=setInvTab;
 function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; townReturn=null;
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
   if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
@@ -542,25 +545,33 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
   const owned = P.inv.map((it,i)=>({it,i})).filter(o=>RELICS[o.it.k])
     .sort((a,b)=>(isEquippedItem(b.it)?1:0)-(isEquippedItem(a.it)?1:0));   // 착용 중을 위로
   const gearRows = owned.length ? owned.map(({it,i})=>{ const g=RELICS[it.k]; const equipped=isEquippedItem(it);
-    return `<div class="grow ${equipped?'eq':''}"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),34)}</span><div class="gmeta"><div class="gn" onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}${equipped?' <span style="color:var(--good);font-size:11px">착용중</span>':''} <span style="color:var(--dim);font-size:11px">ⓘ</span></div><div class="ge"><span class="gtype">${gearTypeLabel(g)}</span> · ${g.note} · ${g.val}G</div></div>`+
+    const tip=`${it.k}${it.up?' +'+it.up:''} — ${gearTypeLabel(g)} · ${(g.note||'').replace(/"/g,'')} · 판매 ${g.val}G${equipped?' · 착용중':''}`;
+    return `<div class="grow ${equipped?'eq':''}" title="${tip}"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),34)}</span><div class="gmeta"><div class="gn" onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}${equipped?' <span style="color:var(--good);font-size:11px">착용중</span>':''} <span style="color:var(--dim);font-size:11px">ⓘ</span></div><div class="ge"><span class="gtype">${gearTypeLabel(g)}</span> · ${g.note} · ${g.val}G</div></div>`+
       `<div class="gbtns">${equipped?`<button class="ibtn on" onclick="invUnequip('${g.slot}')">해제</button>`:`<button class="ibtn" onclick="invEquip(${i})">착용</button>`}<button class="ibtn del" onclick="invDrop(${i})">버리기</button></div></div>`; }).join("")
     : `<div class="inv-empty">보유한 장비가 없다. 탑·경매장에서 얻는다.</div>`;
   // 소비품
   const consRows = [`<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">🧪</span><div class="gmeta"><div class="gn">물약 <b>×${P.potions}</b></div><div class="ge">HP 25 회복</div></div><div class="gbtns"><button class="ibtn" ${P.potions<=0?'disabled':''} onclick="invPotion()">사용</button></div></div>`]
     .concat(Object.entries(P.consumables||{}).filter(([,q])=>q>0).map(([key,q])=>{ const c=CONS[key]; if(!c)return"";
-      return `<div class="grow"><span class="emo" onclick="itemInfo('cons','${key}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${c.emoji}</span><div class="gmeta"><div class="gn" onclick="itemInfo('cons','${key}')" style="cursor:pointer">${c.n} <b>×${q}</b> <span style="color:var(--dim);font-size:11px">ⓘ</span></div><div class="ge">${c.note}</div></div><div class="gbtns"><button class="ibtn" onclick="invUse('${key}')">사용</button></div></div>`; })).join("");
+      return `<div class="grow" title="${c.n} — ${(c.note||'').replace(/"/g,'')}"><span class="emo" onclick="itemInfo('cons','${key}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${c.emoji}</span><div class="gmeta"><div class="gn" onclick="itemInfo('cons','${key}')" style="cursor:pointer">${c.n} <b>×${q}</b> <span style="color:var(--dim);font-size:11px">ⓘ</span></div><div class="ge">${c.note}</div></div><div class="gbtns"><button class="ibtn" onclick="invUse('${key}')">사용</button></div></div>`; })).join("");
   // 재료
   const mats = Object.entries(MATS).map(([k,[e,nm]])=>`<div class="mcell"><div class="me">${e}</div><div class="mq">${P.mats[k]||0}</div><div class="mn">${nm}</div></div>`).join("");
   // 퀘스트 아이템
   const quest = (P.questItems&&P.questItems.length) ? P.questItems.map(n=>`<span class="chip" style="cursor:pointer" onclick="itemInfo('quest','${n}')">🗝 ${n} ⓘ</span>`).join("") : `<div class="inv-empty">없음</div>`;
   const buffLine = (P.buffs&&Object.keys(P.buffs).some(k=>P.buffs[k])) ? `<div class="ge" style="margin-top:6px;color:var(--mp)">활성 버프: ${P.buffs.atkPct?`공격 +${Math.round(P.buffs.atkPct*100)}% `:''}${P.buffs.magicPct?`마법 +${Math.round(P.buffs.magicPct*100)}% `:''}${P.buffs.critBonus?`치명 +${Math.round(P.buffs.critBonus*100)}% `:''}${P.buffs.defBonus?`방어 +${P.buffs.defBonus}`:''}</div>`:"";
+  const consN=1+Object.values(P.consumables||{}).filter(q=>q>0).length, matN=Object.values(P.mats||{}).filter(n=>n>0).length, qN=(P.questItems||[]).length;
+  const tab=invTab||"gear";
+  const tabBar=`<div class="invtabs">`+
+    [["gear","🗡 장비",owned.length],["cons","🧪 소비품",consN],["mat","🪵 재료",matN],["quest","🗝 퀘스트",qN]]
+      .map(([t,lab,n])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setInvTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`).join("")+`</div>`;
+  const body = tab==="cons" ? `<div class="glist">${consRows}</div>${buffLine}`
+    : tab==="mat" ? `<div class="mgrid">${mats}</div>`
+    : tab==="quest" ? `<div class="statchips">${quest}</div>`
+    : (owned.length?`<div class="glist">${gearRows}</div>`:`<div class="inv-empty">보유한 장비가 없다. 탑·경매장에서 얻는다.</div>`);
   $("log").innerHTML = `<div class="invv">
     <div><div class="ih"><span>착용 중</span><span class="cnt">⚔+${b.atk} 🛡+${b.def} 🍀+${b.luck}${b.vamp?' 🩸':''}</span></div><div class="glist">${slotRow}</div></div>
     ${setHtml?`<div><div class="ih"><span>✦ 세트 효과</span></div><div class="glist">${setHtml}</div></div>`:""}
-    <div><div class="ih"><span>보유 장비</span><span class="cnt">${owned.length}</span></div><div class="glist">${gearRows}</div></div>
-    <div><div class="ih"><span>소비품</span></div><div class="glist">${consRows}</div>${buffLine}</div>
-    <div><div class="ih"><span>재료</span></div><div class="mgrid">${mats}</div></div>
-    <div><div class="ih"><span>퀘스트 아이템</span></div><div class="statchips">${quest}</div></div>
+    ${tabBar}
+    <div class="invtabbody">${body}</div>
   </div>`;
   setActions(inDive
     ? [{label:"← 탑으로 돌아가기",full:true,act:backToClimb}]
