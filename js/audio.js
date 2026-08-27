@@ -118,6 +118,18 @@ function sfx(name) {   // ★ 메인 진입점: sfx("attack") 처럼 호출
   if (!audioInit()) return; try { if (AUDIO.ctx.state === "suspended") AUDIO.ctx.resume(); } catch (e) {}
   try { if (spec.src) { if (_playBuf(name, spec.src, spec.gain)) return; } _synth(spec); } catch (e) {}
 }
+/* 🎵 메뉴 등장 "띠리리리" — 버튼 뜨는 것에 맞춰 부드러운 상승음(순차). count=버튼 수 */
+function uiCascade(count) {
+  if (!AUDIO.on || !audioSupported() || !count) return;
+  if (!audioInit()) return; const ctx = AUDIO.ctx; if (!ctx || ctx.state === "suspended") return;   // 첫 제스처 전엔 조용히
+  const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
+  if (now - (AUDIO._lastCascade || 0) < 140) return; AUDIO._lastCascade = now;   // 빠른 연속 메뉴 전환 시 중복 방지
+  const notes = [620, 700, 784, 880, 988, 1046], N = Math.min(count, 6);
+  for (let i = 0; i < N; i++) { const t0 = ctx.currentTime + i * 0.05;
+    try { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "triangle"; o.frequency.value = notes[i];
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.055, t0 + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.085);
+      o.connect(g); g.connect(AUDIO.master); o.start(t0); o.stop(t0 + 0.1); } catch (e) {} }
+}
 function bgm(name, force) {   // 배경음악 전환. src 있으면 파일, 없으면 합성 루프(자리표시자)
   AUDIO.bgmName = name; if (!audioSupported()) return; const def = BGM[name];
   if (!AUDIO.bgmOn) { bgmStop(); return; }

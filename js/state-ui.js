@@ -311,8 +311,10 @@ function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=
   list.forEach((a)=>{
     if(a.header){ const h=document.createElement("div"); h.className="acthdr full"; h.innerHTML=`<span>${a.label}</span>`; box.appendChild(h); return; }   // 섹션 헤더
     n++; const num=n; const b=document.createElement("button"); if(a.full)b.className="full";
+    b.style.animationDelay=Math.min((num-1)*0.05,0.28)+"s";   // 🎬 버튼 순차 등장(띠리리리 캐스케이드)
     b.innerHTML=`<span class="k">${a.key||num}</span>${a.label}`+(a.desc?`<span class="desc">${a.desc}</span>`:"");
-    b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS)return; if(typeof sfx==="function")sfx("click"); a.act(); }; box.appendChild(b); }); }
+    b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS)return; if(typeof sfx==="function")sfx("click"); a.act(); }; box.appendChild(b); });
+  if(n&&typeof uiCascade==="function")uiCascade(n); }   // 🎵 메뉴 등장 상승음
 document.addEventListener("keydown",e=>{ if(!awaiting)return;
   const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName||""))return;   // 입력칸 타이핑 중엔 메뉴 숫자키 무시(비번/이름/채팅 입력 보호)
   if(e.code==="Space")return; const n=parseInt(e.key,10);
