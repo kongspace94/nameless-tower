@@ -782,11 +782,13 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
     line(`🛡 보호막이 ${ab} 흡수${enemy.shieldHp>0?` (남은 ${enemy.shieldHp})`:""}`,"sys"); spawnFloat("🛡"+ab,"#8fd0ff","foe");
     if(enemy.shieldHp<=0)line("🛡 <b>보호막 파괴!</b> 이제 피해가 통한다.","loot");
     if(dmg<=0){ updateFoeBar(); setSceneFoe(); return false; } }
+  const _wasFull=enemy.hp>=enemy.hpMax;   // 🎖 원펀맨 판정용(풀피에서 한 방)
   enemy.hp-=dmg; line(`${label} — ${enemy.n}에게 <b>${dmg}</b> 피해.`,"dmg"); fxHit(); spawnFloat("-"+dmg,color||"#ff8a8a","foe"); updateFoeBar();
   if(relicBonus().vamp){ const h=Math.max(1,Math.round(dmg*0.12)); heal(h); }   // 밸런스: 흡혈 25%→12%(엔드 완화 과잉 방지)
   if(enemy.hp<=0){                                          // 🫧 분열: 죽을 때 1회 부활
     if(enemy.mech==="split" && !enemy.splitUsed){ enemy.splitUsed=true; enemy.hp=Math.round(enemy.hpMax*0.45); enemy.atk=Math.round(enemy.atk*0.8); enemy.staggered=false; enemy.groggy=0;
       line(`🫧 <b>${enemy.n}이(가) 둘로 갈라졌다!</b> 더 작아진 채 다시 일어선다.`,"dmg"); bigPop("SPLIT!","#8fd0ff"); updateFoeBar(); setSceneFoe(); return false; }
+    if(_wasFull && typeof bumpFeat==="function"){ bumpFeat("oneShot"); if(enemy.boss)bumpFeat("oneShotBoss"); }   // 🎖 원펀맨(풀피 한 방)
     winCombat(); return true; }
   checkEnrage();                                            // 💢 광폭화 문턱 판정
   if(enemy.mech==="thorns" && dmg>0 && P.hp>0){ const r=Math.max(1,Math.round(dmg*0.12)); P.hp-=r;   // 🌵 가시 반사
@@ -836,6 +838,7 @@ function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(
   const gp=hasSkill("guard_up");
   if(B.block==="perfect")dmg=Math.round(dmg*(gp?0:0.05)); else if(B.block==="good")dmg=Math.round(dmg*(gp?0.35:0.5)); else if(B.block==="weak")dmg=Math.round(dmg*0.85);
   if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.55,0.18+(B.comp.lv||1)*0.004+(B.comp.tier||0)*0.04+((B.comp.rune&&B.comp.rune.tankRed)||0)); dmg=Math.round(dmg*(1-red)); }
+  if(B.dmgTakenPct)dmg=Math.round(dmg*(1+B.dmgTakenPct));   // 🌫 지역 디버프(내성 없음): 받는 피해 증가
   if(dmg>0 && typeof setGim==="function"){ const g=setGim(); if(g.dodge && chance(g.dodge)){ line("✨ <b>공허 세트 — 피해를 무효화했다!</b>","heal"); bigPop("무적!","#c9a9ff"); return 0; } }   // ✦ 공허 세트: 확률 피해 무효
   return Math.max(0,dmg); }
 function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
@@ -967,7 +970,7 @@ function reactiveParry(mult,it){ awaiting=null;
   s.appendChild(box); const ring=box.querySelector("#pring");
   let r=100,raf=null,done=false; const RSZ=150, spd=2.7;
   const finish=(q)=>{ if(done)return; done=true; cancelAnimationFrame(raf); document.removeEventListener("keydown",key); box.remove();
-    if(q==="perfect"){ bigPop("PARRY!","#ffd36a"); fxShake(); fxHit(); gainMomentum(18); }
+    if(q==="perfect"){ bigPop("PARRY!","#ffd36a"); fxShake(); fxHit(); gainMomentum(18); if(typeof bumpFeat==="function")bumpFeat("perfectParry"); }
     else if(q==="good"){ bigPop("GUARD!","#8fd0ff"); fxShake(); gainMomentum(10); }
     render(); resolveEnemyAttack(mult,it,q); };
   const tap=()=>{ if(done)return; const q=r<=15?"perfect":r<=38?"good":"miss"; finish(q); };
@@ -1014,7 +1017,7 @@ function fleeChance(){ if(typeof enemy==="undefined"||!enemy)return clamp(0.5+LU
   const ps=DEF()*1.5+LUKv()*2+6, es=(enemy.atk||6)*(enemy.boss?1.4:1);   // 적이 강할수록(특히 보스) 도망 어려움
   return clamp(0.30 + (ps/(ps+es))*0.55 + LUKv()*0.01, 0.10, 0.92); }
 function fleeText(){ return `행운 판정 · 성공 ~${Math.round(fleeChance()*100)}%`; }
-function playerFlee(){ if(chance(fleeChance())){ line("재빠르게 도망쳤다!","sys"); enemy=null; B=null;
+function playerFlee(){ if(chance(fleeChance())){ line("재빠르게 도망쳤다!","sys"); if(typeof bumpFeat==="function")bumpFeat("fled"); enemy=null; B=null;
     if(expReturn){ const r=expReturn; expReturn=null; r(); return; }   // 대륙 개척: 개척 허브로 복귀
     fleeRetreat(); return;   // 🏃 도망 성공 → 지나온 마지막 포탈(거점)로 후퇴
   } else{ line("도망 실패!","dmg"); afterPlayerAction(); } }
@@ -1036,7 +1039,7 @@ function pctRoll(margin){ let c=0; for(let a=0;a<12;a++)for(let b=0;b<12;b++)if(
 function winCombat(){
   if(P._duel && enemy && enemy.pvp){ const npc=P._duel; P._duel=null; const g=npc.gold||0; P.gold+=g;   // ⚔ PvP 결투 승리
     line(`⚔ <b>결투 승리!</b> ${npc.name}을(를) 제압하고 <b>${g}G</b>를 약탈했다!`,"loot"); if(npc.item&&chance(0.6)){ addRelic(npc.item); line(`전리품: <b>${npc.item}</b>!`,"loot"); }
-    toast("약탈 +"+g+"G"); if(typeof sfx==="function")sfx("victory"); enemy=null; B=null; save(true); setScene("🏆","결투에서 승리했다!"); showClimb(); return; }
+    toast("약탈 +"+g+"G"); if(typeof sfx==="function")sfx("victory"); if(typeof bumpFeat==="function")bumpFeat("pvpWin"); enemy=null; B=null; save(true); setScene("🏆","결투에서 승리했다!"); showClimb(); return; }
   P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor;
   line(`<b style="color:var(--good)">${enemy.n}을(를) 쓰러뜨렸다!</b>`); if(typeof sfx==="function")sfx("victory");
   if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사
@@ -1206,7 +1209,7 @@ const RIDDLES=[
 ];
 function floorRiddle(){ const r=pick(RIDDLES); const opts=[{t:r.a,ok:true}].concat(r.w.map(t=>({t,ok:false}))).sort(()=>Math.random()-0.5);
   setScene("🗿",""); line(`고대의 석상이 눈을 뜬다. <span class="quote">"${r.q}"</span>`);
-  setActions(opts.map(o=>({label:o.t,act:()=>{ if(o.ok){ line('"…옳다." 석상이 지혜를 나눈다.',"loot"); trainStat("int",14+rnd(10)); P.gold+=18+rnd(16); } else { line('"…아니다." 석상이 다시 잠든다.',"sys"); if(chance(0.3)){ const d=6+rnd(6); P.hp=Math.max(1,P.hp-d); line(`석상의 실망이 스민다 — ${d} 피해.`,"dmg"); } } render(); showClimb(); }})).concat([{label:"침묵하고 지나친다",full:true,act:()=>{ line("답하지 않고 지나친다.","sys"); showClimb(); }}])); }
+  setActions(opts.map(o=>({label:o.t,act:()=>{ if(o.ok){ line('"…옳다." 석상이 지혜를 나눈다.',"loot"); trainStat("int",14+rnd(10)); P.gold+=18+rnd(16); if(typeof bumpFeat==="function")bumpFeat("riddleRight"); } else { line('"…아니다." 석상이 다시 잠든다.',"sys"); if(chance(0.3)){ const d=6+rnd(6); P.hp=Math.max(1,P.hp-d); line(`석상의 실망이 스민다 — ${d} 피해.`,"dmg"); } } render(); showClimb(); }})).concat([{label:"침묵하고 지나친다",full:true,act:()=>{ line("답하지 않고 지나친다.","sys"); showClimb(); }}])); }
 /* 🧳 떠돌이 상인 — 층 티어의 좋은 무기 + 축복/물약 (프리미엄가) */
 function floorMerchant(){ const f=P.floor;
   const pool=(f>=31?GEAR_TIERS.rift:f>=16?GEAR_TIERS.sky:["월광 세이버","무쇠 세이버","사냥꾼의 활","이 빠진 롱소드","보조 단검"]).filter(k=>RELICS[k]&&RELICS[k].slot==="weapon");
@@ -1214,7 +1217,7 @@ function floorMerchant(){ const f=P.floor;
   renderMerchant(picks, {charm:chance(0.4), potion:{n:3,price:90+f*3}}); }
 function renderMerchant(picks, ex){ setScene("🧳","떠돌이 상인이 좌판을 편다.");
   line('떠돌이 상인: <span class="quote">"먼 곳에서 왔소. 좋은 물건 있으니 구경하고 가시오."</span>');
-  const acts=picks.map((p,i)=>({label:`🗡 ${p.k}`,desc:`${RELICS[p.k].note||""} · 💰${p.price}`,disabled:P.gold<p.price,act:()=>{ if(P.gold<p.price){ toast("골드 부족"); return; } P.gold-=p.price; addRelic(p.k); line(`🧳 <b>${p.k}</b>을(를) 샀다!`,"loot"); toast("구매: "+p.k); picks.splice(i,1); render(); renderMerchant(picks,ex); }}));
+  const acts=picks.map((p,i)=>({label:`🗡 ${p.k}`,desc:`${RELICS[p.k].note||""} · 💰${p.price}`,disabled:P.gold<p.price,act:()=>{ if(P.gold<p.price){ toast("골드 부족"); return; } P.gold-=p.price; addRelic(p.k); if(typeof bumpFeat==="function")bumpFeat("merchantBuy"); line(`🧳 <b>${p.k}</b>을(를) 샀다!`,"loot"); toast("구매: "+p.k); picks.splice(i,1); render(); renderMerchant(picks,ex); }}));
   if(ex.charm)acts.push({label:"⚜️ 강화의 축복",desc:"강화 성공↑·파괴방지 · 💰2000",disabled:P.gold<2000,act:()=>{ if(P.gold<2000){ toast("골드 부족"); return; } P.gold-=2000; gainCons("enhance_charm"); line("⚜️ 강화의 축복을 샀다.","loot"); toast("구매"); ex.charm=false; render(); renderMerchant(picks,ex); }});
   if(ex.potion)acts.push({label:`🧪 물약 ${ex.potion.n}개`,desc:`💰${ex.potion.price}`,disabled:P.gold<ex.potion.price,act:()=>{ if(P.gold<ex.potion.price){ toast("골드 부족"); return; } P.gold-=ex.potion.price; P.potions+=ex.potion.n; line(`🧪 물약 ${ex.potion.n}개 구매.`,"loot"); ex.potion=null; render(); renderMerchant(picks,ex); }});
   acts.push({label:"떠난다",full:true,act:()=>{ line("상인이 좌판을 접고 어둠 속으로 사라진다.","sys"); showClimb(); }});
@@ -1284,12 +1287,12 @@ function floorStory(){ const ev=pick(STORY); setScene(ev.ico,""); line(ev.text);
    ============================================================ */
 const STEPS_PER_AREA=5;
 /* 지역 디버프 — 대륙마다 상시 페널티. 전용 내성 아이템(CONS resist_*)으로 무효 */
-const REGION_DEBUFFS={
-  corrode:{n:"부식",icon:"🛢️",resist:"resist_corrode",desc:"방어 -3 (전투 내내)",applyB:(B)=>{ B.defB=(B.defB||0)-3; }},
-  burn:{n:"작열",icon:"🔥",resist:"resist_burn",desc:"매 턴 화상 피해",onTurn:()=>{ const d=Math.max(4,Math.round(MAXHP()*0.05)); P.hp-=d; line(`🔥 작열! 화상으로 <b>${d}</b> 피해.`,"dmg"); spawnFloat("-"+d,"#ff8a3a","me"); }},
-  frost:{n:"한기",icon:"❄️",resist:"resist_frost",desc:"공격 -20% (얼어붙음)",applyB:(B)=>{ B.atkPct=(B.atkPct||0)-0.2; }},
-  plague:{n:"역병",icon:"☣️",resist:"resist_plague",desc:"매 턴 중독 피해 + 공격 -10%",applyB:(B)=>{ B.atkPct=(B.atkPct||0)-0.1; },onTurn:()=>{ const d=Math.max(3,Math.round(MAXHP()*0.04)); P.hp-=d; line(`☣️ 역병! 중독으로 <b>${d}</b> 피해.`,"dmg"); spawnFloat("-"+d,"#9bd36b","me"); }},
-  voidcurse:{n:"공허",icon:"🕳️",resist:"resist_void",desc:"공격·치명·방어 저하",applyB:(B)=>{ B.atkPct=(B.atkPct||0)-0.15; B.critB=(B.critB||0)-0.1; B.defB=(B.defB||0)-3; }},
+const REGION_DEBUFFS={   // 내성 없이 가면 매우 아픔 — 받는 피해↑ + 강한 도트
+  corrode:{n:"부식",icon:"🛢️",resist:"resist_corrode",desc:"방어 -6 · 받는 피해 +12%",applyB:(B)=>{ B.defB=(B.defB||0)-6; B.dmgTakenPct=(B.dmgTakenPct||0)+0.12; }},
+  burn:{n:"작열",icon:"🔥",resist:"resist_burn",desc:"매 턴 화상(HP 8%) · 받는 피해 +8%",applyB:(B)=>{ B.dmgTakenPct=(B.dmgTakenPct||0)+0.08; },onTurn:()=>{ const d=Math.max(6,Math.round(MAXHP()*0.08)); P.hp-=d; line(`🔥 작열! 화상으로 <b>${d}</b> 피해.`,"dmg"); spawnFloat("-"+d,"#ff8a3a","me"); }},
+  frost:{n:"한기",icon:"❄️",resist:"resist_frost",desc:"공격 -25% · 받는 피해 +10%",applyB:(B)=>{ B.atkPct=(B.atkPct||0)-0.25; B.dmgTakenPct=(B.dmgTakenPct||0)+0.10; }},
+  plague:{n:"역병",icon:"☣️",resist:"resist_plague",desc:"매 턴 중독(HP 7%) · 공격 -12% · 회복 반감",applyB:(B)=>{ B.atkPct=(B.atkPct||0)-0.12; B.healCut=true; },onTurn:()=>{ const d=Math.max(5,Math.round(MAXHP()*0.07)); P.hp-=d; line(`☣️ 역병! 중독으로 <b>${d}</b> 피해.`,"dmg"); spawnFloat("-"+d,"#9bd36b","me"); }},
+  voidcurse:{n:"공허",icon:"🕳️",resist:"resist_void",desc:"공격·치명·방어 저하 · 받는 피해 +12%",applyB:(B)=>{ B.atkPct=(B.atkPct||0)-0.18; B.critB=(B.critB||0)-0.12; B.defB=(B.defB||0)-5; B.dmgTakenPct=(B.dmgTakenPct||0)+0.12; }},
 };
 /* 5대륙 — 탑 정상 너머의 엔드게임. 갈수록 강해지고 각 대륙엔 자기 탑(수호체) */
 const CONTINENTS=[

@@ -319,6 +319,8 @@
   .hudstatus{margin:9px 0 0; padding:9px 0 0; border-top:1px solid var(--line); font-size:11px; color:var(--dim); line-height:1.6; display:flex; flex-wrap:wrap; gap:3px 7px; align-items:center}
   .hudstatus .hs-lab{color:var(--mp); font-weight:700; margin-right:2px}
   .hudmats{margin:7px 0; padding:7px 0 0; border-top:1px dashed var(--line)}
+  .hudbuffs{margin:7px 0 0; padding:7px 0 0; border-top:1px dashed var(--line); display:flex; flex-wrap:wrap; gap:4px}
+  .buffchip{display:inline-block; font-size:11px; font-weight:700; color:#c9f7d0; background:rgba(60,180,90,.16); border:1px solid rgba(90,200,120,.45); border-radius:8px; padding:1px 7px}
   .sdrow{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line)}
   .sdrow b{color:var(--gold); font-size:15px}
   .sdsub{font-size:11px; color:var(--dim); margin:-3px 0 3px}
@@ -571,6 +573,7 @@
           <div class="stat">HP <span id="hpTxt">30/30</span></div><div class="bar"><i class="fill-hp" id="hpBar" style="width:100%"></i></div>
           <div class="stat">기력 <span id="mpTxt">10/10</span></div><div class="bar"><i class="fill-mp" id="mpBar" style="width:100%"></i></div>
           <div class="stats5" id="stats5"></div>
+          <div class="hudbuffs" id="hudbuffs" hidden></div>
         </div>
       </div>
     </div>

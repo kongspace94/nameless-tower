@@ -11,6 +11,7 @@ function freshPlayer(){ return {
   shopDay:"", shopBought:{},
   meta:{echoes:0,spent:{},runs:0,bestFloor:0,bestCont:0}, runPeakFloor:0, runContClears:0, runKills:0,   // 🌌 회귀 메타성장 + 이번 런 추적
   expProg:{},   // 🧭 대륙 개척 구역 진행 저장(대륙별 {ai,step}) — 마을 갔다 와도 이어짐
+  feats:{},     // 🎖 칭호용 특수 업적 카운터(oneShot·perfectParry·fled·pvpWin·destroyed 등)
   bestiary:{},   // 📖 몬스터 도감(처치수·약점·시그니처 드랍 기록)
   farm:{unlocked:false,slots:[],lastTs:Date.now()},   // ⛺ 자동 파밍(부족 거점)
 };}
@@ -54,6 +55,7 @@ function normalizeP(){ if(!P)return;
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
   if(!P.expProg||typeof P.expProg!=="object")P.expProg={};   // 🧭 개척 구역 진행 저장
+  if(!P.feats||typeof P.feats!=="object")P.feats={};   // 🎖 칭호용 업적 카운터
   if(!P.farm||typeof P.farm!=="object")P.farm={unlocked:false,slots:[],lastTs:Date.now()};   // ⛺ 자동 파밍
   if(!Array.isArray(P.farm.slots))P.farm.slots=[]; if(!P.farm.lastTs)P.farm.lastTs=Date.now();
   for(const s of P.farm.slots){ if(s.lv==null)s.lv=1; if(s.acc==null)s.acc=0; }
@@ -78,6 +80,7 @@ function normalizeP(){ if(!P)return;
   P.loadout=P.loadout.filter(k=>P.skills.includes(k)); P.passives=P.passives.filter(k=>P.skills.includes(k));
   checkTitleUnlocks(true); }
 /* ---------- 칭호 ---------- */
+function bumpFeat(k,n){ if(!P)return; if(!P.feats)P.feats={}; P.feats[k]=(P.feats[k]||0)+(n||1); if(typeof checkTitleUnlocks==="function")checkTitleUnlocks(); }
 function checkTitleUnlocks(silent){ if(!P.titles)P.titles=[]; let got=[];
   for(const [k,t] of Object.entries(TITLES)){ if(!P.titles.includes(k) && t.unlock && t.unlock(P)){ P.titles.push(k); got.push(t); } }
   if(!silent) got.forEach(t=>{ line(`🎖️ <b>칭호 획득: ${t.emoji} ${t.n}</b> — ${t.how}. 칭호소에서 장착 가능!`,"loot"); toast("칭호 획득: "+t.n); });
@@ -248,12 +251,12 @@ function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); i
     return it
       ? `<span class="eqic" title="${nm}: ${it.k}${it.up?' +'+it.up:''} — ${RELICS[it.k]?RELICS[it.k].note:''}">${ico(relicIco(it.k),36)}${it.up?`<i class="uplv">+${it.up}</i>`:''}</span>`
       : `<span class="emo" title="${nm} 비어 있음" style="width:36px;height:36px;font-size:17px;opacity:.35">${e}</span>`; }).join("");
-  { const hs=$("hudstatus"); if(hs){ const html=activeStatusHtml(); hs.innerHTML=html; hs.hidden=!html; }   // ✨ 버프·세트 (장착장비 아래)
+  { const hb=$("hudbuffs"); if(hb){ const bh=buffsHtml(); hb.innerHTML=bh; hb.hidden=!bh; }                    // ✨ 버프 (왼쪽 프로필 스탯 아래)
+    const hs=$("hudstatus"); if(hs){ const html=setsHtml(); hs.innerHTML=html; hs.hidden=!html; }               // 🧩 세트 (장착장비 아래)
     const hm=$("hudmats"); if(hm){ const mh=matsStatusHtml(); hm.innerHTML=mh; hm.hidden=!mh; } }              // 🎒 재료 (생활력 위)
   setFloorTag(); porMini(); renderQuestTrack(); if(enemy)updateBattleBars(); }
-/* 상시 상태줄: 활성 버프 + 세트 효과 + 보유 재료 (인벤 안 열어도 보이게) */
-function activeStatusHtml(){ if(!P)return ""; const parts=[];
-  const b=P.buffs||{}, bf=[];
+/* ✨ 활성 버프 (왼쪽 프로필 스탯 아래 · 칩 형태로 쌓임) */
+function buffsHtml(){ if(!P)return ""; const b=P.buffs||{}, bf=[];
   if(b.atkPct)bf.push(`⚔공+${Math.round(b.atkPct*100)}%`);
   if(b.magicPct)bf.push(`🔮마+${Math.round(b.magicPct*100)}%`);
   if(b.critBonus)bf.push(`🎯치+${Math.round(b.critBonus*100)}%`);
@@ -261,10 +264,11 @@ function activeStatusHtml(){ if(!P)return ""; const parts=[];
   if(b.luck)bf.push(`🍀운+${b.luck}`);
   if(b.weaponElem&&typeof ELEMENTS!=="undefined"&&ELEMENTS[b.weaponElem])bf.push(`${ELEMENTS[b.weaponElem].ic}${ELEMENTS[b.weaponElem].n}`);
   if(b.regionResist)bf.push(`🧿내성`);
-  if(bf.length)parts.push(`<span class="hs-lab">✨버프</span>${bf.join(" ")}`);
-  if(typeof setCounts==="function"){ const sc=setCounts(); const sets=Object.entries(sc).filter(([k,n])=>n>=2&&SETS[k]).map(([k,n])=>{ const tier=n>=4?4:2; const note=(SETS[k].bonus[tier]||{}).note||""; return `${SETS[k].n}(${n})${note?" "+note:""}`; });
-    if(sets.length)parts.push(`<span class="hs-lab">🧩세트</span>${sets.join(" · ")}`); }
-  return parts.length?parts.join(`<span class="hs-sep">|</span>`):""; }
+  return bf.length?bf.map(x=>`<span class="buffchip">${x}</span>`).join(""):""; }
+/* 🧩 세트 효과 (장착장비 아래) */
+function setsHtml(){ if(!P||typeof setCounts!=="function")return ""; const sc=setCounts();
+  const sets=Object.entries(sc).filter(([k,n])=>n>=2&&SETS[k]).map(([k,n])=>{ const tier=n>=4?4:2; const note=(SETS[k].bonus[tier]||{}).note||""; return `${SETS[k].n}(${n})${note?" "+note:""}`; });
+  return sets.length?`<span class="hs-lab">🧩세트</span>${sets.join(" · ")}`:""; }
 /* 보유 재료 상태줄 (생활력 위에 별도 표시) */
 function matsStatusHtml(){ if(!P)return "";
   const mats=Object.entries(P.mats||{}).filter(([m,n])=>n>0&&MATS[m]).sort((a,c)=>c[1]-a[1]);
@@ -332,7 +336,7 @@ function trainStat(stat,pts){ pts=Math.round(pts*(1+metaEff().growth));   // �
   if(up>0){ line(`✦ <b>${STAT_NAME[stat]}</b>이(가) ${up} 올랐다! (현재 ${P.stats[stat]})`,"heal"); checkTitleUnlocks(); }
   return up; }
 function addMat(mat,n){ P.mats[mat]=(P.mats[mat]||0)+n; if(typeof checkQuests==="function")checkQuests(); }
-function heal(n){ n=Math.round(n*(1+(jobMods().healPct||0))); const mhp=MAXHP(); const b=Math.min(n,mhp-P.hp); if(b>0){ P.hp+=b; line(`체력을 ${b} 회복했다.`,"heal"); spawnFloat("+"+b,"#6bcf8a","me"); if(typeof sfx==="function")sfx("heal"); } render(); }
+function heal(n){ n=Math.round(n*(1+(jobMods().healPct||0))); if(typeof B!=="undefined"&&B&&B.healCut)n=Math.round(n*0.5); /* ☣️역병 회복반감 */ const mhp=MAXHP(); const b=Math.min(n,mhp-P.hp); if(b>0){ P.hp+=b; line(`체력을 ${b} 회복했다.`,"heal"); spawnFloat("+"+b,"#6bcf8a","me"); if(typeof sfx==="function")sfx("heal"); } render(); }
 function addRelic(name){ const g=RELICS[name];
   if(g&&g.key){ if(!P.questItems.includes(name))P.questItems.push(name); line(`🗝 <b>퀘스트 아이템</b> 획득: <b>${name}</b>`,"loot"); render(); return; }
   const it={k:name,id:newId(),up:0}; P.inv.push(it); let auto="";
