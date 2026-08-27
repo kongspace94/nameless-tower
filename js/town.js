@@ -16,6 +16,12 @@ function setWhTab(t){ whTab=t; warehouseMenu(); }
 let bsTab="wpn";   // ⚒️ 대장간 카테고리 탭(wpn/arm/acc)
 function setBsTab(t){ bsTab=t; blacksmithMenu(); }
 window.setBsTab=setBsTab;
+let storeTab="pot";   // 🛒 잡화점 구매 탭(pot/mat/etc)
+function setStoreTab(t){ storeTab=t; storeBuy(); }
+window.setStoreTab=setStoreTab;
+let sellTab="gear";   // 💰 잡화점 판매 탭(gear/mat)
+function setSellTab(t){ sellTab=t; storeSell(); }
+window.setSellTab=setSellTab;
 window.setWhTab=setWhTab;
 function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; townReturn=null;
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
@@ -578,26 +584,41 @@ function claimWelcome(){ if(P.flags.welcomeClaimed)return; P.flags.welcomeClaime
   setActions([{label:"📦 통신판매로",act:cashShop},{label:"🏘 마을로",full:true,act:townMenu}]); }
 function shopReset(){ const d=new Date().toDateString(); if(P.shopDay!==d){ P.shopDay=d; P.shopBought={}; } }
 function shopLeft(key,cap){ shopReset(); return Math.max(0, cap-(P.shopBought[key]||0)); }
+/* 🛒 구매 아이템 목록 — 카테고리(pot 물약 / mat 재료 / etc 비약·기타)로 분류 */
+function storeItems(){ const items=[{key:"potion",emoji:"🧪",label:"물약",price:60,cap:20,cat:"pot",desc:"HP 25 회복",buy:()=>{P.potions++;}}];
+  for(const [mk,[e,nm]] of Object.entries(MATS)) items.push({key:"mat_"+mk,emoji:e,label:nm,price:45,cap:99,cat:"mat",desc:"제작·강화 재료",buy:()=>addMat(mk,1)});
+  for(const [k,c] of Object.entries(CONS)){ if(c.use==="learn"||c.use==="slot")continue;
+    const cat=(c.use==="heal"||c.use==="mana"||c.use==="stamina")?"pot":"etc";
+    items.push({key:k,emoji:c.emoji,label:c.n,price:c.val||100,cap:3,cat,desc:c.note,buy:()=>gainCons(k)}); }
+  return items; }
 function storeBuy(){ shopReset(); clearLog(); setScene("🛒","무엇을 살까?");
-  line(`보유 금화 💰 <b>${P.gold}</b> · 구매엔 <b>하루 제한</b>이 있어요 (날짜 바뀌면 초기화)`,"sys");
-  const items=[{key:"potion",label:"🧪 물약",price:60,cap:20,desc:"HP 25 회복",buy:()=>{P.potions++;}}];
-  for(const [mk,[e,nm]] of Object.entries(MATS)) items.push({key:"mat_"+mk,label:`${e} ${nm}`,price:45,cap:99,desc:"제작·강화 재료",buy:()=>addMat(mk,1)});
-  for(const [k,c] of Object.entries(CONS)){ if(c.use==="learn"||c.use==="slot")continue; items.push({key:k,label:`${c.emoji} ${c.n}`,price:c.val||100,cap:3,desc:c.note,buy:()=>gainCons(k)}); }
-  const acts=items.map(o=>{ const left=shopLeft(o.key,o.cap);
-    return {label:`${o.label} — ${o.price}G`,desc:`${o.desc} · 오늘 ${left>0?`${left}개 남음`:"소진"}`,disabled:P.gold<o.price||left<=0,
-      act:()=>{ if(shopLeft(o.key,o.cap)<=0){ toast("오늘 구매 한도 초과"); return; } if(P.gold<o.price){ toast("금화 부족"); return; }
-        P.gold-=o.price; o.buy(); P.shopBought[o.key]=(P.shopBought[o.key]||0)+1; render(); toast("구매: "+o.label); storeBuy(); }}; });
-  acts.push({label:"← 뒤로",full:true,act:generalStore}); setActions(acts); }
-function storeSell(){ clearLog(); setScene("💰","무엇을 팔까? (즉시 현금화)"); line(`보유 금화 💰 <b>${P.gold}</b>`,"sys");
-  const acts=[];
-  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key&&!isEquippedItem(it)).forEach(it=>{
-    const price=Math.round((RELICS[it.k].val||40)*0.5)+(it.up||0)*15;
-    acts.push({label:`${it.k}${it.up?' +'+it.up:''}`,desc:`+${price}G · 미착용 장비`,
-      act:()=>{ const j=P.inv.indexOf(it); if(j<0)return; P.inv.splice(j,1); P.gold+=price; render(); checkQuests(); toast("판매 +"+price+"G"); storeSell(); }}); });
-  for(const [mk,[e,nm]] of Object.entries(MATS)){ const n=P.mats[mk]||0; if(n>0)acts.push({label:`${e} ${nm} ×${n}`,desc:`+${n*4}G`,
-    act:()=>{ P.gold+=n*4; P.mats[mk]=0; render(); checkQuests(); toast("재료 판매"); storeSell(); }}); }
-  if(acts.length===0)acts.push({label:"팔 물건이 없다 (미착용 장비·재료)",disabled:true,act:()=>{}});
-  acts.push({label:"← 뒤로",full:true,act:generalStore}); setActions(acts); }
+  const items=storeItems(), tab=["pot","mat","etc"].includes(storeTab)?storeTab:"pot", cnt=c=>items.filter(i=>i.cat===c).length;
+  const tabBar=`<div class="invtabs">`+[["pot","🧪 물약"],["mat","🪵 재료"],["etc","✨ 비약·기타"]].map(([t,lab])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setStoreTab('${t}')">${lab}${cnt(t)?` <i>${cnt(t)}</i>`:''}</button>`).join("")+`</div>`;
+  const rows=items.filter(i=>i.cat===tab).map(o=>{ const left=shopLeft(o.key,o.cap), soldOut=left<=0, canBuy=P.gold>=o.price&&!soldOut;
+    return `<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">${o.emoji}</span>`+
+      `<div class="gmeta"><div class="gn">${o.label} <span style="color:var(--gold)">${o.price}G</span></div><div class="ge">${o.desc} · 오늘 ${soldOut?'<span style="color:var(--danger)">소진</span>':`${left}개 남음`}</div></div>`+
+      `<div class="gbtns"><button class="ibtn ${canBuy?'on':''}" ${canBuy?'':'disabled'} onclick="storeDoBuy('${o.key}')">구매</button></div></div>`; }).join("");
+  $("log").innerHTML=`<div class="invv"><div class="ge" style="color:var(--dim);margin-bottom:2px">💰 보유 <b>${P.gold}G</b> · 구매엔 하루 제한 (날짜 바뀌면 초기화)</div>${tabBar}<div class="invtabbody"><div class="glist">${rows||'<div class="inv-empty">이 분류에 살 물건이 없다</div>'}</div></div></div>`;
+  setActions([{label:"💰 팔기로 전환",act:storeSell},{label:"← 뒤로",full:true,act:generalStore}]); }
+function storeDoBuy(key){ const o=storeItems().find(i=>i.key===key); if(!o)return; if(shopLeft(o.key,o.cap)<=0){ toast("오늘 구매 한도 초과"); return; } if(P.gold<o.price){ toast("금화 부족"); return; }
+  P.gold-=o.price; o.buy(); P.shopBought[o.key]=(P.shopBought[o.key]||0)+1; render(); toast("구매: "+o.label); if(typeof sfx==="function")sfx("loot"); storeBuy(); }
+window.storeDoBuy=storeDoBuy;
+function storeSell(){ clearLog(); setScene("💰","무엇을 팔까? (즉시 현금화)");
+  const gearList=P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key&&!isEquippedItem(it));
+  const matList=Object.entries(MATS).filter(([mk])=>(P.mats[mk]||0)>0);
+  const tab=["gear","mat"].includes(sellTab)?sellTab:(gearList.length?"gear":"mat");
+  const tabBar=`<div class="invtabs">`+[["gear","🗡 장비",gearList.length],["mat","🪵 재료",matList.length]].map(([t,lab,n])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setSellTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`).join("")+`</div>`;
+  let rows;
+  if(tab==="gear"){ rows = gearList.length ? gearList.map(it=>{ const g=RELICS[it.k], price=Math.round((g.val||40)*0.5)+(it.up||0)*15;
+      return `<div class="grow"><span>${ico(relicIco(it.k),34)}</span><div class="gmeta"><div class="gn">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}</div><div class="ge">${gearTypeLabel(g)} · 미착용</div></div><div class="gbtns"><button class="ibtn on" onclick="sellGear(${it.id})">팔기 +${price}G</button></div></div>`; }).join("") : `<div class="inv-empty">팔 미착용 장비가 없다</div>`; }
+  else { rows = matList.length ? matList.map(([mk,[e,nm]])=>{ const n=P.mats[mk]||0, price=n*4;
+      return `<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">${e}</span><div class="gmeta"><div class="gn">${nm} <b>×${n}</b></div><div class="ge">개당 4G · 전량 판매</div></div><div class="gbtns"><button class="ibtn on" onclick="sellMat('${mk}')">팔기 +${price}G</button></div></div>`; }).join("") : `<div class="inv-empty">팔 재료가 없다</div>`; }
+  $("log").innerHTML=`<div class="invv"><div class="ge" style="color:var(--dim);margin-bottom:2px">💰 보유 <b>${P.gold}G</b> · 파는 즉시 현금화 (착용 중 장비는 안 보임)</div>${tabBar}<div class="invtabbody"><div class="glist">${rows}</div></div></div>`;
+  setActions([{label:"🛒 사기로 전환",act:storeBuy},{label:"← 뒤로",full:true,act:generalStore}]); }
+function sellGear(id){ const j=P.inv.findIndex(x=>x.id===id); if(j<0)return; const it=P.inv[j]; if(isEquippedItem(it)){ toast("착용 중은 못 팜"); return; }
+  const g=RELICS[it.k], price=Math.round((g.val||40)*0.5)+(it.up||0)*15; P.inv.splice(j,1); P.gold+=price; render(); checkQuests(); toast("판매 +"+price+"G"); if(typeof sfx==="function")sfx("loot"); storeSell(); }
+function sellMat(mk){ const n=P.mats[mk]||0; if(n<=0)return; P.gold+=n*4; P.mats[mk]=0; render(); checkQuests(); toast("재료 판매 +"+(n*4)+"G"); storeSell(); }
+window.sellGear=sellGear; window.sellMat=sellMat;
 /* 🏛 길드하우스 — 메인은 스토리로 자동 진행 · 서브는 여기서 길드마스터가 카테고리로 준다 */
 const GUILD_CATS={ reco:{n:"추천 의뢰",emoji:"⭐"}, village:{n:"마을 의뢰",emoji:"🏘"}, hunt:{n:"토벌 의뢰",emoji:"⚔"} };
 function guildAvail(cat){ return Object.keys(QUESTS).filter(id=>{ const q=QUESTS[id]; return q.type==="sub"&&!q.tower&&q.cat===cat&&!P.quests[id]; }); }
