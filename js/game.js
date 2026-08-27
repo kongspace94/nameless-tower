@@ -33,19 +33,65 @@ function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene
   }
   line("정상의 보물을 쓸어담아 마을로 돌아왔다.","sys"); P.gold+=300; Object.keys(MATS).forEach(m=>addMat(m,5)); gainStamina(STAM_MAX); line("💰 금화 +300, 재료 대량 획득! 생활력도 가득 찼다.","loot");
   const firstClear = !(P.flags.cleared>0);
-  P.flags.cleared=(P.flags.cleared||0)+1;
-  if(firstClear){ P.flags.continentUnlocked=true;   // 정상 도달 → 대륙 개척 해금 + 세계관 확장
-    setScene("🪟","탑 꼭대기의 창 — 처음으로, 바깥이 보인다.");
-    line("— 정상의 창을 열어젖힌 순간 —","sys");
-    line("끝이라 믿었던 하늘 너머로, <b>광대한 대륙</b>이 펼쳐진다. 그리고 그 위에 점점이 — <b>수많은 탑</b>이 솟아 있다.","loot");
-    line("<span class=\"quote\">저마다의 탑엔 저마다의 수호자가 잠들어 있다. 네가 오른 이 탑은… 그중 가장 낮은 하나였을 뿐이다.</span>");
-    line("진짜 여정은 이제부터다 — <b>🧭 대륙 개척</b>으로 대륙을 누비며 <b>새로운 탑들을 찾아 오르자!</b>","loot");
-    toast("🧭 대륙 개척 해금!");
+  P.flags.cleared=(P.flags.cleared||0)+1; checkTitleUnlocks();
+  if(firstClear){ P.flags.continentUnlocked=true; toast("🧭 대륙 개척 해금!");   // 정상 도달 → 대륙 개척 해금
+    render();
+    setActions([{label:"▶ 계속",full:true,act:()=>{
+      vnScene(vnTowerToContinent(), ()=>{   // 🎭 탑→개척 전환 대화
+        clearLog(); setScene("🧭","새로운 여정 — 대륙이 열렸다.");
+        line("끝이라 믿었던 곳 너머로, <b>광대한 대륙</b>과 <b>수많은 탑</b>이 펼쳐졌다.","loot");
+        line("<span class=\"quote\">저마다의 탑엔 저마다의 수호자가 잠들어 있다. 네가 오른 이 탑은, 그중 가장 낮은 하나였을 뿐.</span>");
+        line("진짜 여정은 이제부터 — <b>🧭 대륙 개척</b>으로 새로운 탑들을 찾아 오르자!","loot");
+        line(`— 회귀 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");
+        render(); setActions([{label:"🏘 마을로 (대륙 개척 가능)",full:true,act:townMenu}]);
+      });
+    }}]);
+    return;
   }
   line(`— 회귀 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");   // 로그라이트 회귀 암시
-  checkTitleUnlocks(); render();
-  setActions([{label:"🏘 마을로 (다시 도전 가능)",full:true,act:townMenu}]); }
+  render(); setActions([{label:"🏘 마을로 (다시 도전 가능)",full:true,act:townMenu}]); }
 
+/* 🎭 VN(미연시식) 대화 장면 — steps: [{who:"me"|"comp"|"narr", text, name?}] · 클릭/스페이스로 진행 */
+function vnScene(steps, onDone){
+  if(!P||!Array.isArray(steps)||!steps.length){ if(typeof onDone==="function")onDone(); return; }
+  const rec=(typeof compRec==="function"&&P.companion)?compRec(P.companion):{lv:1};
+  const cd=(typeof compDisp==="function"&&P.companion)?compDisp(P.companion,rec.lv):{n:"동료",emoji:"🧚",ic:null,tier:0};
+  const meName=P.name||"방랑자";
+  const portMe=(typeof playerIco==="function")?playerIco(160):`<span class="vnemo">🧝</span>`;
+  const portComp=(cd.tier>0||!cd.ic)?`<span class="vnemo">${cd.emoji}</span>`:(typeof ico==="function"?ico(cd.ic,160):`<span class="vnemo">${cd.emoji}</span>`);
+  const ov=document.createElement("div"); ov.className="vn"; ov.id="vnbox";
+  ov.innerHTML=`<div class="vnstage"><div class="vnchar left" id="vnleft">${portMe}</div><div class="vnchar right" id="vnright">${portComp}</div></div>`
+    +`<div class="vnbox"><div class="vnname" id="vnname"></div><div class="vntext" id="vntext"></div><div class="vnhint">▶ 클릭 / 스페이스</div></div>`;
+  document.body.appendChild(ov);
+  const L=ov.querySelector("#vnleft"), R=ov.querySelector("#vnright"), NM=ov.querySelector("#vnname"), TX=ov.querySelector("#vntext");
+  let i=-1, closed=false;
+  const draw=()=>{ const s=steps[i]; if(!s)return; const who=s.who||"narr";
+    NM.textContent = s.name || (who==="me"?meName : who==="comp"?cd.n : "");
+    TX.innerHTML = s.text||"";
+    L.classList.toggle("speaking", who==="me"); R.classList.toggle("speaking", who==="comp");
+    ov.classList.toggle("narr", who==="narr");
+    if(typeof sfx==="function")sfx("click"); };
+  const next=()=>{ if(closed)return; i++; if(i>=steps.length){ close(); return; } draw(); };
+  const close=()=>{ if(closed)return; closed=true; try{ document.removeEventListener("keydown",key); ov.remove(); }catch(e){} if(typeof onDone==="function")onDone(); };
+  const key=(e)=>{ if(e.code==="Space"||e.key==="Enter"){ e.preventDefault(); e.stopPropagation(); next(); } };
+  ov.addEventListener("click",next); document.addEventListener("keydown",key,true);
+  next();
+}
+/* 탑 정상 → 대륙 개척 전환 대화 (방랑자 + 동료 요정) */
+function vnTowerToContinent(){ const me=P.name||"방랑자";
+  return [
+    {who:"narr", text:"이름 없는 신이 재가 되어 흩어지고, 탑 전체가 숨을 멈춘다. 정상의 창이 천천히 열린다."},
+    {who:"comp", text:"…해냈어요. 정말로, 탑의 끝까지 올라왔네요."},
+    {who:"me",   text:"이게… 끝인가."},
+    {who:"comp", text:"글쎄요. 저 창밖을 한번 보세요."},
+    {who:"narr", text:"창 너머로 광대한 대륙이 펼쳐진다. 그 위에 점점이 — 헤아릴 수 없는 탑들이 솟아 있다."},
+    {who:"me",   text:"탑이… 이 하나가 아니었어."},
+    {who:"comp", text:"우린 겨우 가장 낮은 탑 하나를 오른 거예요. 진짜 이야기는 저 바깥에 있어요."},
+    {who:"me",   text:"…내가 왜 이 탑을 올랐는지, 그 답도 저기 있을까."},
+    {who:"comp", text:`함께 찾으러 가요, ${me}. 당신이라면 저 대륙의 탑들도 오를 수 있어요.`},
+    {who:"me",   text:"…그래. 여기서 멈출 순 없지."},
+    {who:"narr", text:"탑을 등지고, 둘은 대륙으로 향하는 문 앞에 선다. — 새로운 여정이 시작된다."},
+  ]; }
 /* ============================================================
    🌌 회귀 (로그라이트 메타성장)
    ============================================================ */

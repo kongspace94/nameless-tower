@@ -261,6 +261,20 @@
   button:active:not(:disabled){transform:translateY(0)} button:disabled{opacity:.4; cursor:not-allowed}
   .actions button:not(:disabled){animation:actIn .38s ease backwards}   /* 새 메뉴가 하나씩 떠오름(딜레이 중 숨김=backwards) — 띠리리리 캐스케이드 */
   @keyframes actIn{from{opacity:0; transform:translateY(5px)} to{opacity:1; transform:translateY(0)}}
+  /* 🎭 VN 대화 장면 (미연시식) — 캐릭터 초상 + 대화창 */
+  .vn{position:fixed; inset:0; z-index:9998; background:radial-gradient(120% 90% at 50% 0%,#1a1726,#0a0d14 70%); display:flex; flex-direction:column; justify-content:flex-end; cursor:pointer; animation:vnfade .45s ease; -webkit-tap-highlight-color:transparent}
+  @keyframes vnfade{from{opacity:0}to{opacity:1}}
+  .vn .vnstage{position:relative; flex:1; display:flex; align-items:flex-end; justify-content:space-between; padding:5vh 8vw 12px; overflow:hidden}
+  .vn .vnchar{transition:opacity .35s, transform .35s, filter .35s; opacity:.45; transform:translateY(10px) scale(.95); filter:grayscale(.4) brightness(.55)}
+  .vn .vnchar.speaking{opacity:1; transform:translateY(0) scale(1); filter:none}
+  .vn.narr .vnchar{opacity:.3; filter:grayscale(.5) brightness(.5)}
+  .vn .vnchar .vnemo{font-size:min(30vw,150px); line-height:1; display:block; filter:drop-shadow(0 10px 20px rgba(0,0,0,.6))}
+  .vn .vnchar img,.vn .vnchar .ico,.vn .vnchar .emo,.vn .vnchar .pavatar{width:min(38vw,180px)!important; height:min(38vw,180px)!important; object-fit:contain; font-size:min(30vw,150px)!important}
+  .vn .vnbox{margin:0 auto 5vh; width:min(92vw,720px); background:rgba(9,12,19,.94); border:1px solid var(--gold); border-radius:16px; padding:16px 22px 16px; box-shadow:0 -6px 34px rgba(0,0,0,.6)}
+  .vn .vnname{color:var(--gold); font-weight:800; font-size:16px; margin-bottom:7px; font-family:var(--mono); min-height:1.1em}
+  .vn .vntext{color:#e8ecf4; font-size:16px; line-height:1.75; min-height:3.4em}
+  .vn .vnhint{text-align:right; color:var(--dim); font-size:12px; margin-top:8px; animation:vnblink 1.3s infinite}
+  @keyframes vnblink{50%{opacity:.25}}
   button .k{color:var(--accent); font-family:var(--mono); font-size:12px; margin-right:8px}
   button .desc{display:block; color:var(--dim); font-size:12px; margin-top:2px}
   .full{grid-column:1 / -1}
