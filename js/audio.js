@@ -68,9 +68,11 @@ function audioInit() {
 }
 function audioUnlock() {   // 사용자 제스처마다 호출(멱등) → ctx 깨우고, 울려야 할 BGM/환경음이 안 울리고 있으면 시작
   if (!audioInit()) return; const ctx = AUDIO.ctx; const wasSuspended = (ctx.state === "suspended");
-  const after = () => {   // ctx가 잠겨있다 깨어난 직후엔(또는 루프 미가동 시) 확실히 (재)시작
-    if (AUDIO.bgmName && (wasSuspended || !AUDIO.bgmSynth)) bgm(AUDIO.bgmName, true);
-    if (AUDIO.ambName && AMB[AUDIO.ambName] && AMB[AUDIO.ambName].src) amb(AUDIO.ambName, true);
+  const after = () => {   // 안 울리고 있을 때만 (재)시작 — 이미 재생 중이면 건드리지 않음(클릭마다 재시작 방지)
+    const bgmPlaying = !!AUDIO.bgmSynth || (AUDIO.bgmEl && !AUDIO.bgmEl.paused);
+    if (AUDIO.bgmName && !bgmPlaying) bgm(AUDIO.bgmName);
+    const ambPlaying = AUDIO.ambEl && !AUDIO.ambEl.paused;
+    if (AUDIO.ambName && AMB[AUDIO.ambName] && AMB[AUDIO.ambName].src && !ambPlaying) amb(AUDIO.ambName);
     AUDIO._unlocked = true;
   };
   try { if (wasSuspended) ctx.resume().then(after, after); else after(); } catch (e) { after(); }
