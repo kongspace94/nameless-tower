@@ -5,7 +5,7 @@ function freshPlayer(){ return {
   name:"방랑자", avatar:null, gems:5, gold:30, potions:3, companion:"light", comps:{light:{bond:0,lv:1,awk:0,runes:[]}}, runes:{}, karma:0, kills:0,
   stats:{str:5,int:5,dex:5,vit:5,luk:3}, train:{str:0,int:0,dex:0,vit:0,luk:0}, lifeStat:{str:0,int:0,dex:0,vit:0,luk:0},
   life:{logging:{lv:1,xp:0},mining:{lv:1,xp:0},herbing:{lv:1,xp:0},fishing:{lv:1,xp:0},arcana:{lv:1,xp:0}},
-  mats:{}, skills:[], skillProf:{}, skillSlots:SLOT_BASE, loadout:[], passives:[], inv:[], uidc:0, equip:{weapon:null,offhand:null,armor:null,ring:null,amulet:null,boots:null}, consumables:{}, buffs:{}, questItems:[],
+  mats:{}, skills:[], skillProf:{}, chants:{}, skillSlots:SLOT_BASE, loadout:[], passives:[], inv:[], uidc:0, equip:{weapon:null,offhand:null,armor:null,ring:null,amulet:null,boots:null}, consumables:{}, buffs:{}, questItems:[],
   stash:{inv:[],mats:{},consumables:{},potions:0,gold:0},
   title:null, titles:[], codex:{}, codexWeak:{}, tamed:[], portals:[1], quests:{}, flags:{maxFloor:0}, hp:0, mp:0, floor:1, dives:0, stamina:STAM_MAX, staminaTs:Date.now(),
   shopDay:"", shopBought:{},
@@ -28,6 +28,7 @@ function normalizeP(){ if(!P)return;
   if(!P.consumables)P.consumables={}; if(!P.buffs)P.buffs={}; if(!P.questItems)P.questItems=[];
   if(!P.mats)P.mats={}; if(!Array.isArray(P.inv))P.inv=[];
   if(P.uidc==null)P.uidc=0; if(!P.skillProf)P.skillProf={};
+  if(!P.chants||typeof P.chants!=="object")P.chants={};   // ✨ 커스텀 주문 영창(주문별, 미설정 시 기본 영창)
   if(!P.lifeStat)P.lifeStat={str:0,int:0,dex:0,vit:0,luk:0};
   if(!P.shopBought||typeof P.shopBought!=="object")P.shopBought={}; if(P.shopDay==null)P.shopDay="";
   if(!P.stash||typeof P.stash!=="object")P.stash={};

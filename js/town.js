@@ -810,6 +810,14 @@ function instructorMenu(key){ if(enemy)return; const ins=INSTRUCTORS[key]; if(!i
     return { label:`${s.emoji} ${s.n} — ${tag}`, desc:`${s.desc} | 요구: ${reqText(s)} | 비용: ${costText(s)}`,
       disabled: st!=="ok", act:()=>{ learnSkill(k); instructorMenu(key); } }; });
   acts.push({label:"← 다른 교관",act:skillMenu},{label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+/* ✨ 커스텀 주문 영창 설정 — 한글만(숫자·기호·영어 X), 2~40자. 숙련 레벨↑ → 앞부분만 쳐도 발동 */
+function editChant(k){ if(!SKILLS[k]){ return; }
+  const cur=(typeof spellChant==="function")?spellChant(k):(SKILLS[k].chant||"");
+  const v=prompt(`${SKILLS[k].n} 주문 영창을 정하세요.\n· 한글만 (숫자·기호·영어 X) · 2~40자\n· 숙련도가 오를수록 앞부분만 쳐도 발동해요.`, cur);
+  if(v==null)return; const t=v.trim().replace(/\s+/g," "); const bare=t.replace(/\s/g,"");
+  if(!/^[가-힣ㄱ-ㅎㅏ-ㅣ][가-힣ㄱ-ㅎㅏ-ㅣ\s]*$/.test(t) || bare.length<2 || bare.length>40){ toast("한글만 · 2~40자 (숫자·기호·영어 안 돼요)"); return; }
+  if(!P.chants)P.chants={}; P.chants[k]=t; toast("영창 저장: "+SKILLS[k].n); if(typeof sfx==="function")sfx("loot"); save(true); skillWindow(); }
+window.editChant=editChant;
 /* 📋 스킬 창 (인벤 옆 버튼) — 액티브/패시브 + 생활 스킬 카테고리 */
 function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; }
   regenStamina(); render(); clearLog(); setScene("📋", inDive?"스킬 — 계단에서 장착 변경":"스킬 — 전투 스킬과 생활 스킬");
@@ -824,7 +832,10 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
       ? (on ? `<button class="ibtn on" onclick="skillUnequip('${k}')">해제</button>` : `<button class="ibtn" onclick="skillEquip('${k}')">장착</button>`)
       : `<span class="chip" style="color:var(--good);border-color:#3a5a3f">자동</span>`;
     const badge = active ? (on?' <span style="color:var(--good);font-size:11px">장착</span>':'') : ' <span style="color:var(--good);font-size:11px">적용 중</span>';
-    return `<div class="grow ${on?'eq':''}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${xpbar}</div><div class="gbtns">${btn}</div></div>`; };
+    const isCast = active && typeof CAST_SPELLS!=="undefined" && CAST_SPELLS.includes(k);
+    const chantRow = isCast ? `<div class="ge" style="color:#c9a9ff">✨ 영창: "${spellChant(k)}" <span style="color:var(--dim)">(앞 ${chantReqLen(k)}자만 쳐도 발동)</span></div>` : "";
+    const chantBtn = isCast ? `<button class="ibtn" onclick="editChant('${k}')">✏️ 영창</button>` : "";
+    return `<div class="grow ${on?'eq':''}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
   const sec=(title,arr,empty,cnt)=> `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div><div class="glist">${arr.length?arr.map(skillCard).join(""):`<div class="inv-empty">${empty}</div>`}</div></div>`;
   const lifeRows=Object.entries(LIFE).map(([key,a])=>{ const ls=P.life[key]; const need=ls.lv*20; const pct=Math.round(ls.xp/need*100); const got=(P.lifeStat&&P.lifeStat[a.stat])||0;
     return `<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">${a.emoji}</span><div class="gmeta"><div class="gn">${a.n} <span style="color:var(--dim);font-size:11px">Lv.${ls.lv}</span>${got?` <span style="color:var(--good);font-size:11px">${STAT_NAME[a.stat]} +${got}</span>`:""}</div><div class="ge">Lv↑마다 ${STAT_NAME[a.stat]}+1 · ${MATS[a.mat][1]} · 숙련 ${ls.xp}/${need}</div><div class="hpbar2 mp" style="height:6px;margin-top:3px"><i style="width:${pct}%"></i></div></div></div>`; }).join("");

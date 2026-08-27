@@ -615,12 +615,12 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
   else if(k==="power_shot") startGauge("attack",q=>{ playerHit(q,1.4*m,"🎯 급소 찌르기",true); if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="double_slash") startGauge("attack",q=>{ playerHit(q,1.05*m,"⚔️ 연속 1타"); if(enemy&&enemy.hp>0){ playerHit(q,1.05*m,"⚔️ 연속 2타"); } if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="execute") startGauge("attack",q=>{ const low=enemy.hp/enemy.hpMax<0.3; playerHit(q,(low?4.5:1.5)*m,low?"☠️ 처형!":"☠️ 처형"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
-  else if(k==="fireball"){ castSpell(SKILLS[k].chant,ratio=>{ if(!enemy)return;
+  else if(k==="fireball"){ castSpell(k,ratio=>{ if(!enemy)return;
       if(ratio<0.3){ line("🌫 영창 실패! 파이어볼이 흩어졌다. (기력 소모)","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
       const eff=Math.min(1.15,ratio); line(ratio>=1.15?"🔥 <b>완벽한 영창!</b> 파이어볼이 폭발한다!":"🔥 파이어볼을 시전한다!","loot");
       const dmg=Math.max(1,Math.round((magicPow()*2*m+rnd(6))*eff)-Math.floor(enemy.def/2)); const killed=hitEnemy(dmg,"🔥 파이어볼","#ff8a3a","fire"); fxShake();
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
-  else if(k==="heal_spell"){ castSpell(SKILLS[k].chant,ratio=>{
+  else if(k==="heal_spell"){ castSpell(k,ratio=>{
       if(ratio<0.3){ line("🌫 영창 실패! 회복술이 흩어졌다. (기력 소모)","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
       const eff=Math.min(1.15,ratio); line(ratio>=1.15?"✨ <b>완벽한 영창!</b> 회복술이 빛난다.":"✨ 회복술을 시전한다.","heal"); heal(Math.round((magicPow()*2.2*m+8)*eff)); afterPlayerAction(); }); }
   else if(k==="war_cry"){ B.atkPct=(B.atkPct||0)+0.35; line("🗣️ <b>전투 함성!</b> 이번 전투 공격력이 크게 올랐다. (+35%)","loot"); fxShake(); render(); afterPlayerAction(); }
@@ -656,25 +656,32 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
       const dmg=Math.max(1,Math.round((magicPow()*2.4*m+rnd(6))*ratio)); const killed=hitEnemy(dmg,"🌀 룬 파열","#c9a9ff"); fxShake();
       if(ratio>=1)bigPop("PERFECT!","#c9a9ff");
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
-  else if(k==="drain"){ castSpell(SKILLS[k].chant,ratio=>{ if(!enemy)return;
+  else if(k==="drain"){ castSpell(k,ratio=>{ if(!enemy)return;
       if(ratio<0.3){ line("🌫 영창 실패! 흡수가 흩어졌다.","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
       const eff=Math.min(1.15,ratio); const dmg=Math.max(1,Math.round((magicPow()*1.7*m+rnd(5))*eff)-Math.floor(enemy.def/2)); const hp0=enemy.hp;
       const killed=hitEnemy(dmg,"🧛 생명 흡수","#c96ad6"); const dealt=Math.min(dmg,hp0); heal(Math.round(dealt*0.5)); fxShake();
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
 }
-/* 주문 영창 — 제한 시간 안에 주문을 그대로 입력. 정확·빠를수록 강함 (완벽 시 1.15배, 실패 시 소멸) */
-function chantRatio(typed,phrase){ const a=(typed||"").replace(/\s/g,""), b=(phrase||"").replace(/\s/g,""); if(!b)return 1; if(a===b)return 1.15; if(!a)return 0;
-  let match=0; for(let i=0;i<Math.min(a.length,b.length);i++){ if(a[i]===b[i])match++; else break; } return match/b.length; }
-function castSpell(phrase,cb){ awaiting=null; setActions([]);
+/* 주문 영창 — 커스텀 영창(한글). 숙련 레벨이 오를수록 앞부분(reqLen)만 쳐도 발동 (완벽 시 1.15배, 실패 시 소멸) */
+const CAST_SPELLS=["fireball","heal_spell","drain"];   // 타이핑 영창 주문
+const MIN_CHANT_REQ=3;   // 숙련 최고여도 최소 이만큼은 쳐야 함
+function spellChant(k){ return (P&&P.chants&&P.chants[k])||(SKILLS[k]&&SKILLS[k].chant)||""; }
+function chantReqLen(k){ const full=spellChant(k).replace(/\s/g,"").length; const lv=(typeof skillProf==="function"?skillProf(k).lv:1)||1; return Math.min(full||1, Math.max(MIN_CHANT_REQ, full-(lv-1))); }
+function chantRatio(typed,phrase,reqLen){ const a=(typed||"").replace(/\s/g,""), b=(phrase||"").replace(/\s/g,""); if(!b)return 1;
+  const need=(reqLen&&reqLen<b.length)?b.slice(0,reqLen):b; if(!a)return 0; if(a===need)return 1.15;
+  let match=0; for(let i=0;i<Math.min(a.length,need.length);i++){ if(a[i]===need[i])match++; else break; }
+  return match>=need.length?1.15:match/need.length; }
+function chantHighlight(phrase,reqLen){ let cnt=0,out=""; for(const ch of phrase){ const sp=/\s/.test(ch); if(!sp&&cnt<reqLen){ out+=`<span class="creq">${ch}</span>`; cnt++; } else out+=ch; } return out; }
+function castSpell(k,cb){ awaiting=null; setActions([]); const phrase=spellChant(k); const reqLen=chantReqLen(k); const lv=(typeof skillProf==="function"?skillProf(k).lv:1)||1;
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb(1.15); return; }
-  const timeMs = 2200 + phrase.replace(/\s/g,"").length*170;
+  const timeMs = 2200 + reqLen*170;
   const s=$("stage"); const box=document.createElement("div"); box.className="ecdown spell";
-  box.innerHTML=`<div class="et" style="color:#c9a9ff">✨ 주문 영창! 제한 시간 안에 그대로 입력하고 [Enter]</div>`+
-    `<div class="chant">${phrase}</div><input class="chantin" id="chantin" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="여기에 입력…"><div class="ecbar"><i></i></div>`;
+  box.innerHTML=`<div class="et" style="color:#c9a9ff">✨ 주문 영창! <b>강조된 앞 ${reqLen}자</b>만 정확히 쳐도 발동 · [Enter]${lv>1?` <span style="color:var(--dim)">(숙련 Lv.${lv})</span>`:""}</div>`+
+    `<div class="chant">${chantHighlight(phrase,reqLen)}</div><input class="chantin" id="chantin" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="여기에 입력…"><div class="ecbar"><i></i></div>`;
   s.appendChild(box); const bar=box.querySelector(".ecbar>i"); const inp=box.querySelector("#chantin");
   let closed=false,iv=null;
   const finish=(ratio)=>{ if(closed)return; closed=true; if(iv)clearInterval(iv); box.remove(); cb(ratio); };
-  const evalNow=()=>finish(chantRatio(inp?inp.value:"",phrase));
+  const evalNow=()=>finish(chantRatio(inp?inp.value:"",phrase,reqLen));
   if(inp){ inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); evalNow(); } }); setTimeout(()=>{ try{ inp.focus(); }catch(e){} },30); }
   let t=timeMs; const total=t; iv=setInterval(()=>{ t-=50; if(bar)bar.style.width=Math.max(0,t/total*100)+"%"; if(t<=0)evalNow(); },50); }
 function playerHit(quality,mult,label,forceCrit,opts){ opts=opts||{}; const qm=quality==="perfect"?1.7:quality==="good"?1.0:0.55;

@@ -74,10 +74,10 @@ const DIVE_POTION_MAX=10; // 탑에 들고 들어갈 수 있는 물약 최대치
 const SKILLS={
   heavy_strike:{n:"강타",emoji:"💥",type:"active",mp:4,tier:1,req:{str:7},cost:{gold:40,ore:3},desc:"강한 물리 피해"},
   guard_up:{n:"방패 숙련",emoji:"🛡️",type:"passive",tier:1,req:{vit:7},cost:{gold:40,wood:3},desc:"방어 시 피해 추가 감소"},
-  heal_spell:{n:"회복술",emoji:"✨",type:"active",mp:5,tier:1,req:{int:7},cost:{gold:50,herb:4},chant:"빛이여 치유하라",desc:"HP 회복 (지능 비례) · 영창 필요"},
+  heal_spell:{n:"회복술",emoji:"✨",type:"active",mp:5,tier:1,req:{int:7},cost:{gold:50,herb:4},chant:"치유의 빛이여 나를 감싸안아라",desc:"HP 회복 (지능 비례) · 영창 필요"},
   power_shot:{n:"급소 찌르기",emoji:"🎯",type:"active",mp:4,tier:1,req:{dex:7},cost:{gold:45,fish:3},desc:"높은 치명타 공격"},
   meditate:{n:"명상",emoji:"🧘",type:"passive",tier:2,req:{int:10},cost:{gold:70,mana:3},desc:"최대 기력↑ · 매 턴 기력 회복"},
-  fireball:{n:"파이어볼",emoji:"🔥",type:"active",mp:6,tier:2,req:{int:11,skill:"heal_spell"},cost:{gold:90,mana:4},chant:"화염이여 타올라라",desc:"강한 마법 화염 (방어 무시) · 영창 필요"},
+  fireball:{n:"파이어볼",emoji:"🔥",type:"active",mp:6,tier:2,req:{int:11,skill:"heal_spell"},cost:{gold:90,mana:4},chant:"불꽃이여 타올라 적을 태워라",desc:"강한 마법 화염 (방어 무시) · 영창 필요"},
   crit_focus:{n:"급소 간파",emoji:"👁️",type:"passive",tier:2,req:{dex:11,skill:"power_shot"},cost:{gold:80,fish:5},desc:"모든 공격 치명 확률 +10%"},
   double_slash:{n:"연속 베기",emoji:"⚔️",type:"active",mp:7,tier:2,req:{str:12,skill:"heavy_strike"},cost:{gold:110,ore:6},desc:"2회 연속 타격"},
   execute:{n:"처형",emoji:"☠️",type:"active",mp:8,tier:3,req:{str:16,dex:14,skill:"double_slash"},cost:{gold:180,ore:8,mana:4},desc:"적 HP 30%↓면 막대한 피해"},
@@ -90,7 +90,7 @@ const SKILLS={
   bleed_blade:{n:"맹독 도포",emoji:"🩸",type:"active",mp:5,tier:3,req:{dex:12,skill:"power_shot"},cost:{gold:150,herb:6},desc:"적에게 4턴 출혈(지속 피해)"},
   weaken:{n:"약화의 저주",emoji:"💀",type:"active",mp:5,tier:2,req:{int:11},cost:{gold:110,mana:4},desc:"이번 전투 적 공격력 -30% (디버프)"},
   barrier:{n:"마력 방벽",emoji:"🔮",type:"active",mp:6,tier:2,req:{int:12},cost:{gold:120,mana:5},desc:"이번 전투 방어 +8 (버프)"},
-  drain:{n:"생명 흡수",emoji:"🧛",type:"active",mp:6,tier:3,req:{int:12,skill:"heal_spell"},chant:"생명을 바쳐라",cost:{gold:160,mana:6},desc:"마법 피해 + 그만큼 절반 회복 · 영창"},
+  drain:{n:"생명 흡수",emoji:"🧛",type:"active",mp:6,tier:3,req:{int:12,skill:"heal_spell"},chant:"생명을 바쳐 나의 힘이 되어라",cost:{gold:160,mana:6},desc:"마법 피해 + 그만큼 절반 회복 · 영창"},
   awaken:{n:"각성",emoji:"🔥",type:"active",mp:10,tier:3,req:{str:14,vit:12},cost:{gold:220,ore:8,mana:5},desc:"전투당 1회 · 공격+40% 치명+20% 방어+5 (특수)"},
   /* 🐾 테이머 — 소환/계약 (조련사 교관) */
   summon:{n:"소환",emoji:"🌀",type:"active",mp:6,tier:2,req:{int:9},cost:{gold:140,mana:5},chant:"__summon__",desc:"영창해 소환수를 부른다 · 영창을 길게 완성할수록 강한 개체 · 계약한 몬스터를 부를 수 있다"},
