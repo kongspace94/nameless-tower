@@ -2,6 +2,7 @@
 /* ============================================================
    거점 마을
    ============================================================ */
+const TOWN_BG=(typeof ASSET_BASE!=="undefined"?ASSET_BASE:"assets/")+"ui/town-map.png";   // 🖼 마을 지도 배경(있으면 사용, 없으면 캔버스 폴백)
 let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는지 기억 → 거기로 복귀
 let invTab="gear";   // 🎒 인벤 카테고리 탭(gear/cons/mat/quest)
 function setInvTab(t){ invTab=t; inventoryMenu(); }
@@ -95,9 +96,11 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     <canvas class="tmcanvas" id="tmcanvas"></canvas>
     ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" aria-label="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
     <div class="tmothers" id="tmothers"></div>
+    ${contUnlocked?`<div class="tmlabel" style="left:72%;top:80%">⛺ 부족거점</div>`:""}
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
   const map=$("townmap"), pl=$("tmplayer"), cv=$("tmcanvas"); let walking=false;
+  try{ const bg=new Image(); bg.onload=()=>{ if(!map)return; map.classList.add("hasbg"); map.style.backgroundImage=`url("${TOWN_BG}")`; if(bg.naturalWidth&&bg.naturalHeight)map.style.aspectRatio=bg.naturalWidth+" / "+bg.naturalHeight; }; bg.src=TOWN_BG; }catch(e){}   // 🖼 배경 이미지 있으면 적용(없으면 캔버스 유지)
   const drawIt=()=>{ try{ drawTownCanvas(cv, blds); }catch(e){} };
   drawIt(); setTimeout(drawIt,0); if(typeof requestAnimationFrame==="function")requestAnimationFrame(drawIt);   // 즉시+다음틱+rAF
   if(typeof ResizeObserver==="function"){ try{ const ro=new ResizeObserver(()=>drawIt()); ro.observe(cv); }catch(e){} }   // 🔧 크기 바뀔 때마다 재그리기(히트박스와 항상 정렬)
