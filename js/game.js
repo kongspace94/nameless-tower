@@ -164,6 +164,17 @@ function save(silent){ const key=(P&&P._online)?CLOUD_KEY:SAVE_KEY;   // 온라�
   try{ localStorage.setItem(key,JSON.stringify(P)); if(!silent)toast("저장했습니다"); }catch(e){}
   if(P&&P._online&&typeof netSavePush==="function")netSavePush(P);   // 🌐 온라인: 클라우드 세이브(디바운스)
 }
+/* 즉시 저장 — 디바운스 무시하고 클라우드에 바로 반영 (우편 수령·리로드·페이지 이탈 시 유실 방지) */
+function saveNow(){ const key=(P&&P._online)?CLOUD_KEY:SAVE_KEY;
+  try{ localStorage.setItem(key,JSON.stringify(P)); }catch(e){}
+  if(P&&P._online&&typeof netSaveFlush==="function")netSaveFlush(P);
+}
+/* 페이지 이탈/숨김 시 저장 플러시 — 디바운스 저장이 날아가지 않게 */
+if(typeof window!=="undefined"){
+  window.addEventListener("pagehide",()=>{ try{ if(P)saveNow(); }catch(e){} });
+  window.addEventListener("beforeunload",()=>{ try{ if(P)saveNow(); }catch(e){} });
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){ try{ if(P)saveNow(); }catch(e){} } });
+}
 function newGame(){ stopAuctionTimer(); auction=null; enemy=null; B=null; mode="town"; if(document.body)document.body.classList.remove("title"); P=freshPlayer(); render(); clearLog(); intro(); }
 function intro(){ setScene("🗼","끝이 보이지 않는 탑이 하늘을 찌른다.");
   line("<b>이름 없는 탑.</b> 언제부터 거기 있었는지 아무도 모른다.");
@@ -422,7 +433,7 @@ function onServerUpdated(){
     +`<button type="button" class="updbtn" id="updReload">새로고침</button>`
     +`<button type="button" class="updx" id="updX" aria-label="나중에">✕</button>`;
   document.body.appendChild(b);
-  document.getElementById("updReload").onclick=()=>{ try{ if(P&&typeof save==="function")save(true); }catch(e){} setTimeout(()=>location.reload(),120); };
+  document.getElementById("updReload").onclick=()=>{ try{ if(P&&typeof saveNow==="function")saveNow(); else if(P&&typeof save==="function")save(true); }catch(e){} setTimeout(()=>location.reload(),350); };   // 즉시 클라우드 플러시 후 리로드(진행·우편 유실 방지)
   document.getElementById("updX").onclick=()=>{ try{ b.remove(); }catch(e){} };
 }
 async function enterOnline(){

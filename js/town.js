@@ -513,8 +513,12 @@ const MAIL_SEED=[
   {id:"welcome_2026", from:"운영자", subj:"🎉 이름 없는 탑에 오신 걸 환영합니다", body:"모험을 시작한 당신께 작은 선물을 보냅니다. 탑 꼭대기에서 만나요!", reward:{gems:5,gold:300,potions:3}},
   {id:"update_inv_2026", from:"운영자", subj:"🧳 인벤·개척 개편 & 기력 물약 추가 안내", body:"장비를 무기/방어구/악세로 정리하고 개척지 난이도를 상향했어요. 기력(MP) 물약도 새로 추가! 개편 기념 보상을 드립니다.", reward:{gold:800,gems:3,cons:{mp_60:3,enhance_charm:1}}},
 ];
-function seedMail(){ if(!P)return; if(!Array.isArray(P.mail))P.mail=[]; if(!P.mailInit)P.mailInit={};
-  for(const m of MAIL_SEED){ if(P.mailInit[m.id])continue; P.mailInit[m.id]=true; P.mail.push({id:m.id,from:m.from,subj:m.subj,body:m.body,reward:m.reward,claimed:false,ts:Date.now()}); } }
+function seedMail(){ if(!P)return; if(!Array.isArray(P.mail))P.mail=[]; if(!P.mailInit)P.mailInit={}; let added=false;
+  for(const m of MAIL_SEED){ if(P.mailInit[m.id])continue; P.mailInit[m.id]=true;
+    if(P.mail.some(x=>x.id===m.id))continue;   // 중복 가드(혹시 mail엔 있는데 init 누락된 경우)
+    P.mail.push({id:m.id,from:m.from,subj:m.subj,body:m.body,reward:m.reward,claimed:false,ts:Date.now()}); added=true; }
+  if(added && typeof saveNow==="function")saveNow();   // 새 우편 시드 즉시 저장 → 새로고침해도 '한 번만' 도착
+}
 function mailUnread(){ return (P&&Array.isArray(P.mail))?P.mail.filter(m=>!m.claimed).length:0; }
 function rewardText2(r){ if(!r)return ""; const parts=[];
   if(r.gold)parts.push(`💰${r.gold}`); if(r.gems)parts.push(`💎${r.gems}`); if(r.potions)parts.push(`🧪물약×${r.potions}`);
@@ -542,11 +546,11 @@ function mailboxMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } 
   if(readN>0)acts.push({label:`🗑 읽은 우편 지우기 (${readN})`,act:clearReadMail});
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 function clearReadMail(){ const before=(P.mail||[]).length; P.mail=(P.mail||[]).filter(m=>!m.claimed); const removed=before-P.mail.length;
-  if(removed>0){ toast(`읽은 우편 ${removed}개 삭제`); if(typeof sfx==="function")sfx("click"); save(true); } mailboxMenu(); }
+  if(removed>0){ toast(`읽은 우편 ${removed}개 삭제`); if(typeof sfx==="function")sfx("click"); if(typeof saveNow==="function")saveNow(); else save(true); } mailboxMenu(); }
 window.clearReadMail=clearReadMail;
 function claimMail(id){ const m=(P.mail||[]).find(x=>x.id===id); if(!m||m.claimed)return; grantReward(m.reward); m.claimed=true;
-  const rt=rewardText2(m.reward); line(`📬 <b>${m.subj}</b> 수령! ${rt?`획득: ${rt}`:''}`,"loot"); toast("우편 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); mailboxMenu(); }
-function claimAllMail(){ let any=false; for(const m of (P.mail||[])){ if(!m.claimed){ grantReward(m.reward); m.claimed=true; any=true; } } if(any){ line("📬 모든 우편을 수령했다!","loot"); toast("전체 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); } mailboxMenu(); }
+  const rt=rewardText2(m.reward); line(`📬 <b>${m.subj}</b> 수령! ${rt?`획득: ${rt}`:''}`,"loot"); toast("우편 수령"); if(typeof sfx==="function")sfx("loot"); render(); if(typeof saveNow==="function")saveNow(); else save(true); mailboxMenu(); }
+function claimAllMail(){ let any=false; for(const m of (P.mail||[])){ if(!m.claimed){ grantReward(m.reward); m.claimed=true; any=true; } } if(any){ line("📬 모든 우편을 수령했다!","loot"); toast("전체 수령"); if(typeof sfx==="function")sfx("loot"); render(); if(typeof saveNow==="function")saveNow(); else save(true); } mailboxMenu(); }
 window.claimMail=claimMail; window.claimAllMail=claimAllMail; window.mailboxMenu=mailboxMenu;
 /* 📦 통신판매 (캐쉬샵) — 💎다이아(크리스탈)로 결제 · 무료 웰컴 스타터팩 */
 const CASH_CHARM_GEMS=6, CASH_POTPACK_GEMS=4, CASH_MPPACK_GEMS=4, CASH_FEED_GEMS=3;

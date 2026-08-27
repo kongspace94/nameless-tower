@@ -26,7 +26,7 @@ async function netFetch(path, opts) {
   opts = opts || {};
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (NET.token) headers["Authorization"] = "Bearer " + NET.token;
-  const r = await fetch(NET.url + path, { method: opts.method || "GET", headers, cache: "no-store", body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const r = await fetch(NET.url + path, { method: opts.method || "GET", headers, cache: "no-store", keepalive: !!opts.keepalive, body: opts.body ? JSON.stringify(opts.body) : undefined });
   let data = null; try { data = await r.json(); } catch (e) {}
   if (!r.ok) throw new Error((data && data.error) || ("HTTP " + r.status));
   return data;
@@ -105,6 +105,12 @@ function netSavePush(P) {
   if (!NET.online) return;
   clearTimeout(NET.saveTimer);
   NET.saveTimer = setTimeout(() => { netFetch("/api/save", { method: "PUT", body: { data: P } }).catch(() => {}); }, 800);  // 디바운스
+}
+/* 즉시 저장(디바운스 무시) — 우편 수령·리로드·페이지 이탈 시 데이터 유실 방지. keepalive로 언로드 중에도 전송 */
+function netSaveFlush(P) {
+  if (!NET.online || !P) return;
+  clearTimeout(NET.saveTimer);
+  try { netFetch("/api/save", { method: "PUT", body: { data: P }, keepalive: true }).catch(() => {}); } catch (e) {}
 }
 
 /* 채팅 */
