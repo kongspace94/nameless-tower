@@ -359,6 +359,9 @@ function basicAttack(){ const w=WEAPONS[weaponType()]||WEAPONS.sword; const lbl=
       playerHit(q,mult,`🎲 주사위 (${d1}·${d2}·${d3}=${sum})${tag||(sum<=6?" 꽝…":"")}`,crit,{critBonus:w.crit,groggy:w.groggy});
       if(enemy&&enemy.hp>0)afterPlayerAction(); }); return; }   // 주사위 무기: 트리플=대박, 합이 높을수록↑ (평균은 완만)
   if(w.mg==="card"){ drawCards(); return; }                 // 카드 무기: 3장 뽑아 1장으로 공격/버프
+  if(w.mg==="saber"){ runSaber((q,pm)=>{ if(!enemy)return;   // 🌙 세이버: 강격 차지 (강격존=강격+큰 그로기, 과충전=빗나감)
+      playerHit(q, w.mult*pm, `🌙 ${w.n}${q==="perfect"?" 강격":""}`, false, {critBonus:(w.crit||0)+(q==="perfect"?0.12:0)});
+      if(enemy&&enemy.hp>0){ addGroggy(Math.round((w.groggy||18)*(q==="perfect"?2.2:1))); afterPlayerAction(); } }); return; }
   if(w.mg==="charge"){ runCharge(q=>{ playerHit(q,w.mult,weaponLabel(w,q),q==="perfect",{critBonus:w.crit,groggy:w.groggy}); if(enemy&&enemy.hp>0)afterPlayerAction(); }); return; } // 활: 활시위 당기기(가득=치명)
   if(w.mg==="aim"){ aimSeq(w,0); return; }                  // (예비) 접근원 조준
   if(w.hits>1){ weaponMultiHit(w,0,lbl); return; }
@@ -415,6 +418,23 @@ function aimSeq(w,i){ runAim(q=>{
     if(!enemy||enemy.hp<=0)return;
     if(i+1<w.hits){ aimSeq(w,i+1); return; }
     afterPlayerAction(); }); }
+/* 🌙 세이버 강격 차지 — 게이지가 차오름, 금색 강격존(72~92%)에서 릴리즈=강격, 너무 끌면(>92%) 과충전=빗나감(양날) */
+function runSaber(cb){ awaiting=null; setActions([]);
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb("perfect",1.55); return; }
+  const s=$("stage"); const box=document.createElement("div"); box.className="ecdown saber";
+  box.innerHTML=`<div class="et" style="color:#ffd98a">🌙 <b>강격 차지</b> — <b>금색 강격존</b>에서 [클릭/스페이스]! 너무 끌면 과충전(빗나감)</div>`
+    +`<div class="sbar"><div class="szone"></div><div class="sfill" id="sfill"></div></div>`;
+  s.appendChild(box); const fill=box.querySelector("#sfill");
+  let v=0, raf=null, done=false; const spd=1.7;
+  const finish=(q,pm)=>{ if(done)return; done=true; cancelAnimationFrame(raf); document.removeEventListener("keydown",key); box.remove();
+    if(q==="perfect"){ bigPop("강격!","#ffd98a"); fxShake(); fxHit(); } render(); cb(q,pm); };
+  const tap=()=>{ if(done)return; let q,pm;
+    if(v<40){ q="weak"; pm=0.8; } else if(v<72){ q="good"; pm=1.05; } else if(v<=92){ q="perfect"; pm=1.6; }
+    else { q="weak"; pm=0.6; line("🌀 과충전 — 참격이 빗나갔다!","dmg"); } finish(q,pm); };
+  const key=(e)=>{ if(e.code==="Space"||e.key===" "){ e.preventDefault(); tap(); } };
+  document.addEventListener("keydown",key); box.onclick=tap; setActions([{label:"🌙 강격!",full:true,act:tap}]);
+  const step=()=>{ if(done)return; v+=spd; if(v>=100){ v=100; tap(); return; } if(fill)fill.style.width=v+"%"; raf=requestAnimationFrame(step); };
+  raf=requestAnimationFrame(step); }
 /* 활시위 당기기 (활): 시위를 당길수록 게이지가 차오름 → 가득 당긴 파워존에서 발사 · 과도하게 당기면 놓침 */
 function runCharge(cb){ awaiting=null;
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb("good"); return; }
@@ -626,14 +646,14 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
   else if(k==="power_shot") startGauge("attack",q=>{ playerHit(q,1.4*m,"🎯 급소 찌르기",true); if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="double_slash") startGauge("attack",q=>{ playerHit(q,1.05*m,"⚔️ 연속 1타"); if(enemy&&enemy.hp>0){ playerHit(q,1.05*m,"⚔️ 연속 2타"); } if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="execute") startGauge("attack",q=>{ const low=enemy.hp/enemy.hpMax<0.3; playerHit(q,(low?4.5:1.5)*m,low?"☠️ 처형!":"☠️ 처형"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
-  else if(k==="fireball"){ castSpell(k,ratio=>{ if(!enemy)return;
+  else if(k==="fireball"){ castSpell(k,(ratio,power)=>{ if(!enemy)return;
       if(ratio<0.3){ line("🌫 영창 실패! 파이어볼이 흩어졌다. (기력 소모)","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
-      const eff=Math.min(1.15,ratio); line(ratio>=1.15?"🔥 <b>완벽한 영창!</b> 파이어볼이 폭발한다!":"🔥 파이어볼을 시전한다!","loot");
-      const dmg=Math.max(1,Math.round((magicPow()*2*m+rnd(6))*eff)-Math.floor(enemy.def/2)); const killed=hitEnemy(dmg,"🔥 파이어볼","#ff8a3a","fire"); fxShake();
+      line(power>=1.5?"🔥 <b>긴 영창이 완성됐다 — 대폭발!</b>":"🔥 파이어볼을 시전한다!","loot");
+      const dmg=Math.max(1,Math.round((magicPow()*2*m+rnd(6))*power)-Math.floor(enemy.def/2)); const killed=hitEnemy(dmg,"🔥 파이어볼","#ff8a3a","fire"); fxShake();
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
-  else if(k==="heal_spell"){ castSpell(k,ratio=>{
+  else if(k==="heal_spell"){ castSpell(k,(ratio,power)=>{
       if(ratio<0.3){ line("🌫 영창 실패! 회복술이 흩어졌다. (기력 소모)","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
-      const eff=Math.min(1.15,ratio); line(ratio>=1.15?"✨ <b>완벽한 영창!</b> 회복술이 빛난다.":"✨ 회복술을 시전한다.","heal"); heal(Math.round((magicPow()*2.2*m+8)*eff)); afterPlayerAction(); }); }
+      line(power>=1.5?"✨ <b>긴 영창이 완성됐다 — 충만한 치유!</b>":"✨ 회복술을 시전한다.","heal"); heal(Math.round((magicPow()*2.2*m+8)*power)); afterPlayerAction(); }); }
   else if(k==="war_cry"){ B.atkPct=(B.atkPct||0)+0.35; line("🗣️ <b>전투 함성!</b> 이번 전투 공격력이 크게 올랐다. (+35%)","loot"); fxShake(); render(); afterPlayerAction(); }
   else if(k==="iron_will"){ B.defB=(B.defB||0)+6; line("🛡️ <b>강철 의지</b> — 이번 전투 방어가 단단해졌다. (방어 +6)","heal"); render(); afterPlayerAction(); }
   else if(k==="barrier"){ B.defB=(B.defB||0)+8; line("🔮 <b>마력 방벽</b>이 몸을 감쌌다. (방어 +8)","heal"); render(); afterPlayerAction(); }
@@ -667,9 +687,10 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
       const dmg=Math.max(1,Math.round((magicPow()*2.4*m+rnd(6))*ratio)); const killed=hitEnemy(dmg,"🌀 룬 파열","#c9a9ff"); fxShake();
       if(ratio>=1)bigPop("PERFECT!","#c9a9ff");
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
-  else if(k==="drain"){ castSpell(k,ratio=>{ if(!enemy)return;
+  else if(k==="drain"){ castSpell(k,(ratio,power)=>{ if(!enemy)return;
       if(ratio<0.3){ line("🌫 영창 실패! 흡수가 흩어졌다.","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
-      const eff=Math.min(1.15,ratio); const dmg=Math.max(1,Math.round((magicPow()*1.7*m+rnd(5))*eff)-Math.floor(enemy.def/2)); const hp0=enemy.hp;
+      if(power>=1.5)line("🧛 <b>긴 영창 — 생명을 대량으로 빨아들인다!</b>","loot");
+      const dmg=Math.max(1,Math.round((magicPow()*1.7*m+rnd(5))*power)-Math.floor(enemy.def/2)); const hp0=enemy.hp;
       const killed=hitEnemy(dmg,"🧛 생명 흡수","#c96ad6"); const dealt=Math.min(dmg,hp0); heal(Math.round(dealt*0.5)); fxShake();
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
 }
@@ -683,16 +704,25 @@ function chantRatio(typed,phrase,reqLen){ const a=(typed||"").replace(/\s/g,""),
   let match=0; for(let i=0;i<Math.min(a.length,need.length);i++){ if(a[i]===need[i])match++; else break; }
   return match>=need.length?1.15:match/need.length; }
 function chantHighlight(phrase,reqLen){ let cnt=0,out=""; for(const ch of phrase){ const sp=/\s/.test(ch); if(!sp&&cnt<reqLen){ out+=`<span class="creq">${ch}</span>`; cnt++; } else out+=ch; } return out; }
-function castSpell(k,cb){ awaiting=null; setActions([]); const phrase=spellChant(k); const reqLen=chantReqLen(k); const lv=(typeof skillProf==="function"?skillProf(k).lv:1)||1;
-  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb(1.15); return; }
-  const timeMs = 2200 + reqLen*170;
+/* 🗡 영창 평가 — ratio(통과판정: 앞 reqLen자) + power(데미지배율: 정확히 친 글자수↑ = 강함, 양날의 검) */
+const CHANT_LEN_PER=0.045, CHANT_LEN_CAP=0.85;   // 글자당 +4.5%, 최대 +85%
+function chantEval(typed,phrase,reqLen){ const a=(typed||"").replace(/\s/g,""), b=(phrase||"").replace(/\s/g,"");
+  if(!b)return {ratio:1.15,power:1.15,correct:0,full:0};
+  let correct=0; for(let i=0;i<Math.min(a.length,b.length);i++){ if(a[i]===b[i])correct++; else break; }
+  const need=(reqLen&&reqLen<b.length)?reqLen:b.length;
+  const ratio=a.length?(correct>=need?1.15:correct/need):0;         // 앞 need자 맞추면 발동
+  const power=1+Math.min(CHANT_LEN_CAP, correct*CHANT_LEN_PER);      // 길게 칠수록 데미지↑
+  return {ratio,power,correct,full:b.length}; }
+function castSpell(k,cb){ awaiting=null; setActions([]); const phrase=spellChant(k); const reqLen=chantReqLen(k); const lv=(typeof skillProf==="function"?skillProf(k).lv:1)||1; const fullLen=phrase.replace(/\s/g,"").length;
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb(1.15, 1+Math.min(CHANT_LEN_CAP, fullLen*CHANT_LEN_PER)); return; }
+  const timeMs = 2000 + fullLen*160;   // 전체 길이 기준 — 길게 치려면 그만큼 시간
   const s=$("stage"); const box=document.createElement("div"); box.className="ecdown spell";
-  box.innerHTML=`<div class="et" style="color:#c9a9ff">✨ 주문 영창! <b>강조된 앞 ${reqLen}자</b>부터 전체까지 아무 데서 멈춰도 발동 · [Enter]${lv>1?` <span style="color:var(--dim)">(숙련 Lv.${lv})</span>`:""}</div>`+
+  box.innerHTML=`<div class="et" style="color:#c9a9ff">✨ 주문 영창! <b>앞 ${reqLen}자</b>만 쳐도 발동 · <b style="color:#ffd98a">길게 칠수록 강함!</b> · [Enter]${lv>1?` <span style="color:var(--dim)">(숙련 Lv.${lv})</span>`:""}</div>`+
     `<div class="chant">${chantHighlight(phrase,reqLen)}</div><input class="chantin" id="chantin" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="여기에 입력…"><div class="ecbar"><i></i></div>`;
   s.appendChild(box); const bar=box.querySelector(".ecbar>i"); const inp=box.querySelector("#chantin");
   let closed=false,iv=null;
-  const finish=(ratio)=>{ if(closed)return; closed=true; if(iv)clearInterval(iv); box.remove(); cb(ratio); };
-  const evalNow=()=>finish(chantRatio(inp?inp.value:"",phrase,reqLen));
+  const finish=(r)=>{ if(closed)return; closed=true; if(iv)clearInterval(iv); box.remove(); cb(r.ratio, r.power, r.correct); };
+  const evalNow=()=>finish(chantEval(inp?inp.value:"",phrase,reqLen));
   if(inp){ inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); evalNow(); } }); setTimeout(()=>{ try{ inp.focus(); }catch(e){} },30); }
   let t=timeMs; const total=t; iv=setInterval(()=>{ t-=50; if(bar)bar.style.width=Math.max(0,t/total*100)+"%"; if(t<=0)evalNow(); },50); }
 function playerHit(quality,mult,label,forceCrit,opts){ opts=opts||{}; const qm=quality==="perfect"?1.7:quality==="good"?1.0:0.55;

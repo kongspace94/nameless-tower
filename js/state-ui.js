@@ -318,7 +318,8 @@ function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=
   if(n&&typeof uiCascade==="function")uiCascade(n); }   // 🎵 메뉴 등장 상승음
 document.addEventListener("keydown",e=>{ if(!awaiting)return;
   const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName||""))return;   // 입력칸 타이핑 중엔 메뉴 숫자키 무시(비번/이름/채팅 입력 보호)
-  if(e.code==="Space")return; const n=parseInt(e.key,10);
+  if(e.code==="Space"){ if(ae&&ae.tagName==="BUTTON"&&ae.blur)ae.blur(); e.preventDefault(); return; }   // Space는 QTE 전용 — 포커스된 버튼으로 새거나 스크롤되는 것 방지(가끔 안 눌리는 문제)
+  const n=parseInt(e.key,10);
   if(Date.now()-_actTime<ACT_GUARD_MS)return;   // 방금 뜬 메뉴는 잠깐 무시(연타 방지·읽을 틈)
   const acts=awaiting.filter(a=>!a.header);   // 번호는 헤더 제외하고 매김
   if(n>=1&&n<=acts.length){ const a=acts[n-1]; if(a&&!a.disabled)a.act(); } });
