@@ -2,7 +2,7 @@
 /* ---------- 상태 ---------- */
 let P, mode="town", enemy=null, B=null, awaiting=null, auction=null, auctionTimer=null;
 function freshPlayer(){ return {
-  name:"방랑자", avatar:null, gems:5, gold:30, potions:3, companion:"light", karma:0, kills:0,
+  name:"방랑자", avatar:null, gems:5, gold:30, potions:3, companion:"light", comps:{light:{bond:0,lv:1,awk:0}}, karma:0, kills:0,
   stats:{str:5,int:5,dex:5,vit:5,luk:3}, train:{str:0,int:0,dex:0,vit:0,luk:0}, lifeStat:{str:0,int:0,dex:0,vit:0,luk:0},
   life:{logging:{lv:1,xp:0},mining:{lv:1,xp:0},herbing:{lv:1,xp:0},fishing:{lv:1,xp:0},arcana:{lv:1,xp:0}},
   mats:{}, skills:[], skillProf:{}, skillSlots:SLOT_BASE, loadout:[], passives:[], inv:[], uidc:0, equip:{weapon:null,offhand:null,armor:null,ring:null,amulet:null,boots:null}, consumables:{}, buffs:{}, questItems:[],
@@ -43,6 +43,9 @@ function normalizeP(){ if(!P)return;
   if(!P.bestiary||typeof P.bestiary!=="object")P.bestiary={};   // 📖 몬스터 도감
   if(P.gems==null)P.gems=5; if(P.avatar===undefined)P.avatar=null;   // 🎭 프로필: 크리스탈 · 아바타
   if(!Array.isArray(P.tamed))P.tamed=[];   // 계약(테이밍)한 소환수 로스터
+  if(!P.comps||typeof P.comps!=="object")P.comps={};   // 🐾 동료 성장(유대/각성) 기록
+  if(P.companion&&!P.comps[P.companion])P.comps[P.companion]={bond:0,lv:1,awk:0};
+  for(const k in P.comps){ const r=P.comps[k]; if(r.lv==null)r.lv=1; if(r.bond==null)r.bond=0; if(r.awk==null)r.awk=compTier(r.lv); }
   if(!P.meta||typeof P.meta!=="object")P.meta={echoes:0,spent:{},runs:0,bestFloor:0,bestCont:0};   // 🌌 회귀 메타
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
@@ -186,7 +189,8 @@ function setSceneFoe(){ if(!enemy)return;
     `<div class="hprow"><span class="tag">기력</span><div class="hpbar2 mp"><i id="meMpBar" style="width:${clamp(P.mp/mmp*100,0,100)}%"></i></div><span class="hpnum" id="meMpNum">${P.mp}/${mmp}</span></div>`+
     `<div class="hprow"><span class="tag">기세</span><div class="hpbar2 mom${(B&&(B.momentum||0)>=MOM_MAX)?' full':''}"><i id="meMomBar" style="width:${clamp((B&&B.momentum||0)/MOM_MAX*100,0,100)}%"></i></div><span class="hpnum" id="meMomNum">${(B&&(B.momentum||0)>=MOM_MAX)?'🌟':Math.floor((B&&B.momentum)||0)}</span></div></div></div>`;
   let compHtml=""; if(B&&B.comp){ const c=B.comp; const pips=Array.from({length:c.max},(_,i)=>`<span class="pip ${i<c.energy?'on':''}"></span>`).join("");
-    compHtml=`<div class="comp">${ico(c.ic,30)}<div class="cn">${c.n}</div><div class="pips">${pips}</div></div>`; }
+    const cpor=(c.tier>0)?`<span class="compemo">${c.emoji}</span>`:ico(c.ic,30);
+    compHtml=`<div class="comp">${cpor}<div class="cn">${c.n} <span class="clv">Lv${c.lv||1}</span></div><div class="pips">${pips}</div></div>`; }
   let sumHtml=""; if(B&&B.summon){ const S=B.summon; const tr=(S.trait&&typeof SUMMON_TRAITS!=="undefined"&&SUMMON_TRAITS[S.trait])?SUMMON_TRAITS[S.trait]:null;
     sumHtml=`<div class="summ${S.guard?' guarding':''}"><span class="se">${S.emoji}</span><div><div class="sn">${S.n}${tr?` ${tr.ic}`:""}</div>`+
       `<div class="smeta">⚔${S.dmg} · ${S.turns}턴${S.guard?" · 🛡방어":""}</div></div></div>`; }
@@ -231,7 +235,7 @@ function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); i
   $("stats5").innerHTML = `<span title="힘→공격">💪 힘 <b>${P.stats.str}</b>${sb("str")}</span><span title="지능→마법/기력">🔮 지능 <b>${P.stats.int}</b>${sb("int")}</span>`+
     `<span title="민첩→치명">🏹 민첩 <b>${P.stats.dex}</b>${sb("dex")}</span><span title="체력→HP">❤ 체력 <b>${P.stats.vit}</b>${sb("vit")}</span><span title="행운">🍀 행운 <b>${P.stats.luk}</b>${sb("luk")}</span>`;
   $("sgold").textContent=P.gold; { const sg=$("sgems"); if(sg)sg.textContent=P.gems||0; } $("spot").textContent=P.potions;
-  $("scomp").textContent = P.companion&&COMPANIONS[P.companion]?COMPANIONS[P.companion].emoji:"—";
+  { const sc=$("scomp"); if(sc){ if(P.companion&&COMPANIONS[P.companion]){ const r=compRec(P.companion); const d=compDisp(P.companion,r.lv); sc.textContent=`${d.emoji} Lv${r.lv||1}`; } else sc.textContent="—"; } }
   $("skarma").textContent = P.karma>2?"선 😇":P.karma<-2?"악 😈":"중립";
   $("stamTxt").textContent=`${Math.floor(P.stamina)}/${STAM_MAX}`; $("stamBar").style.width=clamp(P.stamina/STAM_MAX*100,0,100)+"%";
   $("sinv").innerHTML = SLOTS.map(([s,e,nm])=>{ const it=equippedItem(s);

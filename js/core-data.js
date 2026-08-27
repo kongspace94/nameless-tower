@@ -114,11 +114,21 @@ const SKILLS={
 
 /* ---------- 동료 / 유물 ---------- */
 const COMPANIONS={
-  light:{n:"빛의 요정",emoji:"🧚",role:"heal",ic:"fairy_light",note:"매 턴 회복 · 특수: 대회복+정화"},
-  imp:{n:"불꽃 임프",emoji:"🔥",role:"dps",ic:"fairy_imp",note:"매 턴 추가 화염 · 특수: 대폭발"},
-  steel:{n:"강철 정령",emoji:"🛡️",role:"tank",ic:"fairy_steel",note:"받는 피해 -20% · 특수: 방패+반사"},
+  light:{n:"빛의 요정",emoji:"🧚",role:"heal",ic:"fairy_light",note:"매 턴 회복 · 각성할수록 강한 치유",
+    evo:[{n:"빛의 요정",emoji:"🧚"},{n:"빛의 세라핌",emoji:"👼"},{n:"여명의 대천사",emoji:"😇"}]},
+  imp:{n:"불꽃 임프",emoji:"🔥",role:"dps",ic:"fairy_imp",note:"매 턴 화염 지원 · 각성할수록 강한 딜",
+    evo:[{n:"불꽃 임프",emoji:"🔥"},{n:"업화 데몬",emoji:"👺"},{n:"멸화의 이프리트",emoji:"🌋"}]},
+  steel:{n:"강철 정령",emoji:"🛡️",role:"tank",ic:"fairy_steel",note:"받는 피해↓ · 각성할수록 단단해짐",
+    evo:[{n:"강철 정령",emoji:"🛡️"},{n:"수호 골렘",emoji:"🗿"},{n:"불멸의 아이기스",emoji:"⚔️"}]},
 };
-function buildComp(key){ const d=COMPANIONS[key]; if(!d)return null; return {key,ic:d.ic,n:d.n,emoji:d.emoji,role:d.role,energy:0,max:3}; }
+/* 🐾 동료 성장(유대/각성) — 동료별로 기록(P.comps[key]={bond,lv,awk}) */
+const COMP_LV_CAP=30, AWAKEN_LV=[12,24];   // 각성 티어 경계(0/1/2)
+function compBondNeed(lv){ return 18+(lv-1)*11; }          // lv→lv+1 필요 유대치
+function compTier(lv){ return lv>=AWAKEN_LV[1]?2 : lv>=AWAKEN_LV[0]?1 : 0; }
+function compRec(key){ key=key||(P&&P.companion); if(!P)return{bond:0,lv:1,awk:0}; if(!P.comps)P.comps={}; return P.comps[key]||(P.comps[key]={bond:0,lv:1,awk:0}); }
+function compDisp(key,lv){ const d=COMPANIONS[key]; if(!d)return{n:"동료",emoji:"❓",ic:null}; const t=compTier(lv||1); const e=(d.evo&&d.evo[t])?d.evo[t]:{n:d.n,emoji:d.emoji}; return {n:e.n,emoji:e.emoji,ic:d.ic,tier:t}; }
+function buildComp(key){ const d=COMPANIONS[key]; if(!d)return null; const rec=compRec(key); const lv=rec.lv||1; const tier=compTier(lv); const disp=compDisp(key,lv);
+  return {key,ic:d.ic,n:disp.n,emoji:disp.emoji,role:d.role,lv,tier,energy:0,max:tier>=2?2:3}; }
 /* 장비: slot = weapon | armor | accessory (착용해야 효과) */
 const RELICS={
   "녹슨 단검":{slot:"weapon",wt:"dagger",atk:2,note:"공격 +2",ic:"dagger",val:40,shop:"weapon"}, "낡은 단궁":{slot:"weapon",wt:"bow",atk:3,note:"공격 +3 · 원거리",ic:"bow",val:55,shop:"weapon"},

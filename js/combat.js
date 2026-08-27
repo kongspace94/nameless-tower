@@ -742,22 +742,31 @@ function afterPlayerAction(){ if(!enemy)return;
   if(quickProcCheck()){ B.quickProcs=(B.quickProcs||0)+1; line("⚡ <b>속공 발동!</b> 빈틈을 파고들어 한 번 더 행동한다!","loot"); bigPop("SPEED!","#8fd0ff"); fxShake(); render(); playerPhase(); return; }
   companionPhase(()=>{ if(enemy&&P.hp>0)enemyPhase(); }); }
 
-function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; c.energy=Math.min(c.max,c.energy+1);
+function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; const lv=c.lv||1, tier=c.tier||0; c.energy=Math.min(c.max,c.energy+1);
   if(c.energy>=c.max){ c.energy=0; compSpecial(c,next); return; }
-  if(c.role==="heal"){ if(P.hp<MAXHP()){ line(`${c.emoji} ${c.n}의 치유 빛.`,"sys"); heal(Math.max(2,Math.round(MAXHP()*0.05))); } }
-  else if(c.role==="dps"){ line(`${c.emoji} ${c.n}의 지원 공격!`,"sys"); if(hitEnemy(4+rnd(4)+Math.floor(P.stats.str/3),`${c.emoji} 불꽃`,"#ffb060"))return; }
+  if(c.role==="heal"){ if(P.hp<MAXHP()){ line(`${c.emoji} ${c.n}의 치유 빛.`,"sys"); heal(Math.max(2,Math.round(MAXHP()*(0.04+lv*0.005+tier*0.02)))); } }
+  else if(c.role==="dps"){ line(`${c.emoji} ${c.n}의 지원 공격!`,"sys"); if(hitEnemy(Math.round(ATK()*(0.12+lv*0.015+tier*0.06))+rnd(4),`${c.emoji} 화염`,"#ffb060"))return; }
   render(); updateFoeBar(); next(); }
-function compSpecial(c,next){ line(`✦ <b>${c.n}</b>의 특수 지원!`,"heal");
-  if(c.role==="heal"){ heal(Math.round(MAXHP()*0.4)); if(B.poison>0){ B.poison=0; line("독이 정화됐다.","heal"); } }
-  else if(c.role==="dps"){ if(hitEnemy(Math.round(ATK()*1.8)+rnd(6),`${c.emoji} 대화염 폭발`,"#ff8a3a"))return; }
-  else if(c.role==="tank"){ B.shield=true; line("강철 방패 전개 — 다음 적 공격을 막고 반사한다.","heal"); }
+function compSpecial(c,next){ const lv=c.lv||1, tier=c.tier||0; line(`✦ <b>${c.n}</b>의 특수 지원!`,"heal");
+  if(c.role==="heal"){ heal(Math.round(MAXHP()*(0.35+lv*0.01+tier*0.06))); if(B.poison>0){ B.poison=0; line("독이 정화됐다.","heal"); }
+    if(tier>=2){ B.shield=true; line("여명의 가호 — 다음 적 공격을 막는다.","heal"); } }
+  else if(c.role==="dps"){ if(hitEnemy(Math.round(ATK()*(1.5+lv*0.03+tier*0.4))+rnd(6),`${c.emoji} 대화염 폭발`,"#ff8a3a"))return; }
+  else if(c.role==="tank"){ B.shield=true; line(`${c.n} 방패 전개 — 다음 적 공격을 막고 반사한다.`,"heal");
+    if(tier>=1&&P.hp<MAXHP()){ heal(Math.round(MAXHP()*(0.08+tier*0.05))); } }
   render(); if(enemy&&enemy.hp>0)next(); }
+/* 🐾 유대 획득 → 레벨업 → 각성(진화) */
+function gainCompBond(n){ if(!P||!P.companion||n<=0)return; const rec=compRec(P.companion); if((rec.lv||1)>=COMP_LV_CAP)return;
+  rec.bond=(rec.bond||0)+n; let leveled=false, awoke=false;
+  while((rec.lv||1)<COMP_LV_CAP && rec.bond>=compBondNeed(rec.lv||1)){ const before=compTier(rec.lv); rec.bond-=compBondNeed(rec.lv); rec.lv=(rec.lv||1)+1; leveled=true; if(compTier(rec.lv)>before)awoke=true; }
+  if(awoke){ const d=compDisp(P.companion,rec.lv); rec.awk=compTier(rec.lv);
+    line(`🌟 <b>각성!</b> 동료가 <b>${d.emoji} ${d.n}</b>(으)로 진화했다!`,"loot"); if(typeof toast==="function")toast("동료 각성: "+d.n); if(typeof spawnFloat==="function")spawnFloat("🌟각성!","#ffd36a","me"); if(B&&B.comp&&B.comp.key===P.companion){ const nc=buildComp(P.companion); if(nc){ nc.energy=B.comp.energy; B.comp=nc; } } }
+  else if(leveled){ const d=compDisp(P.companion,rec.lv); line(`✦ ${d.emoji} ${d.n} 유대 Lv.${rec.lv}`,"sys"); if(B&&B.comp&&B.comp.key===P.companion)B.comp.lv=rec.lv; } }
 
 function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(enemy.ail&&enemy.ail.frost&&enemy.ail.frost.t>0)?0.75:1;   // ❄️ 냉기: 적 공격 약화
   let raw=enemy.atk*mult*aw*fr+rnd(4)-1; let dmg=Math.max(1,Math.round(raw)-DEF());   // 약화: 적 공격력↓
   const gp=hasSkill("guard_up");
   if(B.block==="perfect")dmg=Math.round(dmg*(gp?0:0.05)); else if(B.block==="good")dmg=Math.round(dmg*(gp?0.35:0.5)); else if(B.block==="weak")dmg=Math.round(dmg*0.85);
-  if(B.comp&&B.comp.role==="tank")dmg=Math.round(dmg*0.8); return Math.max(0,dmg); }
+  if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.42,0.18+(B.comp.lv||1)*0.004+(B.comp.tier||0)*0.04); dmg=Math.round(dmg*(1-red)); } return Math.max(0,dmg); }
 function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
 function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
 function chargeNeed(){ return Math.max(24, Math.round(ATK()*2.3)); }   // 3턴 안에 화력을 퍼부으면 저지 가능한 수준
@@ -947,6 +956,7 @@ function winCombat(){ P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=ene
   else { if(chance(0.025))dropManaOrb();   // 물약은 몬스터가 떨구지 않음 — 상자에서만
     if(chance(0.02))dropBook(); else if(chance(clamp((0.012+LUKv()*0.0006)*(1+metaEff().drop),0,0.035)))dropRelic(); else if(chance(0.5)){ const gb=5+rnd(12); P.gold+=gb; line(`💰 금화 +${gb}`,"loot"); } }   // 리니지급 제네릭 드랍(캡 3.5%) · 좋은 장비는 시그니처 파밍으로
   dropSignature(enemy, wasBoss);   // ✨ 몬스터 고유(시그니처) 드랍 + 몬스터 도감 처치 기록
+  if(P.companion&&typeof gainCompBond==="function")gainCompBond(wasBoss?Math.round(15+floor*0.8):Math.round(3+floor*0.25));   // 🐾 동료 유대 획득(전투)
   checkTitleUnlocks(); checkQuests();
   enemy=null; B=null; save(true);
   if(expReturn){ const r=expReturn; expReturn=null; render(); setScene("🏆","전투에서 승리했다!"); setTimeout(r,180); return; }   // 개척 중이면 개척 흐름으로 복귀

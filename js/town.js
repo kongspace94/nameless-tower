@@ -26,6 +26,7 @@ function townMenu(){ mode="town"; enemy=null; B=null; stopAuctionTimer(); stopCh
     {header:true,label:"🏘  거점 마을"},
     {label:"🌲 생활 터전",desc:"채집 · 스탯 단련",act:lifeMenu},
     {label:"📖 수련관",desc:"스킬 습득",act:skillMenu},
+    (P.companion&&COMPANIONS[P.companion]) ? (()=>{ const r=compRec(P.companion),d=compDisp(P.companion,r.lv); return {label:`🐾 동료 (${d.emoji} ${d.n})`,desc:`유대 Lv.${r.lv||1}${compTier(r.lv)>0?" ✦각성":""} · 먹이 주고 각성시키기`,act:companionMenu}; })() : {label:"🐾 동료",desc:"함께하는 동료가 없다",disabled:true,act:()=>{}},
     {label:"⚒️ 대장간",desc:"장비 강화 (+1, +2…)",act:blacksmithMenu},
     {label:"🔨 제작소",desc:"재료로 세트 장비·내성 제작",act:workshopMenu},
     {label:"🛒 잡화점",desc:"물약·재료·비약·마나 오브",act:generalStore},
@@ -141,6 +142,34 @@ function stopTownPresence(){ clearInterval(townPresenceTimer); townPresenceTimer
   if(typeof NET!=="undefined"){ NET.onTownPos=null; NET.onTownLeave=null; }
   for(const id in townOthers)removeOther(id); townOthers={};
   if(P&&P._online&&typeof netTownLeave==="function")netTownLeave(); }
+/* 🐾 동료 — 유대(먹이/전투)로 성장·각성. 효과가 레벨·각성 비례로 강해진다 */
+const COMP_FEED={ mana:14 };   // 재료 1개당 유대치(기본 6, 마나결정 등 희귀 재료는 ↑)
+function compFeedBond(mk){ return COMP_FEED[mk]||6; }
+function compEffectText(key,lv,tier){ const role=COMPANIONS[key].role;
+  if(role==="heal")return `매 턴 회복 <b>${Math.round((0.04+lv*0.005+tier*0.02)*100)}%</b> · 특수 대회복 <b>${Math.round((0.35+lv*0.01+tier*0.06)*100)}%</b>${tier>=2?" + 보호막":""}`;
+  if(role==="dps")return `매 턴 딜 <b>공격의 ${Math.round((0.12+lv*0.015+tier*0.06)*100)}%</b> · 특수 대폭발 <b>${Math.round((1.5+lv*0.03+tier*0.4)*100)}%</b>`;
+  return `받는 피해 <b>-${Math.round(Math.min(0.42,0.18+lv*0.004+tier*0.04)*100)}%</b> · 특수 방패+반사${tier>=1?" + 회복":""}`; }
+function companionMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; stopAuctionTimer(); auction=null; townReturn=companionMenu;
+  render(); clearLog(); setScene("🐾","동료 — 유대를 쌓아 각성시킨다.");
+  const key=P.companion; if(!key||!COMPANIONS[key]){ line("함께하는 동료가 없다.","sys"); setActions([{label:"🏘 마을로",full:true,act:townMenu}]); return; }
+  const rec=compRec(key), lv=rec.lv||1, tier=compTier(lv), d=compDisp(key,lv);
+  const maxed=lv>=COMP_LV_CAP, need=compBondNeed(lv), prog=maxed?1:clamp((rec.bond||0)/need,0,1);
+  const nextAwk=AWAKEN_LV.find(a=>a>lv);
+  line(`${tier>0?d.emoji:ico(d.ic,26)} <b>${d.n}</b> · 유대 <b>Lv.${lv}</b>${tier>0?` <span style="color:var(--gold)">✦각성 ${tier}</span>`:""}`,"sys");
+  line(`<div style="margin:4px 0 2px">${compEffectText(key,lv,tier)}</div>`,"sys");
+  line(`<div class="cbondbar"><i style="width:${Math.round(prog*100)}%"></i></div><div style="font-size:11.5px;color:var(--dim)">${maxed?"최대 성장 완료":`유대 ${Math.floor(rec.bond||0)}/${need} → 다음 레벨`}${nextAwk?` · 다음 각성 Lv.${nextAwk}`:tier>=2?"":" · 각성 완료"}</div>`,"quote");
+  line("먹이(재료)를 주면 유대가 오른다. 전투 승리로도 쌓인다.","quote");
+  const acts=[{header:true,label:"🍖  먹이 주기 (재료 → 유대)"}];
+  const owned=Object.entries(MATS).filter(([mk])=>(P.mats[mk]||0)>0);
+  if(maxed)acts.push({label:"이미 최대 성장",disabled:true,act:()=>{}});
+  else if(!owned.length)acts.push({label:"줄 재료가 없다",desc:"채집·전투로 재료를 모으자",disabled:true,act:()=>{}});
+  else owned.forEach(([mk,[e,nm]])=>{ const have=P.mats[mk]||0, per=compFeedBond(mk), batch=Math.min(have,5);
+    acts.push({label:`${e} ${nm} 먹이기 (보유 ${have})`,desc:`${batch}개 → 유대 +${batch*per}`,act:()=>feedCompanion(mk,batch)}); });
+  acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+function feedCompanion(mk,n){ n=Math.min(n,P.mats[mk]||0); if(n<=0){ toast("재료 부족"); return; }
+  P.mats[mk]-=n; const gain=n*compFeedBond(mk); const d0=compDisp(P.companion,compRec(P.companion).lv);
+  line(`🍖 ${MATS[mk][0]} ${MATS[mk][1]} ${n}개를 주었다. 유대 +${gain}`,"loot");
+  gainCompBond(gain); if(typeof sfx==="function")sfx("heal"); render(); save(true); companionMenu(); }
 /* ⛺ 부족 거점 — 일꾼이 시간 기반으로 자원 자동 생산 */
 function farmMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
   if(!P.farm.unlocked){ P.farm.unlocked=true; P.farm.lastTs=Date.now();
