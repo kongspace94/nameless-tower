@@ -40,7 +40,8 @@ function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuc
     {label:"🛒 잡화점",desc:"물약·재료·비약·마나 오브",act:generalStore},
     {label:"🛡 장비 상점",desc:"무기·방어구 구매",act:gearShop},
     {label:"🏦 창고 (은행)",desc:`가방↔창고 보관 · 창고 ${stashCount()}칸`,act:warehouseMenu},
-    {label:"📦 통신판매 (캐쉬샵)",desc:P.flags.welcomeClaimed?"특별 상품 (준비 중)":"🎁 웰컴 스타터팩 무료!",act:cashShop},
+    {label:"📦 통신판매 (캐쉬샵)",desc:P.flags.welcomeClaimed?"💎다이아 상점 · 강화의 축복·물약 꾸러미":"🎁 웰컴 스타터팩 무료!",act:cashShop},
+    {label:`📬 우편함${(typeof mailUnread==="function"&&mailUnread()>0)?` (${mailUnread()} NEW)`:""}`,desc:"운영자·이벤트 보상 수령",act:mailboxMenu},
     {label:"🏛 길드하우스",desc:`의뢰 수락 · 진행 ${Object.keys(P.quests).filter(id=>P.quests[id].status==="active").length} · 완료 ${Object.keys(P.quests).filter(id=>P.quests[id].status==="done").length}`,act:guildHouse},
     {label:"🏛 경매장",desc:"재료·유물 거래",act:openAuction},
     contUnlocked
@@ -493,19 +494,64 @@ function generalStore(){ if(enemy)return; stopAuctionTimer(); auction=null; mode
   setScene("🛒","잡화점 — 상점주 미나가 반긴다.");
   line('미나: <span class="quote">"어서 와요! 물약이든 재료든, 사고파는 건 여기서."</span>');
   setActions([{label:"🛒 구매",desc:"물약·재료·비약·마나 오브",act:storeBuy},{label:"💰 판매 (즉시)",desc:"장비·재료를 바로 현금화",act:storeSell},{label:"🏘 마을로",full:true,act:townMenu}]); }
-/* 📦 통신판매 (캐쉬샵) — 무료 웰컴 스타터팩 + 추후 캐쉬 아이템 */
+/* 📬 우편함 — 운영자·이벤트 보상함. 시드 우편을 지급함에 넣고, 수령하면 보상 지급 (운영자가 새 시드 추가 가능) */
+const MAIL_SEED=[
+  {id:"welcome_2026", from:"운영자", subj:"🎉 이름 없는 탑에 오신 걸 환영합니다", body:"모험을 시작한 당신께 작은 선물을 보냅니다. 탑 꼭대기에서 만나요!", reward:{gems:5,gold:300,potions:3}},
+  {id:"update_inv_2026", from:"운영자", subj:"🧳 인벤·개척 개편 & 기력 물약 추가 안내", body:"장비를 무기/방어구/악세로 정리하고 개척지 난이도를 상향했어요. 기력(MP) 물약도 새로 추가! 개편 기념 보상을 드립니다.", reward:{gold:800,gems:3,cons:{mp_60:3,enhance_charm:1}}},
+];
+function seedMail(){ if(!P)return; if(!Array.isArray(P.mail))P.mail=[]; if(!P.mailInit)P.mailInit={};
+  for(const m of MAIL_SEED){ if(P.mailInit[m.id])continue; P.mailInit[m.id]=true; P.mail.push({id:m.id,from:m.from,subj:m.subj,body:m.body,reward:m.reward,claimed:false,ts:Date.now()}); } }
+function mailUnread(){ return (P&&Array.isArray(P.mail))?P.mail.filter(m=>!m.claimed).length:0; }
+function rewardText2(r){ if(!r)return ""; const parts=[];
+  if(r.gold)parts.push(`💰${r.gold}`); if(r.gems)parts.push(`💎${r.gems}`); if(r.potions)parts.push(`🧪물약×${r.potions}`);
+  if(r.mats)for(const m in r.mats){ if(MATS[m])parts.push(`${MATS[m][0]}${MATS[m][1]}×${r.mats[m]}`); }
+  if(r.cons)for(const k in r.cons){ if(CONS[k])parts.push(`${CONS[k].emoji}${CONS[k].n}×${r.cons[k]}`); }
+  if(r.items)for(const it of r.items)parts.push(`🎁${it}`);
+  return parts.join(" · "); }
+function grantReward(r){ if(!r)return;
+  if(r.gold)P.gold+=r.gold; if(r.gems)P.gems=(P.gems||0)+r.gems; if(r.potions)P.potions+=r.potions;
+  if(r.mats)for(const m in r.mats)addMat(m,r.mats[m]);
+  if(r.cons)for(const k in r.cons)gainCons(k,r.cons[k]);
+  if(r.items)for(const it of r.items)addRelic(it); }
+function mailboxMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
+  setScene("📬","우편함 — 배달부가 편지를 건넨다."); seedMail();
+  if(!P.mail.length){ line("우편함이 비어 있다.","sys"); setActions([{label:"🏘 마을로",full:true,act:townMenu}]); return; }
+  line("운영자·이벤트 보상이 도착하면 여기로 와요. 수령 버튼으로 보상을 받으세요.","sys");
+  const rows=P.mail.slice().reverse().map(m=>{ const rt=rewardText2(m.reward);
+    return `<div class="grow ${m.claimed?'':'eq'}"><span class="emo" style="width:34px;height:34px;font-size:19px">${m.claimed?'📭':'📬'}</span>`+
+      `<div class="gmeta"><div class="gn">${m.subj} ${m.claimed?'<span style="color:var(--dim);font-size:11px">수령완료</span>':'<span style="color:var(--gold);font-size:11px">NEW</span>'}</div>`+
+      `<div class="ge">✉ ${m.from} — ${m.body}</div>${rt?`<div class="ge" style="color:var(--gold)">🎁 ${rt}</div>`:''}</div>`+
+      `<div class="gbtns">${m.claimed?'':`<button class="ibtn on" onclick="claimMail('${m.id}')">수령</button>`}</div></div>`; }).join("");
+  $("log").innerHTML=`<div class="invv"><div class="glist">${rows}</div></div>`;
+  const acts=[]; if(mailUnread()>0)acts.push({label:`📬 모두 수령 (${mailUnread()})`,full:true,act:claimAllMail});
+  acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+function claimMail(id){ const m=(P.mail||[]).find(x=>x.id===id); if(!m||m.claimed)return; grantReward(m.reward); m.claimed=true;
+  const rt=rewardText2(m.reward); line(`📬 <b>${m.subj}</b> 수령! ${rt?`획득: ${rt}`:''}`,"loot"); toast("우편 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); mailboxMenu(); }
+function claimAllMail(){ let any=false; for(const m of (P.mail||[])){ if(!m.claimed){ grantReward(m.reward); m.claimed=true; any=true; } } if(any){ line("📬 모든 우편을 수령했다!","loot"); toast("전체 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); } mailboxMenu(); }
+window.claimMail=claimMail; window.claimAllMail=claimAllMail; window.mailboxMenu=mailboxMenu;
+/* 📦 통신판매 (캐쉬샵) — 💎다이아(크리스탈)로 결제 · 무료 웰컴 스타터팩 */
+const CASH_CHARM_GEMS=6, CASH_POTPACK_GEMS=4, CASH_MPPACK_GEMS=4;
 function cashShop(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
   setScene("📦","통신판매 — 캐쉬샵 배송함.");
-  line('안내원: <span class="quote">"신규 모험가님께 웰컴 스타터팩을 무료로 배송해 드려요! 난이도가 버겁다면 꼭 받으세요."</span>');
-  const claimed=!!P.flags.welcomeClaimed;
+  line('안내원: <span class="quote">"통신판매는 💎다이아로 결제돼요. 신규 모험가님껜 웰컴 스타터팩을 무료로 배송해 드립니다!"</span>');
+  line(`보유 💎 다이아 <b>${P.gems||0}</b> — 다이아는 보스 처치로 모을 수 있어요.`,"sys");
+  const claimed=!!P.flags.welcomeClaimed, gems=P.gems||0;
   const acts=[
-    {label:`🎁 웰컴 스타터팩 ${claimed?"(수령 완료)":"— 0원"}`,desc:"입문자 장검·갑옷·반지 (성능 준수 · 난이도 완화)",disabled:claimed,act:claimWelcome},
-    {label:`⚜️ 강화의 축복 구매 (💰2500)`,desc:`강화 성공↑·파괴 방지 · 보유 ${(P.consumables&&P.consumables.enhance_charm)||0}`,disabled:P.gold<2500,act:buyCharm},
-    {label:"🔒 프리미엄 상품 (준비 중)",desc:"추후 캐쉬 아이템 · 원격 창고 소환 등",disabled:true,act:()=>{}},
+    {label:`🎁 웰컴 스타터팩 ${claimed?"(수령 완료)":"— 무료"}`,desc:"입문자 장검·갑옷·반지 + 💎10 (난이도 완화)",disabled:claimed,act:claimWelcome},
+    {label:`⚜️ 강화의 축복 (💎${CASH_CHARM_GEMS})`,desc:`강화 성공↑·파괴 방지 · 보유 ${(P.consumables&&P.consumables.enhance_charm)||0}`,disabled:gems<CASH_CHARM_GEMS,act:()=>buyCash("charm")},
+    {label:`🧪 물약 꾸러미 ×10 (💎${CASH_POTPACK_GEMS})`,desc:"HP 물약 10개 즉시 배송",disabled:gems<CASH_POTPACK_GEMS,act:()=>buyCash("potpack")},
+    {label:`🫙 기력 물약 꾸러미 ×5 (💎${CASH_MPPACK_GEMS})`,desc:"고급 기력 물약 5개 (MP 60씩)",disabled:gems<CASH_MPPACK_GEMS,act:()=>buyCash("mppack")},
+    {label:`📬 우편함 열기${mailUnread()>0?` (${mailUnread()} NEW)`:""}`,desc:"운영자·이벤트 보상 수령",act:mailboxMenu},
     {label:"🏘 마을로",full:true,act:townMenu},
   ];
   setActions(acts); }
-function buyCharm(){ if(P.gold<2500){ toast("골드 부족"); return; } P.gold-=2500; gainCons("enhance_charm"); line("⚜️ <b>강화의 축복</b>을 구매했다. (대장간 강화 시 성공↑·파괴 방지)","loot"); toast("강화의 축복 구매"); if(typeof sfx==="function")sfx("loot"); render(); save(true); cashShop(); }
+function buyCash(kind){ const price={charm:CASH_CHARM_GEMS,potpack:CASH_POTPACK_GEMS,mppack:CASH_MPPACK_GEMS}[kind]; if((P.gems||0)<price){ toast("다이아 부족"); return; }
+  P.gems-=price;
+  if(kind==="charm"){ gainCons("enhance_charm"); line("⚜️ <b>강화의 축복</b>을 구매했다. (대장간 강화 시 성공↑·파괴 방지)","loot"); }
+  else if(kind==="potpack"){ P.potions+=10; line("🧪 <b>물약 꾸러미</b> 도착! HP 물약 ×10","loot"); }
+  else if(kind==="mppack"){ gainCons("mp_60",5); line("🫙 <b>기력 물약 꾸러미</b> 도착! 고급 기력 물약 ×5","loot"); }
+  toast(`구매 완료 (💎-${price})`); if(typeof sfx==="function")sfx("loot"); render(); save(true); cashShop(); }
+window.buyCash=buyCash;
 function claimWelcome(){ if(P.flags.welcomeClaimed)return; P.flags.welcomeClaimed=true;
   clearLog(); setScene("🎁","웰컴 스타터팩 개봉!");
   ["입문자의 장검","입문자의 갑옷","입문자의 반지"].forEach(n=>addRelic(n));

@@ -43,13 +43,13 @@ function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene
         line("끝이라 믿었던 곳 너머로, <b>광대한 대륙</b>과 <b>수많은 탑</b>이 펼쳐졌다.","loot");
         line("<span class=\"quote\">저마다의 탑엔 저마다의 수호자가 잠들어 있다. 네가 오른 이 탑은, 그중 가장 낮은 하나였을 뿐.</span>");
         line("진짜 여정은 이제부터 — <b>🧭 대륙 개척</b>으로 새로운 탑들을 찾아 오르자!","loot");
-        line(`— 회귀 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");
+        line(`— 탑 정복 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");
         render(); setActions([{label:"🏘 마을로 (대륙 개척 가능)",full:true,act:townMenu}]);
       });
     }}]);
     return;
   }
-  line(`— 회귀 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");   // 로그라이트 회귀 암시
+  line(`— 탑 정복 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");   // 탑 정복 횟수(회귀와 별개 — 실제 회귀는 🌌제단에서만)
   render(); setActions([{label:"🏘 마을로 (다시 도전 가능)",full:true,act:townMenu}]); }
 
 /* 🎭 VN(미연시식) 대화 장면 — steps: [{who:"me"|"comp"|"narr", text, name?}] · 클릭/스페이스로 진행 */

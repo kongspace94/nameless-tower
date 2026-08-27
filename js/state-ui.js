@@ -55,6 +55,8 @@ function normalizeP(){ if(!P)return;
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
   if(!P.expProg||typeof P.expProg!=="object")P.expProg={};   // 🧭 개척 구역 진행 저장
+  if(!Array.isArray(P.mail))P.mail=[]; if(!P.mailInit||typeof P.mailInit!=="object")P.mailInit={};   // 📬 우편함 · 지급 완료 시드 추적
+  if(typeof seedMail==="function")seedMail();   // 운영자 우편(신규 시드) 지급함에 넣기
   if(!P.feats||typeof P.feats!=="object")P.feats={};   // 🎖 칭호용 업적 카운터
   if(!P.farm||typeof P.farm!=="object")P.farm={unlocked:false,slots:[],lastTs:Date.now()};   // ⛺ 자동 파밍
   if(!Array.isArray(P.farm.slots))P.farm.slots=[]; if(!P.farm.lastTs)P.farm.lastTs=Date.now();
@@ -142,6 +144,7 @@ function useConsumable(key){ if((P.consumables[key]||0)<=0)return; const c=CONS[
   else if(c.use==="stamina"){ const g=gainStamina(c.amount||50); if(g<=0){ toast("생활력이 이미 가득"); return; } line(`${c.emoji} ${c.n}을(를) 마셨다. 생활력 +${g}`,"heal"); toast("생활력 +"+g); }
   else if(c.use==="enchant"){ P.buffs.weaponElem=c.elem; const el=ELEMENTS[c.elem]; line(`${c.emoji} 무기에 ${el.ic} <b>${el.n}</b>을(를) 둘렀다. 이번 다이브 동안 기본 공격에 ${el.n} 부여!`,"loot"); toast(el.n+" 부여"); }
   else if(c.use==="heal"){ heal(c.amount||25); }
+  else if(c.use==="mana"){ const mmp=MAXMP(); if(P.mp>=mmp){ toast("기력이 이미 가득"); return; } const g=Math.min(c.amount||30, mmp-P.mp); P.mp+=g; line(`${c.emoji} ${c.n}을(를) 마셨다. 기력 +${g}`,"heal"); toast("기력 +"+g); }
   P.consumables[key]--; if(P.consumables[key]<=0)delete P.consumables[key]; render(); inventoryMenu(); }
 function useBasicPotion(){ if(P.potions<=0)return; if(P.hp>=MAXHP()){ toast("이미 가득"); return; } P.potions--; heal(25); render(); inventoryMenu(); }
 window.invEquip=i=>equipByIndex(i);
@@ -196,7 +199,7 @@ function setSceneFoe(){ if(!enemy)return;
     `<div class="ubox"><div class="un">${P.name}${B&&B.disarmed?' <span style="color:var(--danger)">🗡️❌ 무장해제</span>':''}</div>`+
     `<div class="hprow"><span class="tag">HP</span><div class="hpbar2 hp"><i id="meHpBar" style="width:${clamp(P.hp/mhp*100,0,100)}%"></i></div><span class="hpnum" id="meHpNum">${Math.max(0,P.hp)}/${mhp}</span></div>`+
     `<div class="hprow"><span class="tag">기력</span><div class="hpbar2 mp"><i id="meMpBar" style="width:${clamp(P.mp/mmp*100,0,100)}%"></i></div><span class="hpnum" id="meMpNum">${P.mp}/${mmp}</span></div>`+
-    `<div class="hprow"><span class="tag">기세</span><div class="hpbar2 mom${(B&&(B.momentum||0)>=MOM_MAX)?' full':''}"><i id="meMomBar" style="width:${clamp((B&&B.momentum||0)/MOM_MAX*100,0,100)}%"></i></div><span class="hpnum" id="meMomNum">${(B&&(B.momentum||0)>=MOM_MAX)?'🌟':Math.floor((B&&B.momentum)||0)}</span></div></div></div>`;
+    `<div class="hprow"><span class="tag">기세</span><div class="hpbar2 mom${(B&&(B.momentum||0)>=MOM_MAX)?' full':''}"><i id="meMomBar" style="width:${clamp((B&&B.momentum||0)/MOM_MAX*100,0,100)}%"></i></div><span class="hpnum" id="meMomNum">${(B&&(B.momentum||0)>=MOM_MAX)?'🌟':Math.floor((B&&B.momentum)||0)}</span></div>${(()=>{const bh=combatBuffHtml();return bh?`<div class="ecbuffrow">${bh}</div>`:"";})()}</div></div>`;
   let compHtml=""; if(B&&B.comp){ const c=B.comp; const pips=Array.from({length:c.max},(_,i)=>`<span class="pip ${i<c.energy?'on':''}"></span>`).join("");
     const cpor=(c.tier>0)?`<span class="compemo">${c.emoji}</span>`:ico(c.ic,30);
     compHtml=`<div class="comp">${cpor}<div class="cn">${c.n} <span class="clv">Lv${c.lv||1}</span></div><div class="pips">${pips}</div></div>`; }
@@ -265,6 +268,24 @@ function buffsHtml(){ if(!P)return ""; const b=P.buffs||{}, bf=[];
   if(b.weaponElem&&typeof ELEMENTS!=="undefined"&&ELEMENTS[b.weaponElem])bf.push(`${ELEMENTS[b.weaponElem].ic}${ELEMENTS[b.weaponElem].n}`);
   if(b.regionResist)bf.push(`🧿내성`);
   return bf.length?bf.map(x=>`<span class="buffchip">${x}</span>`).join(""):""; }
+/* ⚔ 전투 중 내 버프/상태 칩 — 지속 버프(P.buffs) + 전투 임시 상태(B) 함께 표시 */
+function combatBuffHtml(){ if(!P)return ""; const good=[], bad=[]; const b=P.buffs||{};
+  if(b.atkPct)good.push(`⚔공+${Math.round(b.atkPct*100)}%`);
+  if(b.magicPct)good.push(`🔮마+${Math.round(b.magicPct*100)}%`);
+  if(b.critBonus)good.push(`🎯치+${Math.round(b.critBonus*100)}%`);
+  if(b.defBonus)good.push(`🛡방+${b.defBonus}`);
+  if(b.luck)good.push(`🍀운+${b.luck}`);
+  if(b.weaponElem&&typeof ELEMENTS!=="undefined"&&ELEMENTS[b.weaponElem])good.push(`${ELEMENTS[b.weaponElem].ic}${ELEMENTS[b.weaponElem].n}`);
+  if(b.regionResist)good.push(`🧿내성`);
+  if(typeof B!=="undefined"&&B){
+    if(B.shield)good.push(`🛡가드`);
+    if(B.dmgTakenPct)bad.push(`⚠받는피해+${Math.round(B.dmgTakenPct*100)}%`);
+    if(B.healCut)bad.push(`☣회복반감`);
+    if(B.disarmed)bad.push(`🗡❌무장해제`);
+    if(B.enemyGuard>0)bad.push(`🪨적 방어태세`);
+  }
+  const chips=good.map(x=>`<span class="buffchip">${x}</span>`).concat(bad.map(x=>`<span class="buffchip bad">${x}</span>`));
+  return chips.join(""); }
 /* 🧩 세트 효과 (장착장비 아래) */
 function setsHtml(){ if(!P||typeof setCounts!=="function")return ""; const sc=setCounts();
   const sets=Object.entries(sc).filter(([k,n])=>n>=2&&SETS[k]).map(([k,n])=>{ const tier=n>=4?4:2; const note=(SETS[k].bonus[tier]||{}).note||""; return `${SETS[k].n}(${n})${note?" "+note:""}`; });
