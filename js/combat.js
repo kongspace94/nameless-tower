@@ -1374,7 +1374,17 @@ function expMapHtml(){ const c=CONT(), spa=STEPS_PER_AREA, areas=c.areas, total=
   const dbadge=`<div class="edebuff ${res?'ok':''}">${d.icon} ${d.n}${res?" · 내성✔":" (내성 필요)"}</div>`;
   return `<div class="expmap"><div class="ehead"><span>${c.ic} ${c.name}</span><span class="epct">개척 ${pct}%</span></div>${dbadge}${rows}</div>`; }
 function expeditionHub(){ if(!EXP||enemy)return; mode="dive"; P.floor=expDifficulty(); render();
-  const c=CONT(), area=c.areas[EXP.ai], spa=STEPS_PER_AREA, atBoss=EXP.step>=spa;
+  const c=CONT(), spa=STEPS_PER_AREA;
+  if(EXP.ai>=c.areas.length){   // 🐛 FIX: 모든 구역 완료 → 대륙 수호체 결전 대기 (예전엔 area=undefined로 크래시 → 진행 불가)
+    setScene("👑",`${c.name} · 대륙 수호체`);
+    $("log").innerHTML=expMapHtml();
+    setActions([
+      {label:`⚔ ${c.contBoss.n} 결전`,desc:"모든 구역 개척 완료 · 대륙 수호체와 최종 결전",full:true,act:contBossIntro},
+      {label:"🎒 소지품",act:inventoryMenu},{label:"📋 스킬",act:skillWindow},
+      {label:"🚪 마을로 귀환",desc:"개척 종료 · 획득물 유지 (다시 오면 수호체부터)",act:returnToTown},
+    ]); return;
+  }
+  const area=c.areas[EXP.ai], atBoss=EXP.step>=spa;
   setScene(area.ic,`${c.name} · ${area.n}`);
   $("log").innerHTML=expMapHtml();
   setActions([
