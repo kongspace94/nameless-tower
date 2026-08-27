@@ -1035,7 +1035,8 @@ function winCombat(){ P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=ene
   const mkeys=Object.keys(MATS); const m=mkeys[rnd(mkeys.length)]; const ma=1+rnd(2); addMat(m,ma); line(`${MATS[m][0]} ${MATS[m][1]} +${ma}`,"loot");
   { const st=pick(["str","int","dex","vit","luk"]); const tp=3+rnd(3)+Math.floor((enemy.atk||6)/4)+(wasBoss?12:0)+(enemy.elite?6:0);   // 처치마다 숙련 획득(강한 적일수록↑) → 오르면 플로트로 축하
     const up=trainStat(st,tp); if(up>0)spawnFloat(`✦ ${STAT_NAME[st]} +${up}`,"#9be08a","me"); }
-  if(wasBoss){ bossReward(); if(chance(0.4))dropManaOrb(); if(chance(0.55)){ const gm=1+rnd(2); P.gems=(P.gems||0)+gm; line(`💎 <b>크리스탈 +${gm}</b> (프로필 커스터마이징 재화)`,"loot"); } }
+  if(wasBoss){ bossReward(); if(chance(0.4))dropManaOrb(); if(chance(0.55)){ const gm=1+rnd(2); P.gems=(P.gems||0)+gm; line(`💎 <b>크리스탈 +${gm}</b> (프로필 커스터마이징 재화)`,"loot"); }
+    if(chance(0.01)){ gainCons("enhance_charm"); line(`⚜️ <b>강화의 축복</b>을 얻었다! (초희귀 · 대장간 강화 시 성공↑·파괴방지)`,"loot"); toast("강화의 축복 획득!"); } }   // 보스 초희귀 드랍
   else { if(chance(0.025))dropManaOrb();   // 물약은 몬스터가 떨구지 않음 — 상자에서만
     if(chance(0.02))dropBook(); else if(chance(clamp((0.012+LUKv()*0.0006)*(1+metaEff().drop),0,0.035)))dropRelic(); else if(chance(0.5)){ const gb=5+rnd(12); P.gold+=gb; line(`💰 금화 +${gb}`,"loot"); } }   // 리니지급 제네릭 드랍(캡 3.5%) · 좋은 장비는 시그니처 파밍으로
   dropSignature(enemy, wasBoss);   // ✨ 몬스터 고유(시그니처) 드랍 + 몬스터 도감 처치 기록

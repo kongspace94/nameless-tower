@@ -371,11 +371,13 @@ function renameChar(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } c
   line(`✏️ '${old}' → <b>${nm}</b>${free?" (첫 회 무료)":` (💎${NAME_COST} 소모)`}`,"sys"); save(true);
   if(!enemy)profileMenu(); }
 /* ⚒️ 대장간 — 장비 강화 (+N) */
-const UP_MAX=10;
-function upCostGold(up){ return 25 + up*20; }
+const UP_MAX=20, UP_SAFE=10;   // +10까지 안전(실패해도 유지) · +11부터 실패 시 파괴 위험
+function upCostGold(up){ return 25 + up*up*8; }                  // 고강일수록 급증
 function upCostMat(it){ const g=RELICS[it.k]; return (g.slot==="ring"||g.slot==="amulet")?"mana":"ore"; }
-function upCostMatN(up){ return 2 + up; }
-function upChance(up){ return clamp(0.90 - up*0.09, 0.30, 0.90); }
+function upCostMatN(up){ return 2 + Math.floor(up*1.6); }
+function upChance(up){ if(up<5)return clamp(0.92-up*0.05,0.6,0.92); if(up<UP_SAFE)return clamp(0.72-(up-5)*0.06,0.4,0.72); return clamp(0.48-(up-UP_SAFE)*0.032,0.12,0.48); }
+function upDestroyChance(up){ return up<UP_SAFE?0:clamp((up-(UP_SAFE-1))*0.07,0,0.55); }   // 실패 시 파괴 확률(+11부터)
+function upRandStat(){ const pool=[["atk",1+rnd(3)],["def",1+rnd(3)],["luck",1+rnd(2)]]; return pool[rnd(pool.length)]; }   // 🎲 강화 랜덤 추가스탯
 function upStatText(it){ const st=gearMainStat(RELICS[it.k]); return st==="atk"?"공격":st==="def"?"방어":"행운"; }
 function itemStatVal(it,extra){ const g=RELICS[it.k]; const up=(it.up||0)+(extra||0); const st=gearMainStat(g); return (g[st]||0)+up; }
 function bsFind(id){ let it=P.inv.find(x=>x.id===id); if(it)return it; it=((P.stash&&P.stash.inv)||[]).find(x=>x.id===id); return it||null; }
@@ -404,7 +406,7 @@ function upgradePreview(id){ const it=bsFind(id); if(!it||!RELICS[it.k]||!RELICS
   if(!maxed){ it.up=up+1; a={atk:ATK(),def:DEF(),luk:LUKv()}; it.up=up; }
   P.equip[slot]=oldEq;   // 원복
   const cmp=(nm,bv,av)=>`<div class="grow" style="padding:6px 10px"><div class="gmeta"><div class="gn">${nm}</div></div><div style="font-family:var(--mono);font-size:14px">${bv} <span style="color:var(--dim)">→</span> <b style="color:${av>bv?'var(--good)':'var(--ink)'}">${av}</b>${av>bv?` <span style="color:var(--good)">(+${av-bv})</span>`:''}</div></div>`;
-  const mat=upCostMat(it), matN=upCostMatN(up), gold=upCostGold(up), ch=Math.round(upChance(up)*100), haveMat=P.mats[mat]||0;
+  const mat=upCostMat(it), matN=upCostMatN(up), gold=upCostGold(up), ch=Math.round(upChance(up)*100), haveMat=P.mats[mat]||0, charmN=(P.consumables&&P.consumables.enhance_charm)||0;
   const itemNow=itemStatVal(it,0), itemNext=itemStatVal(it,1);
   const tag=equippedNow?'<span style="color:var(--good);font-size:11px">착용중</span>':'<span style="color:var(--dim);font-size:11px">미착용</span>';
   $("log").innerHTML=`<div class="invv">
@@ -412,22 +414,31 @@ function upgradePreview(id){ const it=bsFind(id); if(!it||!RELICS[it.k]||!RELICS
     <div><div class="ih"><span>강화 전 → 후 (이 장비 착용 기준)</span></div><div class="glist">${cmp("⚔ 공격",b.atk,a.atk)}${cmp("🛡 방어",b.def,a.def)}${cmp("🍀 행운",b.luk,a.luk)}</div></div>
     ${equippedNow?'':'<div class="ge" style="color:var(--mp)">※ 미착용 장비 — 착용해야 실제 능력치에 반영됩니다.</div>'}
     <div class="ge" style="margin-top:4px">${maxed?`<b>최대 강화(+${UP_MAX}) 도달</b>`:`성공 확률 <b>${ch}%</b> · 비용 ${MATS[mat][0]}${MATS[mat][1]} ${matN}<span style="color:${haveMat<matN?'var(--danger)':'var(--dim)'}">(보유 ${haveMat})</span> · 💰${gold}<span style="color:${P.gold<gold?'var(--danger)':'var(--dim)'}">(보유 ${P.gold})</span>`}</div>
-    ${maxed?'':'<div class="ge" style="color:var(--danger)">⚠ 실패 시 재료·골드를 잃고 레벨은 유지됩니다.</div>'}
+    ${it.extra?`<div class="ge" style="color:#c9a9ff">✨ 추가 옵션: ${Object.entries(it.extra).map(([s,v])=>`${s==="atk"?"공격":s==="def"?"방어":"행운"} +${v}`).join(" · ")}</div>`:''}
+    ${maxed?'':(up>=UP_SAFE?`<div class="ge" style="color:var(--danger)">💥 실패 시 <b>${Math.round(upDestroyChance(up)*100)}%</b> 확률로 <b>파괴</b>! (축복 사용 시 방지)</div>`:'<div class="ge" style="color:var(--danger)">⚠ 실패 시 재료·골드를 잃고 레벨은 유지됩니다.</div>')}
+    ${charmN>0?`<div class="ge" style="color:var(--gold)">⚜️ 강화의 축복 ${charmN}개 보유 — 성공 +25%p·파괴 방지</div>`:''}
   </div>`;
   const can=!maxed && P.gold>=gold && haveMat>=matN;
   const reason= maxed?"": P.gold<gold?" · 골드 부족": haveMat<matN?` · ${MATS[mat][1]} 부족`:"";
-  setActions([
-    {label:maxed?"최대 강화 도달":`⚒️ 강화하기 (성공 ${ch}%)`, desc:maxed?"":`${MATS[mat][0]}${matN} · 💰${gold}${reason}`, disabled:!can, act:()=>doUpgradeSel(id)},
-    {label:"← 다른 장비",act:blacksmithMenu},
-    {label:"🏘 마을로",full:true,act:townMenu},
-  ]); }
-function doUpgradeSel(id){ const it=bsFind(id); if(!it||!RELICS[it.k]||!RELICS[it.k].slot)return; const up=it.up||0;
+  const bacts=[{label:maxed?"최대 강화 도달":`⚒️ 강화하기 (성공 ${ch}%)`, desc:maxed?"":`${MATS[mat][0]}${matN} · 💰${gold}${reason}`, disabled:!can, act:()=>doUpgradeSel(id,false)}];
+  if(!maxed && charmN>0)bacts.push({label:`⚜️ 축복 쓰고 강화 (성공 ${Math.min(99,ch+25)}%·파괴X)`, desc:`축복 1 소모 · ${MATS[mat][0]}${matN} · 💰${gold}`, disabled:!can, act:()=>doUpgradeSel(id,true)});
+  bacts.push({label:"← 다른 장비",act:blacksmithMenu},{label:"🏘 마을로",full:true,act:townMenu});
+  setActions(bacts); }
+function removeUpgItem(it){ for(const s of SLOTS){ if(P.equip[s[0]]===it.id)P.equip[s[0]]=null; }   // 파괴: 장착 해제 + 가방/창고에서 제거
+  P.inv=(P.inv||[]).filter(x=>x.id!==it.id); if(P.stash&&P.stash.inv)P.stash.inv=P.stash.inv.filter(x=>x.id!==it.id); }
+function doUpgradeSel(id, useCharm){ const it=bsFind(id); if(!it||!RELICS[it.k]||!RELICS[it.k].slot)return; const up=it.up||0;
   if(up>=UP_MAX){ toast("이미 최대 강화"); return; }
   const mat=upCostMat(it), matN=upCostMatN(up), gold=upCostGold(up);
   if(P.gold<gold||(P.mats[mat]||0)<matN){ toast("비용 부족"); return; }
-  P.gold-=gold; P.mats[mat]-=matN;
-  if(chance(upChance(up))){ it.up=up+1; line(`⚒️ <b>${it.k}</b> 강화 성공! → <b>+${it.up}</b> (${upStatText(it)} +1)`,"loot"); toast("강화 성공! +"+it.up); fxOk(); }
-  else { line(`⚒️ ${it.k} 강화 실패… 재료가 날아갔다. (레벨 유지)`,"dmg"); toast("강화 실패"); }
+  const charm = !!useCharm && (P.consumables.enhance_charm||0)>0;
+  P.gold-=gold; P.mats[mat]-=matN; if(charm){ P.consumables.enhance_charm--; if(P.consumables.enhance_charm<=0)delete P.consumables.enhance_charm; line("⚜️ 강화의 축복을 사용했다 (성공률↑·파괴 방지).","sys"); }
+  const succ=clamp(upChance(up)+(charm?0.25:0),0,0.99);
+  if(chance(succ)){ it.up=up+1; line(`⚒️ <b>${it.k}</b> 강화 성공! → <b>+${it.up}</b> (${upStatText(it)} 대폭↑)`,"loot"); toast("강화 성공! +"+it.up); fxOk();
+    if(it.up%5===0 || chance(0.22)){ const r=upRandStat(); if(!it.extra)it.extra={}; it.extra[r[0]]=(it.extra[r[0]]||0)+r[1]; const nm=r[0]==="atk"?"공격":r[0]==="def"?"방어":"행운"; line(`✨ <b>추가 옵션!</b> ${nm} +${r[1]} (랜덤)`,"loot"); }   // 🎲 랜덤 추가스탯(5강마다 확정)
+  } else {
+    if(!charm && chance(upDestroyChance(up))){ line(`💥 강화 실패 — <b style="color:var(--danger)">${it.k}이(가) 파괴됐다!</b>`,"dmg"); toast("장비 파괴…"); removeUpgItem(it); render(); save(true); blacksmithMenu(); return; }
+    line(`⚒️ ${it.k} 강화 실패… 재료가 날아갔다.${charm?" (축복이 파괴를 막았다)":" (레벨 유지)"}`,"dmg"); toast("강화 실패");
+  }
   render(); save(true); upgradePreview(id); }   // 같은 장비 상세로 복귀 → 연속 강화 가능
 function fxOk(){ const s=$("stage"); if(s){ s.classList.remove("flash"); void s.offsetWidth; s.classList.add("flash"); } }
 /* 🛒 잡화점 — 즉시 구매/판매 (경매장과 달리 고정가) */
@@ -465,10 +476,12 @@ function cashShop(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } sto
   const claimed=!!P.flags.welcomeClaimed;
   const acts=[
     {label:`🎁 웰컴 스타터팩 ${claimed?"(수령 완료)":"— 0원"}`,desc:"입문자 장검·갑옷·반지 (성능 준수 · 난이도 완화)",disabled:claimed,act:claimWelcome},
+    {label:`⚜️ 강화의 축복 구매 (💰2500)`,desc:`강화 성공↑·파괴 방지 · 보유 ${(P.consumables&&P.consumables.enhance_charm)||0}`,disabled:P.gold<2500,act:buyCharm},
     {label:"🔒 프리미엄 상품 (준비 중)",desc:"추후 캐쉬 아이템 · 원격 창고 소환 등",disabled:true,act:()=>{}},
     {label:"🏘 마을로",full:true,act:townMenu},
   ];
   setActions(acts); }
+function buyCharm(){ if(P.gold<2500){ toast("골드 부족"); return; } P.gold-=2500; gainCons("enhance_charm"); line("⚜️ <b>강화의 축복</b>을 구매했다. (대장간 강화 시 성공↑·파괴 방지)","loot"); toast("강화의 축복 구매"); if(typeof sfx==="function")sfx("loot"); render(); save(true); cashShop(); }
 function claimWelcome(){ if(P.flags.welcomeClaimed)return; P.flags.welcomeClaimed=true;
   clearLog(); setScene("🎁","웰컴 스타터팩 개봉!");
   ["입문자의 장검","입문자의 갑옷","입문자의 반지"].forEach(n=>addRelic(n));

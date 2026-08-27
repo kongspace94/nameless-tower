@@ -130,6 +130,7 @@ function learnFromBook(skillKey){ if(!SKILLS[skillKey])return false; if(hasSkill
   else if(P.passives.length<MAX_PASSIVE)P.passives.push(skillKey);
   line(`📖 스킬북으로 <b>${s.n}</b> 습득!`,"loot"); toast("스킬 습득: "+s.n); checkQuests(); return true; }
 function useConsumable(key){ if((P.consumables[key]||0)<=0)return; const c=CONS[key];
+  if(c.use==="enhance"){ toast("⚒️ 대장간에서 강화할 때 사용하세요"); return; }   // 대장간 전용
   if(c.use==="learn"){ if(!learnFromBook(c.skill))return; }
   else if(c.use==="stat"){ P.stats[c.stat]++; line(`${c.emoji} ${c.n}을(를) 마셨다. ${STAT_NAME[c.stat]} +1!`,"loot"); checkTitleUnlocks(); }
   else if(c.use==="buff"){ P.buffs[c.buff]=(P.buffs[c.buff]||0)+c.amount; line(`${c.emoji} ${c.n}을(를) 마셨다. ${c.note}`,"heal"); }

@@ -363,6 +363,7 @@ const CONS={
   resist_plague:{n:"해독의 향낭",emoji:"🌿",use:"resist",resKey:"plague",val:360,note:"이번 개척: 역병 저항"},
   resist_void:{n:"공허 차단석",emoji:"🪬",use:"resist",resKey:"void",val:420,note:"이번 개척: 공허 저항"},
   mana_orb:{n:"마나 오브",emoji:"🔵",use:"slot",val:180,note:"보스·몬스터가 드랍 · 액티브 스킬 슬롯 +1 (최대 5)"},
+  enhance_charm:{n:"강화의 축복",emoji:"⚜️",use:"enhance",val:600,note:"대장간 강화 시 사용 → 성공률 +25%p · 파괴 방지 (보스 초희귀 드랍/통신판매)"},
   book_heavy:{n:"전사 훈련서",emoji:"📕",use:"learn",skill:"heavy_strike",val:60,note:"강타 습득 (스킬북)"},
   book_power:{n:"사냥꾼 지침서",emoji:"📔",use:"learn",skill:"power_shot",val:60,note:"급소 찌르기 습득 (스킬북)"},
   book_heal:{n:"치유 성서",emoji:"📗",use:"learn",skill:"heal_spell",val:90,note:"회복술 습득 (스킬북)"},
@@ -426,12 +427,16 @@ const estat = k => (P.stats[k]||0) + titleStatBonus(k);   // 칭호 스탯 포�
 const jobName = () => (P&&P.title&&TITLES[P.title])?TITLES[P.title].n:"방랑자";
 const jobEmoji = () => (P&&P.title&&TITLES[P.title])?TITLES[P.title].emoji:"🧝";
 /* 강화(+N) 보너스: 무기→공격, 방어구→방어, 장신구→주스탯 에 레벨만큼 가산 */
+/* 강화 주스탯 누적 보너스 — 6·11·16강에서 대폭 점프(고강일수록 급격히↑) */
+const UP_PER=[2,2,2,2,3, 6,4,4,4,5, 9,6,6,6,8, 13,8,8,8,11];   // 각 강화레벨이 주는 주스탯
+function upMainBonus(up){ let t=0; for(let i=0;i<up;i++)t+=(i<UP_PER.length?UP_PER[i]:12); return t; }
 function upBonus(it){ const g=it&&RELICS[it.k]; const up=(it&&it.up)||0; if(!g||!up)return {atk:0,def:0,luck:0};
-  const o={atk:0,def:0,luck:0}; o[gearMainStat(g)]=up; return o; }
+  const o={atk:0,def:0,luck:0}; o[gearMainStat(g)]=upMainBonus(up); return o; }
 function relicBonus(){ let b={atk:0,def:0,luck:0,vamp:false};
   for(const s of SLOTS){ if(s[0]==="weapon" && typeof B!=="undefined" && B && B.disarmed) continue; /* 무장 해제 시 무기 무효 */
     const it=equippedItem(s[0]); const r=it&&RELICS[it.k]; if(!r)continue; b.atk+=r.atk||0; b.def+=r.def||0; b.luck+=r.luck||0; b.vamp=b.vamp||!!r.vamp;
-    const u=upBonus(it); b.atk+=u.atk; b.def+=u.def; b.luck+=u.luck; }
+    const u=upBonus(it); b.atk+=u.atk; b.def+=u.def; b.luck+=u.luck;
+    if(it.extra){ b.atk+=it.extra.atk||0; b.def+=it.extra.def||0; b.luck+=it.extra.luck||0; } }   // 🎲 강화 랜덤 추가스탯
   const sb=setBonus(); b.atk+=sb.atk; b.def+=sb.def; b.luck+=sb.luck; b.vamp=b.vamp||sb.vamp;   // 세트 효과(스탯)
   return b; }
 
