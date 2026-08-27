@@ -902,7 +902,11 @@ function editChant(k){ if(!SKILLS[k]){ return; }
   if(!/^[가-힣ㄱ-ㅎㅏ-ㅣ][가-힣ㄱ-ㅎㅏ-ㅣ\s]*$/.test(t) || bare.length<2 || bare.length>40){ toast("한글만 · 2~40자 (숫자·기호·영어 안 돼요)"); return; }
   if(!P.chants)P.chants={}; P.chants[k]=t; toast("영창 저장: "+SKILLS[k].n); if(typeof sfx==="function")sfx("loot"); save(true); skillWindow(); }
 window.editChant=editChant;
-/* 📋 스킬 창 (인벤 옆 버튼) — 액티브/패시브 + 생활 스킬 카테고리 */
+/* 🏷 스킬→클래스 매핑 (수련관 교관 기준) · 스킬창 클래스별 정리에 사용 */
+function skillClassOf(k){ if(typeof INSTRUCTORS!=="undefined"){ for(const c in INSTRUCTORS){ if((INSTRUCTORS[c].skills||[]).includes(k))return c; } } return "etc"; }
+const SKILL_CLASS_LABEL={warrior:"⚔️ 전사",hunter:"🏹 사냥꾼",mage:"🔮 마법",tamer:"🐺 조련",gambler:"🎲 도박",bard:"🎵 음유",etc:"✨ 기타"};
+const SKILL_CLASS_ORDER=["warrior","hunter","mage","tamer","gambler","bard","etc"];
+/* 📋 스킬 창 (인벤 옆 버튼) — 상단 장착요약 + 클래스별 정리 + 생활 스킬 */
 function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; }
   regenStamina(); render(); clearLog(); setScene("📋", inDive?"스킬 — 계단에서 장착 변경":"스킬 — 전투 스킬과 생활 스킬");
   const actives=P.skills.filter(k=>SKILLS[k]&&SKILLS[k].type==="active");
@@ -915,18 +919,31 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
     const btn = active
       ? (on ? `<button class="ibtn on" onclick="skillUnequip('${k}')">해제</button>` : `<button class="ibtn" onclick="skillEquip('${k}')">장착</button>`)
       : `<span class="chip" style="color:var(--good);border-color:#3a5a3f">자동</span>`;
-    const badge = active ? (on?' <span style="color:var(--good);font-size:11px">장착</span>':'') : ' <span style="color:var(--good);font-size:11px">적용 중</span>';
+    const badge = active ? (on?' <span style="color:var(--good);font-size:11px;font-weight:700">✔ 장착 중</span>':' <span style="color:var(--dim);font-size:11px">미장착</span>') : ' <span style="color:var(--good);font-size:11px">적용 중</span>';
     const isCast = active && typeof CAST_SPELLS!=="undefined" && CAST_SPELLS.includes(k);
     const chantRow = isCast ? `<div class="ge" style="color:#c9a9ff">✨ 영창: "${spellChant(k)}" <span style="color:var(--dim)">(앞 ${chantReqLen(k)}자~전체 아무 길이나 발동)</span></div>` : "";
     const chantBtn = isCast ? `<button class="ibtn" onclick="editChant('${k}')">✏️ 영창</button>` : "";
-    return `<div class="grow ${on?'eq':''}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
-  const sec=(title,arr,empty,cnt)=> `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div><div class="glist">${arr.length?arr.map(skillCard).join(""):`<div class="inv-empty">${empty}</div>`}</div></div>`;
+    const rowCls = !active ? 'eq' : (on ? 'eq' : 'skoff');
+    return `<div class="grow ${rowCls}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
+  const groupByClass=(arr)=>{ const g={}; arr.forEach(k=>{ const c=skillClassOf(k); (g[c]=g[c]||[]).push(k); }); return g; };
+  const classSec=(title,arr,empty,cnt)=>{
+    if(!arr.length)return `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div><div class="glist"><div class="inv-empty">${empty}</div></div></div>`;
+    const g=groupByClass(arr);
+    const inner=SKILL_CLASS_ORDER.filter(c=>g[c]&&g[c].length).map(c=>{
+      const list=g[c].slice().sort((a,b)=>(P.loadout.includes(b)?1:0)-(P.loadout.includes(a)?1:0));   // 장착된 것 먼저
+      return `<div class="skclass"><div class="skclabel">${SKILL_CLASS_LABEL[c]||"✨"} <i>${g[c].length}</i></div><div class="glist">${list.map(skillCard).join("")}</div></div>`;
+    }).join("");
+    return `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div>${inner}</div>`; };
+  const sec=classSec;
   const lifeRows=Object.entries(LIFE).map(([key,a])=>{ const ls=P.life[key]; const need=ls.lv*20; const pct=Math.round(ls.xp/need*100); const got=(P.lifeStat&&P.lifeStat[a.stat])||0;
     return `<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">${a.emoji}</span><div class="gmeta"><div class="gn">${a.n} <span style="color:var(--dim);font-size:11px">Lv.${ls.lv}</span>${got?` <span style="color:var(--good);font-size:11px">${STAT_NAME[a.stat]} +${got}</span>`:""}</div><div class="ge">Lv↑마다 ${STAT_NAME[a.stat]}+1 · ${MATS[a.mat][1]} · 숙련 ${ls.xp}/${need}</div><div class="hpbar2 mp" style="height:6px;margin-top:3px"><i style="width:${pct}%"></i></div></div></div>`; }).join("");
   const cap=activeCap(); const lifeSum=["str","int","dex","vit","luk"].map(s=>{ const v=(P.lifeStat&&P.lifeStat[s])||0; return v?`${STAT_NAME[s]}+${v}`:null; }).filter(Boolean).join(" · ");
+  const eqChips=P.loadout.filter(k=>SKILLS[k]).map(k=>`<span class="buffchip">${SKILLS[k].emoji} ${SKILLS[k].n}</span>`).join("");
+  const eqBar=`<div class="ih"><span>🎯 지금 장착한 스킬</span><span class="cnt">${P.loadout.length}/${cap}</span></div><div class="ecbuffrow" style="margin:3px 0 9px">${eqChips||'<span style="color:var(--dim);font-size:12px">장착한 액티브 스킬이 없다 — 아래에서 장착하세요</span>'}</div>`;
   $("log").innerHTML=`<div class="invv">
+    ${eqBar}
     <div style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:2px">액티브만 슬롯에 장착해 사용 · 패시브는 <b>배우면 자동 적용</b>(슬롯 불필요) · 액티브 ${P.loadout.length}/${cap}${cap<SLOT_MAX?` <span style="color:var(--mp)">🔵 마나 오브로 최대 ${SLOT_MAX}까지 확장</span>`:" (최대)"}</div>
-    ${sec("⚔️ 액티브 스킬",actives,"배운 액티브 스킬이 없다. 수련관·스킬북에서 배운다.",`장착 ${P.loadout.length}/${cap}`)}
+    ${sec("⚔️ 액티브 스킬 (클래스별)",actives,"배운 액티브 스킬이 없다. 수련관·스킬북에서 배운다.",`장착 ${P.loadout.length}/${cap}`)}
     ${sec("🛡 패시브 스킬",passives,"배운 패시브 스킬이 없다.",`배우면 자동 적용 · ${passives.length}개`)}
     <div><div class="ih"><span>🌲 생활 스킬</span><span class="cnt">${lifeSum?"생활 누적 "+lifeSum:"채집할수록 Lv↑"}</span></div><div class="glist">${lifeRows}</div></div>
   </div>`;
