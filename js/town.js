@@ -187,13 +187,15 @@ function companionMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
   line(`<div class="cbondbar"><i style="width:${Math.round(prog*100)}%"></i></div><div style="font-size:11.5px;color:var(--dim)">${maxed?"최대 성장 완료":`유대 ${Math.floor(rec.bond||0)}/${need} → 다음 레벨`}${nextAwk?` · 다음 각성 Lv.${nextAwk}`:tier>=2?"":" · 각성 완료"}</div>`,"quote");
   { const slots=compRuneSlots(key), eq=(rec.runes||[]); const chips=Array.from({length:slots},(_,i)=>{ const rk=eq[i]; return rk&&RUNES[rk]?`<span class="runechip">${RUNES[rk].emoji}${RUNES[rk].n}</span>`:`<span class="runechip empty">빈 슬롯</span>`; }).join(" ");
     line(`<div style="font-size:11.5px;color:var(--dim);margin-top:2px">🔩 룬 ${eq.length}/${slots} ${chips}</div>`,"sys"); }
-  line("먹이(재료)를 주면 유대가 오른다. 전투 승리로도 쌓인다.","quote");
-  const acts=[{label:"🔩 룬 장착·해제",full:true,desc:`슬롯 ${(rec.runes||[]).length}/${compRuneSlots(key)} · 각성할수록 슬롯 개방`,act:()=>companionRuneMenu(key)},{header:true,label:"🍖  먹이 주기 (재료 → 유대)"}];
-  const owned=Object.entries(MATS).filter(([mk])=>(P.mats[mk]||0)>0);
+  const role=COMPANIONS[key].role, roleFood=FOOD_BY_ROLE[role];
+  { const rf=FOODS[roleFood]; line(`먹이로 유대가 오른다 — <b>${rf.emoji} ${rf.n}</b>(전용, 효율 최고) 또는 <b>🥫 공용 사료</b>. 전투 승리로도 쌓인다.`,"quote"); }
+  const acts=[{label:"🔩 룬 장착·해제",full:true,desc:`슬롯 ${(rec.runes||[]).length}/${compRuneSlots(key)} · 각성할수록 슬롯 개방`,act:()=>companionRuneMenu(key)},{header:true,label:"🍖  먹이 주기 (전용먹이/공용사료 → 유대)"}];
+  const feedList=[roleFood,"food_any"];   // 이 동료에게 줄 수 있는 먹이(역할 전용 + 공용)
+  const ownedFood=feedList.filter(fk=>(P.food[fk]||0)>0);
   if(maxed)acts.push({label:"이미 최대 성장",disabled:true,act:()=>{}});
-  else if(!owned.length)acts.push({label:"줄 재료가 없다",desc:"채집·전투로 재료를 모으자",disabled:true,act:()=>{}});
-  else owned.forEach(([mk,[e,nm]])=>{ const have=P.mats[mk]||0, per=compFeedBond(mk), batch=Math.min(have,5);
-    acts.push({label:`${e} ${nm} 먹이기 (보유 ${have})`,desc:`${batch}개 → 유대 +${batch*per}`,act:()=>feedCompanion(mk,batch)}); });
+  else if(!ownedFood.length)acts.push({label:"줄 먹이가 없다",desc:"던전 몬스터가 먹이를 떨궈요 · 공용사료는 📦통신판매",disabled:true,act:()=>{}});
+  else ownedFood.forEach(fk=>{ const f=FOODS[fk], have=P.food[fk]||0, per=foodBond(fk,role), batch=Math.min(have,5), match=(fk===roleFood);
+    acts.push({label:`${f.emoji} ${f.n} 먹이기 (보유 ${have})${match?" ⭐전용":""}`,desc:`${batch}개 → 유대 +${batch*per}${fk==="food_any"?" · 공용":""}`,act:()=>feedCompanionFood(fk,batch)}); });
   // 🔁 보유 동료 교체
   const ownedKeys=Object.keys(P.comps||{}).filter(k=>COMPANIONS[k]);
   acts.push({header:true,label:`🔁  동료 교체  (보유 ${ownedKeys.length}/${Object.keys(COMPANIONS).length})`});
@@ -205,10 +207,15 @@ function companionMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
     recruitable.forEach(k=>{ const c=COMPANIONS[k]; acts.push({label:`${c.emoji} ${c.n} 영입`, desc:`${c.note} · 💎${STARTER_RECRUIT_GEMS}`, disabled:(P.gems||0)<STARTER_RECRUIT_GEMS, act:()=>recruitCompanion(k)}); }); }
   const rareLeft=RARE_COMPS.filter(k=>!compOwned(k)).length;
   if(rareLeft)acts.push({header:true,label:`💀 희귀 동료 ${rareLeft}종 — 보스 처치로 영입`});
+  const pionLeft=(typeof PION_COMPS!=="undefined"?PION_COMPS:[]).filter(k=>!compOwned(k)).length;
+  if(pionLeft)acts.push({header:true,label:`🧭 개척지 동료 ${pionLeft}종 — 대륙 개척 중 발견`});
+  const questLeft=(typeof QUEST_COMPS!=="undefined"?QUEST_COMPS:[]).filter(k=>!compOwned(k)).length;
+  if(questLeft)acts.push({header:true,label:`📜 퀘스트 동료 ${questLeft}종 — 전용 의뢰 보상`});
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
-function feedCompanion(mk,n){ n=Math.min(n,P.mats[mk]||0); if(n<=0){ toast("재료 부족"); return; }
-  P.mats[mk]-=n; const gain=n*compFeedBond(mk);
-  line(`🍖 ${MATS[mk][0]} ${MATS[mk][1]} ${n}개를 주었다. 유대 +${gain}`,"loot");
+function feedCompanionFood(fk,n){ const key=P.companion; if(!key||!COMPANIONS[key])return; const role=COMPANIONS[key].role;
+  n=Math.min(n,P.food[fk]||0); if(n<=0){ toast("먹이 부족"); return; }
+  P.food[fk]-=n; if(P.food[fk]<=0)delete P.food[fk]; const gain=n*foodBond(fk,role); const f=FOODS[fk];
+  line(`🍖 ${f.emoji} ${f.n} ${n}개를 주었다. 유대 +${gain}${f.role===role?" <b>(전용먹이 보너스!)</b>":""}`,"loot");
   gainCompBond(gain); if(typeof sfx==="function")sfx("heal"); render(); save(true); companionMenu(); }
 function setActiveCompanion(key){ if(!compOwned(key)){ toast("보유하지 않은 동료"); return; } if(key===P.companion){ companionMenu(); return; }
   P.companion=key; const d=compDisp(key,compRec(key).lv); line(`🔁 <b>${d.emoji} ${d.n}</b>와(과) 동행한다.`,"sys"); toast("동행 동료: "+d.n);
@@ -530,7 +537,7 @@ function claimMail(id){ const m=(P.mail||[]).find(x=>x.id===id); if(!m||m.claime
 function claimAllMail(){ let any=false; for(const m of (P.mail||[])){ if(!m.claimed){ grantReward(m.reward); m.claimed=true; any=true; } } if(any){ line("📬 모든 우편을 수령했다!","loot"); toast("전체 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); } mailboxMenu(); }
 window.claimMail=claimMail; window.claimAllMail=claimAllMail; window.mailboxMenu=mailboxMenu;
 /* 📦 통신판매 (캐쉬샵) — 💎다이아(크리스탈)로 결제 · 무료 웰컴 스타터팩 */
-const CASH_CHARM_GEMS=6, CASH_POTPACK_GEMS=4, CASH_MPPACK_GEMS=4;
+const CASH_CHARM_GEMS=6, CASH_POTPACK_GEMS=4, CASH_MPPACK_GEMS=4, CASH_FEED_GEMS=3;
 function cashShop(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
   setScene("📦","통신판매 — 캐쉬샵 배송함.");
   line('안내원: <span class="quote">"통신판매는 💎다이아로 결제돼요. 신규 모험가님껜 웰컴 스타터팩을 무료로 배송해 드립니다!"</span>');
@@ -541,15 +548,17 @@ function cashShop(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } sto
     {label:`⚜️ 강화의 축복 (💎${CASH_CHARM_GEMS})`,desc:`강화 성공↑·파괴 방지 · 보유 ${(P.consumables&&P.consumables.enhance_charm)||0}`,disabled:gems<CASH_CHARM_GEMS,act:()=>buyCash("charm")},
     {label:`🧪 물약 꾸러미 ×10 (💎${CASH_POTPACK_GEMS})`,desc:"HP 물약 10개 즉시 배송",disabled:gems<CASH_POTPACK_GEMS,act:()=>buyCash("potpack")},
     {label:`🫙 기력 물약 꾸러미 ×5 (💎${CASH_MPPACK_GEMS})`,desc:"고급 기력 물약 5개 (MP 60씩)",disabled:gems<CASH_MPPACK_GEMS,act:()=>buyCash("mppack")},
+    {label:`🥫 공용 사료 ×12 (💎${CASH_FEED_GEMS})`,desc:`아무 동료나 먹는 먹이 · 보유 ${(P.food&&P.food.food_any)||0}`,disabled:gems<CASH_FEED_GEMS,act:()=>buyCash("feed")},
     {label:`📬 우편함 열기${mailUnread()>0?` (${mailUnread()} NEW)`:""}`,desc:"운영자·이벤트 보상 수령",act:mailboxMenu},
     {label:"🏘 마을로",full:true,act:townMenu},
   ];
   setActions(acts); }
-function buyCash(kind){ const price={charm:CASH_CHARM_GEMS,potpack:CASH_POTPACK_GEMS,mppack:CASH_MPPACK_GEMS}[kind]; if((P.gems||0)<price){ toast("다이아 부족"); return; }
+function buyCash(kind){ const price={charm:CASH_CHARM_GEMS,potpack:CASH_POTPACK_GEMS,mppack:CASH_MPPACK_GEMS,feed:CASH_FEED_GEMS}[kind]; if((P.gems||0)<price){ toast("다이아 부족"); return; }
   P.gems-=price;
   if(kind==="charm"){ gainCons("enhance_charm"); line("⚜️ <b>강화의 축복</b>을 구매했다. (대장간 강화 시 성공↑·파괴 방지)","loot"); }
   else if(kind==="potpack"){ P.potions+=10; line("🧪 <b>물약 꾸러미</b> 도착! HP 물약 ×10","loot"); }
   else if(kind==="mppack"){ gainCons("mp_60",5); line("🫙 <b>기력 물약 꾸러미</b> 도착! 고급 기력 물약 ×5","loot"); }
+  else if(kind==="feed"){ gainFood("food_any",12); line("🥫 <b>공용 사료 꾸러미</b> 도착! 아무 동료나 주는 먹이 ×12","loot"); }
   toast(`구매 완료 (💎-${price})`); if(typeof sfx==="function")sfx("loot"); render(); save(true); cashShop(); }
 window.buyCash=buyCash;
 function claimWelcome(){ if(P.flags.welcomeClaimed)return; P.flags.welcomeClaimed=true;
@@ -777,7 +786,8 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
     .concat(Object.entries(P.consumables||{}).filter(([,q])=>q>0).map(([key,q])=>{ const c=CONS[key]; if(!c)return"";
       return `<div class="grow" title="${c.n} — ${(c.note||'').replace(/"/g,'')}"><span class="emo" onclick="itemInfo('cons','${key}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${c.emoji}</span><div class="gmeta"><div class="gn" onclick="itemInfo('cons','${key}')" style="cursor:pointer">${c.n} <b>×${q}</b> <span style="color:var(--dim);font-size:11px">ⓘ</span></div><div class="ge">${c.note}</div></div><div class="gbtns"><button class="ibtn" onclick="invUse('${key}')">사용</button></div></div>`; })).join("");
   // 재료
-  const mats = Object.entries(MATS).map(([k,[e,nm]])=>`<div class="mcell"><div class="me">${e}</div><div class="mq">${P.mats[k]||0}</div><div class="mn">${nm}</div></div>`).join("");
+  const mats = Object.entries(MATS).map(([k,[e,nm]])=>`<div class="mcell"><div class="me">${e}</div><div class="mq">${P.mats[k]||0}</div><div class="mn">${nm}</div></div>`).join("")
+    + (typeof FOODS!=="undefined"?Object.entries(FOODS).filter(([k])=>((P.food&&P.food[k])||0)>0).map(([k,f])=>`<div class="mcell" title="🍖 동료 먹이"><div class="me">${f.emoji}</div><div class="mq">${P.food[k]}</div><div class="mn">${f.n}</div></div>`).join(""):"");
   // 퀘스트 아이템
   const quest = (P.questItems&&P.questItems.length) ? P.questItems.map(n=>`<span class="chip" style="cursor:pointer" onclick="itemInfo('quest','${n}')">🗝 ${n} ⓘ</span>`).join("") : `<div class="inv-empty">없음</div>`;
   const buffLine = (P.buffs&&Object.keys(P.buffs).some(k=>P.buffs[k])) ? `<div class="ge" style="margin-top:6px;color:var(--mp)">활성 버프: ${P.buffs.atkPct?`공격 +${Math.round(P.buffs.atkPct*100)}% `:''}${P.buffs.magicPct?`마법 +${Math.round(P.buffs.magicPct*100)}% `:''}${P.buffs.critBonus?`치명 +${Math.round(P.buffs.critBonus*100)}% `:''}${P.buffs.defBonus?`방어 +${P.buffs.defBonus}`:''}</div>`:"";

@@ -834,7 +834,9 @@ function gainCompBond(n){ if(!P||!P.companion||n<=0)return; const rec=compRec(P.
     line(`🌟 <b>각성!</b> 동료가 <b>${d.emoji} ${d.n}</b>(으)로 진화했다!`,"loot"); if(typeof toast==="function")toast("동료 각성: "+d.n); if(typeof spawnFloat==="function")spawnFloat("🌟각성!","#ffd36a","me"); if(B&&B.comp&&B.comp.key===P.companion){ const nc=buildComp(P.companion); if(nc){ nc.energy=B.comp.energy; B.comp=nc; } } }
   else if(leveled){ const d=compDisp(P.companion,rec.lv); line(`✦ ${d.emoji} ${d.n} 유대 Lv.${rec.lv}`,"sys"); if(B&&B.comp&&B.comp.key===P.companion)B.comp.lv=rec.lv; } }
 /* ✨ 보스 처치 시 낮은 확률로 희귀 동료 영입 */
-function maybeDropCompanion(floor){ if(typeof RARE_COMPS==="undefined")return; const pool=RARE_COMPS.filter(k=>!compOwned(k)); if(!pool.length)return;
+function maybeDropCompanion(floor){ if(typeof RARE_COMPS==="undefined")return; let pool=RARE_COMPS.filter(k=>!compOwned(k));
+  if(typeof EXP!=="undefined" && EXP && typeof PION_COMPS!=="undefined")pool=pool.concat(PION_COMPS.filter(k=>!compOwned(k)));   // 🧭 개척 중엔 개척지 동료도 발견
+  if(!pool.length)return;
   if(!chance(clamp(0.05+(floor||1)*0.0015,0,0.12)))return; const key=pick(pool); ensureComp(key); const c=COMPANIONS[key];
   line(`✨ <b>${c.emoji} ${c.n}</b>이(가) 당신을 따르기로 했다! (동료 메뉴에서 교체 가능)`,"loot"); if(typeof toast==="function")toast("희귀 동료 영입: "+c.n); }
 
@@ -1050,6 +1052,7 @@ function winCombat(){
   if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사
   const g=enemy.g+rnd(6); P.gold+=g; line(`💰 금화 +${g}`,"loot"); spawnFloat("💰+"+g,"#ffe08a","foe");
   const mkeys=Object.keys(MATS); const m=mkeys[rnd(mkeys.length)]; const ma=1+rnd(2); addMat(m,ma); line(`${MATS[m][0]} ${MATS[m][1]} +${ma}`,"loot");
+  if(typeof FOODS!=="undefined" && chance(wasBoss?1:0.28)){ const fk=pick(["food_heal","food_dps","food_tank"]); const fa=(wasBoss?2:1)+rnd(2); gainFood(fk,fa); line(`${FOODS[fk].emoji} <b>${FOODS[fk].n}</b> +${fa} <span style="color:var(--dim)">(동료 먹이)</span>`,"loot"); }   // 🍖 동료 먹이 드랍
   { const st=pick(["str","int","dex","vit","luk"]); const tp=3+rnd(3)+Math.floor((enemy.atk||6)/4)+(wasBoss?12:0)+(enemy.elite?6:0);   // 처치마다 숙련 획득(강한 적일수록↑) → 오르면 플로트로 축하
     const up=trainStat(st,tp); if(up>0)spawnFloat(`✦ ${STAT_NAME[st]} +${up}`,"#9be08a","me"); }
   if(wasBoss){ bossReward(); if(chance(0.4))dropManaOrb(); if(chance(0.55)){ const gm=1+rnd(2); P.gems=(P.gems||0)+gm; line(`💎 <b>크리스탈 +${gm}</b> (프로필 커스터마이징 재화)`,"loot"); }

@@ -55,6 +55,7 @@ function normalizeP(){ if(!P)return;
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
   if(!P.expProg||typeof P.expProg!=="object")P.expProg={};   // 🧭 개척 구역 진행 저장
+  if(!P.food||typeof P.food!=="object")P.food={};   // 🍖 동료 먹이 보유량(food_heal/dps/tank/any)
   if(!Array.isArray(P.mail))P.mail=[]; if(!P.mailInit||typeof P.mailInit!=="object")P.mailInit={};   // 📬 우편함 · 지급 완료 시드 추적
   if(typeof seedMail==="function")seedMail();   // 운영자 우편(신규 시드) 지급함에 넣기
   if(!P.feats||typeof P.feats!=="object")P.feats={};   // 🎖 칭호용 업적 카운터
@@ -98,7 +99,9 @@ function questCur(id){ const q=P.quests[id]; const g=QUESTS[id].goal; if(!q)retu
 function questGoalN(id){ return QUESTS[id].goal.n||1; }
 function questPct(id){ return clamp(Math.round(questCur(id)/questGoalN(id)*100),0,100); }
 function rewardText(r){ const p=[]; if(r.gold)p.push(`💰${r.gold}`); if(r.mats)for(const m in r.mats)p.push(`${MATS[m][0]}${r.mats[m]}`);
-  if(r.item)p.push(`🎁 ${r.item}`); if(r.book&&CONS[r.book])p.push(`${CONS[r.book].emoji} ${CONS[r.book].n}`); if(r.title&&TITLES[r.title])p.push(`🎖️ ${TITLES[r.title].n} 칭호`); return p.join(" · "); }
+  if(r.item)p.push(`🎁 ${r.item}`); if(r.book&&CONS[r.book])p.push(`${CONS[r.book].emoji} ${CONS[r.book].n}`); if(r.title&&TITLES[r.title])p.push(`🎖️ ${TITLES[r.title].n} 칭호`);
+  if(r.gems)p.push(`💎${r.gems}`); if(r.food&&typeof FOODS!=="undefined")for(const k in r.food){ if(FOODS[k])p.push(`${FOODS[k].emoji}${r.food[k]}`); }
+  if(r.comp&&typeof COMPANIONS!=="undefined"&&COMPANIONS[r.comp])p.push(`✨ ${COMPANIONS[r.comp].emoji} ${COMPANIONS[r.comp].n} 동료`); return p.join(" · "); }
 function acceptQuest(id){ if(!QUESTS[id]||P.quests[id])return;
   P.quests[id]={status:"active", base:0};   // 누적 기준(총 처치/보유 등)
   line(`📜 퀘스트 개시: <b>${QUESTS[id].n}</b> — ${QUESTS[id].desc}`,"loot"); toast("새 퀘스트"); checkQuests(); }
@@ -108,8 +111,10 @@ function autoActivateQuests(){ if(!P.quests)P.quests={};
   for(const id of Object.keys(QUESTS)){ const q=QUESTS[id]; if(q.tower)continue; if(q.type==="main"&&!P.quests[id])P.quests[id]={status:"active",base:0}; } }
 function completeQuest(id){ const def=QUESTS[id]; if(!def||!P.quests[id]||P.quests[id].status==="done")return; P.quests[id].status="done";
   const r=def.reward||{};
-  if(r.gold)P.gold+=r.gold; if(r.mats)for(const m in r.mats)addMat(m,r.mats[m]);
+  if(r.gold)P.gold+=r.gold; if(r.gems)P.gems=(P.gems||0)+r.gems; if(r.mats)for(const m in r.mats)addMat(m,r.mats[m]);
   if(r.item)addRelic(r.item); if(r.book)gainCons(r.book); if(r.title&&!P.titles.includes(r.title))P.titles.push(r.title);
+  if(r.cons)for(const k in r.cons)gainCons(k,r.cons[k]); if(r.food)for(const k in r.food)gainFood(k,r.food[k]);
+  if(r.comp&&typeof ensureComp==="function"&&typeof COMPANIONS!=="undefined"&&COMPANIONS[r.comp]&&!compOwned(r.comp)){ ensureComp(r.comp); const c=COMPANIONS[r.comp]; line(`✨ <b>${c.emoji} ${c.n}</b> 동료를 영입했다! (동료 메뉴에서 교체)`,"loot"); if(typeof toast==="function")toast("동료 영입: "+c.n); }
   line(`✅ <b>퀘스트 완료: ${def.n}</b> — 보상: ${rewardText(r)}`,"loot"); toast("퀘스트 완료: "+def.n); checkTitleUnlocks(); render(); }
 function checkQuests(){ if(!P.quests)return; for(const id of Object.keys(P.quests)){ const q=P.quests[id]; if(!q||q.status!=="active"||!QUESTS[id])continue;
   if(questCur(id)>=questGoalN(id)) completeQuest(id); } }
@@ -129,6 +134,7 @@ function unequipSlot(slot){ P.equip[slot]=null; render(); inventoryMenu(); }
 function dropByIndex(i){ const it=P.inv[i]; if(!it)return; if(!confirm(`${it.k}을(를) 버릴까요?`))return;
   const g=RELICS[it.k]; if(g&&g.slot&&P.equip[g.slot]===it.id)P.equip[g.slot]=null; P.inv.splice(i,1); toast(`${it.k} 버림`); render(); inventoryMenu(); }
 function gainCons(key,n){ P.consumables[key]=(P.consumables[key]||0)+(n||1); }
+function gainFood(key,n){ if(!P.food)P.food={}; P.food[key]=(P.food[key]||0)+(n||1); }   // 🍖 동료 먹이 획득
 function learnFromBook(skillKey){ if(!SKILLS[skillKey])return false; if(hasSkill(skillKey)){ toast("이미 배운 스킬"); return false; }
   P.skills.push(skillKey); const s=SKILLS[skillKey];
   if(s.type==="active"){ if(!P.skillProf[skillKey])P.skillProf[skillKey]={lv:1,xp:0}; if(P.loadout.length<activeCap())P.loadout.push(skillKey); }

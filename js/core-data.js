@@ -127,8 +127,28 @@ const COMPANIONS={
     evo:[{n:"피의 까마귀",emoji:"🐦‍⬛"},{n:"까마귀 군주",emoji:"🦅"},{n:"밤의 처형자",emoji:"🌑"}]},
   warden:{n:"무덤지기",emoji:"🪦",role:"tank",ic:"fairy_steel",rare:true,note:"받는 피해↓ · 각성할수록 불굴",
     evo:[{n:"무덤지기",emoji:"🪦"},{n:"납골당 수호자",emoji:"⚰️"},{n:"불멸의 파수꾼",emoji:"💀"}]},
+  // 🦇 보스 초희귀 영입
+  bat:{n:"심연의 박쥐",emoji:"🦇",role:"dps",ic:"fairy_imp",rare:true,note:"어둠 속 급습 · 각성할수록 치명적",
+    evo:[{n:"심연의 박쥐",emoji:"🦇"},{n:"밤의 흡혈귀",emoji:"🧛"},{n:"공허의 날개",emoji:"🖤"}]},
+  // 🦉 전용 퀘스트 보상
+  owl:{n:"현자의 부엉이",emoji:"🦉",role:"heal",ic:"fairy_light",quest:true,note:"지혜의 치유 · 각성할수록 강한 회복",
+    evo:[{n:"현자의 부엉이",emoji:"🦉"},{n:"별을 읽는 부엉이",emoji:"🌙"},{n:"예언의 대현자",emoji:"🔮"}]},
+  // 🐢🦂 개척지 발견
+  turtle:{n:"바위지기 거북",emoji:"🐢",role:"tank",ic:"fairy_steel",pion:true,note:"단단한 등껍질 · 각성할수록 철벽",
+    evo:[{n:"바위지기 거북",emoji:"🐢"},{n:"이끼바위 수호귀",emoji:"🪨"},{n:"대지의 산악귀",emoji:"⛰️"}]},
+  scorpion:{n:"사막 전갈",emoji:"🦂",role:"dps",ic:"fairy_imp",pion:true,note:"맹독 집게 · 각성할수록 치명 맹독",
+    evo:[{n:"사막 전갈",emoji:"🦂"},{n:"모래폭풍 전갈",emoji:"🌪️"},{n:"독왕 데스스팅",emoji:"☠️"}]},
 };
-const STARTER_COMPS=["light","imp","steel"], RARE_COMPS=["wisp","raven","warden"], STARTER_RECRUIT_GEMS=8;
+const STARTER_COMPS=["light","imp","steel"], RARE_COMPS=["wisp","raven","warden","bat"], PION_COMPS=["turtle","scorpion"], QUEST_COMPS=["owl"], STARTER_RECRUIT_GEMS=8;
+/* 🍖 동료 먹이 — 아무 재료나 못 먹고 '역할별 전용먹이' + '공용사료'로만 성장 (까마귀가 광석 씹는 일은 이제 없다) */
+const FOODS={
+  food_heal:{n:"치유의 새싹",emoji:"🌿",role:"heal",note:"회복형 동료 전용 먹이 · 유대 대폭↑"},
+  food_dps: {n:"핏빛 열매", emoji:"🩸",role:"dps", note:"공격형 동료 전용 먹이 · 유대 대폭↑"},
+  food_tank:{n:"단단한 정광",emoji:"⛰️",role:"tank",note:"방어형 동료 전용 먹이 · 유대 대폭↑"},
+  food_any: {n:"공용 사료", emoji:"🥫",role:"any", note:"아무 동료나 먹는 사료 · 유대↑ (통신판매)"},
+};
+const FOOD_BY_ROLE={heal:"food_heal",dps:"food_dps",tank:"food_tank"};
+function foodBond(fk,role){ if(fk==="food_any")return 15; const f=FOODS[fk]; if(!f)return 0; return f.role===role?28:8; }
 function compOwned(key){ return !!(P&&P.comps&&P.comps[key]); }
 function ensureComp(key){ if(!P.comps)P.comps={}; if(!P.comps[key])P.comps[key]={bond:0,lv:1,awk:0}; return P.comps[key]; }
 /* 🐾 동료 성장(유대/각성) — 동료별로 기록(P.comps[key]={bond,lv,awk}) */
@@ -419,6 +439,7 @@ const QUESTS={
   q_beyond:{n:"차원 너머로",type:"main",giver:"촌장",desc:"탑 31층 '균열의 입구'에 도달",goal:{type:"floor",n:31},reward:{gold:600,item:"월광 세이버"}},
   q_summit:{n:"탑의 끝",type:"main",giver:"촌장",desc:"탑 50층 정상에 도달",goal:{type:"floor",n:50},reward:{gold:1500,mats:{mana:15,ore:15}}},
   q_tower1:{n:"잃어버린 부적",type:"sub",giver:"탑의 유령",tower:true,desc:"탑 8층까지 도달",goal:{type:"floor",n:8},reward:{gold:120,item:"흡혈의 반지"}},
+  q_owl:{n:"현자의 부탁",type:"sub",cat:"reco",giver:"떠돌이 현자",desc:"몬스터 60마리 처치 — 부엉이가 따를 것이다",goal:{type:"kills",n:60},reward:{gold:220,comp:"owl",food:{food_heal:5}}},
 };
 const TITLES={
   warrior:{n:"전사",emoji:"⚔️",stats:{str:2},mods:{atkPct:0.12,hp:20},note:"힘 +2 · 공격 +12% · 최대HP +20",how:"힘 14 달성",unlock:p=>p.stats.str>=14},
