@@ -500,12 +500,30 @@ function unequipTitle(){ P.title=null; render(); line("칭호를 해제했다.",
 /* 📖 아이템 도감 — 발견한 장비 수집 (희귀도·출처 표기) */
 function itemRarity(g){ const v=(g&&g.val)||0; return v>=1500?{n:"신화",c:"#ff8f3c"}:v>=700?{n:"전설",c:"#e8c56a"}:v>=300?{n:"희귀",c:"#a98bff"}:v>=80?{n:"고급",c:"#8fd0ff"}:{n:"일반",c:"#9aa4b8"}; }
 function itemSource(name){ const g=RELICS[name]||{}; if(typeof GEAR_TIERS!=="undefined"){ if(GEAR_TIERS.myth.includes(name))return "정점 보스(45층+)"; if(GEAR_TIERS.rift.includes(name))return "시공 균열(31~45층)"; if(GEAR_TIERS.sky.includes(name))return "천공(16~30층)"; } if(g.shop==="weapon")return "무기 상점"; if(g.shop==="armor")return "장비 상점"; return "탐험·보스 드랍"; }
-function codexMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; } render(); clearLog(); setScene("📖","도감 — 수집한 장비");
+let dexTab="gear";   // 📖 도감 탭(gear=장비 / mon=몬스터)
+function setDexTab(t){ dexTab=t; codexMenu(); }
+window.setDexTab=setDexTab;
+/* 도감 통계(장비/몬스터 수집률) */
+function dexGearStat(){ const all=Object.keys(RELICS).filter(k=>RELICS[k].slot); const got=all.filter(k=>!!(P.codex&&P.codex[k])).length; return {got,all:all.length}; }
+function dexMonList(){ return [].concat(ENEMIES,ENEMIES2,ENEMIES3,Object.values(BOSSES)); }
+function dexMonStat(){ const list=dexMonList(); const got=list.filter(e=>{ const b=P.bestiary&&P.bestiary[e.n]; return b&&b.kills>0; }).length; return {got,all:list.length}; }
+function codexMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; } render(); clearLog();
+  setScene("📖", dexTab==="mon"?"도감 — 몬스터":"도감 — 수집한 장비");
+  const gs=dexGearStat(), ms=dexMonStat();
+  const tabs=`<div class="invtabs">`
+    +`<button type="button" class="invtab ${dexTab==='gear'?'on':''}" onclick="setDexTab('gear')">🗡 장비 <i>${gs.got}/${gs.all}</i></button>`
+    +`<button type="button" class="invtab ${dexTab==='mon'?'on':''}" onclick="setDexTab('mon')">👹 몬스터 <i>${ms.got}/${ms.all}</i></button>`
+    +`</div>`;
+  const body = dexTab==="mon" ? dexMonsterHtml() : dexGearHtml();
+  $("log").innerHTML=tabs+`<div class="dexwrap">${body}</div>`; const lg=$("log"); if(lg)lg.scrollTop=0;
+  setActions([{label:"← 닫기",full:true,act:()=> inDive?backToClimb():townMenu()}]); }
+/* 📖 장비 도감 본문 */
+function dexGearHtml(){
   const all=Object.keys(RELICS).filter(k=>RELICS[k].slot); const seen=k=>!!(P.codex&&P.codex[k]);
   const got=all.filter(seen).length; const order=["신화","전설","희귀","고급","일반"];
   const groups={}; order.forEach(o=>groups[o]=[]); all.forEach(k=>groups[itemRarity(RELICS[k]).n].push(k));
   const rcol={"신화":"#ff8f3c","전설":"#e8c56a","희귀":"#a98bff","고급":"#8fd0ff","일반":"#9aa4b8"};
-  let html=`<div class="dexhead">📖 수집 <b>${got}</b> / ${all.length} <span class="dexpct">(${Math.round(got/all.length*100)}%)</span></div>`;
+  let html=`<div class="dexhead">🗡 수집 <b>${got}</b> / ${all.length} <span class="dexpct">(${Math.round(got/all.length*100)}%)</span></div>`;
   order.forEach(o=>{ const list=groups[o]; if(!list.length)return;
     html+=`<div class="dexgrp" style="color:${rcol[o]}">${o} <span>${list.filter(seen).length}/${list.length}</span></div><div class="dexlist">`;
     list.sort((a,b)=>(RELICS[b].val||0)-(RELICS[a].val||0)).forEach(k=>{ const g=RELICS[k];
@@ -513,8 +531,32 @@ function codexMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; 
         ? `<div class="dexrow"><span class="dxic">${ico(relicIco(k),26)}</span><div class="dxm"><div class="dxn">${k} <span class="dxslot">${SLOT_LABEL[g.slot]||""}</span></div><div class="dxd">${g.note||""}</div><div class="dxsrc">📍 ${itemSource(k)} · 판매가 ${g.val||0}G</div></div></div>`
         : `<div class="dexrow lock"><span class="dxic">🔒</span><div class="dxm"><div class="dxn">??? <span class="dxslot">${SLOT_LABEL[g.slot]||""}</span></div><div class="dxd">미발견</div><div class="dxsrc">📍 ${itemSource(k)}</div></div></div>`;
     }); html+=`</div>`; });
-  $("log").innerHTML=`<div class="dexwrap">${html}</div>`; const lg=$("log"); if(lg)lg.scrollTop=0;
-  setActions([{label:"← 닫기",full:true,act:()=> inDive?backToClimb():townMenu()}]); }
+  return html; }
+/* 👹 몬스터 도감 본문 — 처치수·약점·기믹·시그니처 드랍 기록 */
+function dexMonsterHtml(){
+  const zones=[
+    {t:"🗼 시련의 탑 · 1~15층", list:ENEMIES},
+    {t:"☁️ 천공의 성역 · 16~30층", list:ENEMIES2},
+    {t:"🌌 시공의 균열 · 31~50층", list:ENEMIES3},
+    {t:"👑 층 보스", list:Object.values(BOSSES)},
+  ];
+  const ms=dexMonStat();
+  let html=`<div class="dexhead">👹 발견 <b>${ms.got}</b> / ${ms.all} <span class="dexpct">(${Math.round(ms.got/ms.all*100)}%)</span></div>`;
+  zones.forEach(z=>{
+    const seenN=z.list.filter(e=>{ const b=P.bestiary&&P.bestiary[e.n]; return b&&b.kills>0; }).length;
+    html+=`<div class="dexgrp" style="color:#c9b48a">${z.t} <span>${seenN}/${z.list.length}</span></div><div class="dexlist">`;
+    z.list.forEach(e=>{ const b=P.bestiary&&P.bestiary[e.n]; const seen=b&&b.kills>0;
+      if(!seen){ html+=`<div class="dexrow lock"><span class="dxic">🔒</span><div class="dxm"><div class="dxn">??? <span class="dxslot">미발견</span></div><div class="dxd">쓰러뜨리면 기록된다</div></div></div>`; return; }
+      const wk=P.codexWeak&&P.codexWeak[e.n];
+      const weakHtml = wk&&ELEMENTS[wk]
+        ? `<span style="color:${ELEMENTS[wk].col}">${ELEMENTS[wk].ic} ${ELEMENTS[wk].n} 약점</span>`
+        : `<span style="color:var(--dim)">약점 ❓</span>`;
+      const mk=MONSTER_MECH[e.n]; const mechHtml = mk&&MECH_INFO[mk] ? ` · <span style="color:#e0b0ff">${MECH_INFO[mk].ic} ${MECH_INFO[mk].n}</span>` : "";
+      const sig=MONSTER_SIG[e.n]||[];
+      const dropHtml = sig.length ? `<div class="dxsrc">🎁 ${sig.map(it=> (b.drops&&b.drops[it])?`<b style="color:var(--good)">✔ ${it}</b>`:`<span style="color:var(--dim)">${it}</span>`).join(" · ")}</div>` : "";
+      html+=`<div class="dexrow"><span class="dxic">${ico(e.ic,26)}</span><div class="dxm"><div class="dxn">${e.n} <span class="dxslot">⚔ ${b.kills}</span></div><div class="dxd">${weakHtml}${mechHtml}</div>${dropHtml}</div></div>`;
+    }); html+=`</div>`; });
+  return html; }
 /* 🔨 제작소 — 재료+금화로 세트 장비·내성 아이템 제작 */
 function craftGearCost(k){ const v=RELICS[k].val||300; return {gold:Math.round(v*0.7), mats:{ore:Math.max(3,Math.round(v/130)), mana:Math.max(2,Math.round(v/220))}}; }
 function craftConsCost(k){ const v=CONS[k].val||150; return {gold:Math.round(v*0.6), mats:{herb:Math.max(2,Math.round(v/90))}}; }
