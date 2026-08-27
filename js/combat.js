@@ -126,6 +126,7 @@ function startPlayerTurn(){ if(!enemy)return; B.turn=(B.turn||0)+1; if(hasSkill(
   if(EXP && B.turn>1 && regionTurnTick())return;   // 개척: 지역 디버프 지속 피해(2턴째부터)
   if(B.summon && B.summon.turns>0 && enemy){ summonTick(); if(!enemy)return; }   // 소환수 자동 공격(특성 적용)
   B.quickProcs = 0;   // 턴 쪼개기: 이번 턴 속공 발동 횟수 리셋
+  line(`<div class="turndiv me">🗡 내 턴</div>`);   // 🗡 턴 구분: 내 턴 시작
   playerPhase(); }
 function playerPhase(){ if(!enemy)return; render(); setSceneFoe();
   const heavy=B.enemyIntent&&(B.enemyIntent.type==="heavy"||B.enemyIntent.type==="special");
@@ -744,7 +745,11 @@ function quickProcChance(){ return clamp(0.05 + estat("dex")*0.004 + LUKv()*0.00
 function quickProcCheck(){ if(!enemy||enemy.hp<=0)return false; if((B.quickProcs||0)>=1)return false; return chance(quickProcChance()); }   // 턴당 1회로 제한
 function afterPlayerAction(){ if(!enemy)return;
   if(quickProcCheck()){ B.quickProcs=(B.quickProcs||0)+1; line("⚡ <b>속공 발동!</b> 빈틈을 파고들어 한 번 더 행동한다!","loot"); bigPop("SPEED!","#8fd0ff"); fxShake(); render(); playerPhase(); return; }
-  companionPhase(()=>{ if(enemy&&P.hp>0)enemyPhase(); }); }
+  companionPhase(()=>{ if(enemy&&P.hp>0)toEnemyPhase(); }); }
+/* ⏳ 내 편(나+동료) 행동이 끝나면 '상대의 턴' 구분선을 띄우고 잠깐 텀을 둔 뒤 적이 행동 (턴이 겹쳐 보이지 않게) */
+function toEnemyPhase(){ if(!enemy||P.hp<=0)return; setActions([]);   // 적 턴 동안 커맨드 비활성
+  line(`<div class="turndiv foe">👹 상대의 턴</div>`); render();
+  setTimeout(()=>{ if(enemy&&P.hp>0)enemyPhase(); }, 620); }
 
 function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; const lv=c.lv||1, tier=c.tier||0, ru=c.rune||{}; c.energy=Math.min(c.max,c.energy+1);
   if(ru.mom&&typeof gainMomentum==="function")gainMomentum(ru.mom);   // 🌟 기세의 룬
