@@ -15,6 +15,8 @@ function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); 
   setActions([{label:`${floor}층 탐험 시작`,full:true,act:enterFloor},
     {label:"🏘 마을로 (준비하고 다시)",full:true,act:townMenu}]); }   // 뒤로 — 깜빡한 준비가 있으면 돌아가기
 function returnToTown(){ line("밧줄을 타고 탑을 빠져나왔다. 획득물은 그대로다.","sys"); setTimeout(townMenu,150); }
+let deathCause="";   // 💀 마지막으로 플레이어를 쓰러뜨린 원인(사인 표시용)
+function setDeathCause(c){ deathCause=c; }
 
 const ENEMIES=[
   {n:"동굴 박쥐",ic:"bat",hp:12,atk:4,def:0,g:6,tier:1,taunt:["끼이익—","날개가 얼굴을 스친다."]},
@@ -732,7 +734,8 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
     winCombat(); return true; }
   checkEnrage();                                            // 💢 광폭화 문턱 판정
   if(enemy.mech==="thorns" && dmg>0 && P.hp>0){ const r=Math.max(1,Math.round(dmg*0.12)); P.hp-=r;   // 🌵 가시 반사
-    line(`🌵 ${enemy.n}의 가시가 되받아친다 — ${r} 피해.`,"dmg"); spawnFloat("-"+r,"#ff8a8a","me"); render(); if(P.hp<=0){ die(); return false; } }
+    deathCause=`🌵 ${enemy.n}의 가시 반사 — 내 공격이 되받아쳐짐 (${r} 피해)`;
+    line(`🌵 ${enemy.n}의 가시가 되받아친다 — ${r} 피해. <span style="color:var(--dim)">(내 공격 반사)</span>`,"dmg"); spawnFloat("-"+r,"#ff8a8a","me"); render(); if(P.hp<=0){ die(); return false; } }
   return false; }
 function checkEnrage(){ if(!enemy||enemy.mech!=="enrage"||enemy.enraged)return; if(enemy.hp/enemy.hpMax<=0.30){ enemy.enraged=true; enemy.atk=Math.round(enemy.atk*1.5);
     line(`💢 <b>${enemy.n}이(가) 광폭화했다!</b> 공격이 사나워진다.`,"dmg"); bigPop("ENRAGE!","#ff5a5a"); fxShake(); setSceneFoe(); } }
@@ -773,8 +776,8 @@ function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(
   const gp=hasSkill("guard_up");
   if(B.block==="perfect")dmg=Math.round(dmg*(gp?0:0.05)); else if(B.block==="good")dmg=Math.round(dmg*(gp?0.35:0.5)); else if(B.block==="weak")dmg=Math.round(dmg*0.85);
   if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.55,0.18+(B.comp.lv||1)*0.004+(B.comp.tier||0)*0.04+((B.comp.rune&&B.comp.rune.tankRed)||0)); dmg=Math.round(dmg*(1-red)); } return Math.max(0,dmg); }
-function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
-function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
+function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
+function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
 function chargeNeed(){ return Math.max(24, Math.round(ATK()*2.3)); }   // 3턴 안에 화력을 퍼부으면 저지 가능한 수준
 /* 보스 궁극기 충전 시작 — HP 문턱을 넘을 때마다 (총 2회) */
 function maybeStartCharge(){ if(!enemy||!enemy.boss||B.charge)return false;
@@ -831,7 +834,7 @@ function enemyPhase(){ if(!enemy)return;
   if(enemy.staggered && !enemy.stagUsed){   // 그로기 진입: 적 행동 불가 · 다음 내 턴에 추격(콤보/강타) 가능
     enemy.stagUsed=true; line(`💫 ${enemy.n}은(는) 그로기 상태! 이번 턴 행동하지 못한다. (다음 턴에 추격!)`,"sys");
     B.block=null; B.parry=null; B.shield=false; B.enemyGuard=0;
-    if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); if(P.hp<=0){ die(); return; } }
+    if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); if(P.hp<=0){ die(); return; } }
     render(); B.enemyIntent=rollIntent(); startPlayerTurn(); return; }
   if(enemy.staggered && enemy.stagUsed){    // 추격 턴 종료 → 그로기 회복 후 정상 행동
     line(`${enemy.n}이(가) 그로기에서 회복한다.`,"sys"); enemy.staggered=false; enemy.stagUsed=false; enemy.groggy=0; updateGroggyBar(); }
@@ -859,7 +862,7 @@ function resolveEnemyAttack(mult,it,pr){ if(!enemy)return;
   endEnemyTurn(); }
 /* 적 턴 마무리 (독 틱 · 다음 인텐트 · 돌발 · 다음 플레이어 턴) */
 function endEnemyTurn(){ if(!enemy)return; B.block=null; B.parry=null; B.shield=false; if(P.hp<=0){ die(); return; }
-  if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); if(P.hp<=0){ die(); return; } }
+  if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); if(P.hp<=0){ die(); return; } }
   render();
   if(maybeStartCharge()){ startPlayerTurn(); return; }   // 보스: HP 문턱 도달 → 궁극기 충전 개시
   B.enemyIntent=rollIntent();
@@ -946,8 +949,20 @@ function fleeChance(){ if(typeof enemy==="undefined"||!enemy)return clamp(0.5+LU
 function fleeText(){ return `행운 판정 · 성공 ~${Math.round(fleeChance()*100)}%`; }
 function playerFlee(){ if(chance(fleeChance())){ line("재빠르게 도망쳤다!","sys"); enemy=null; B=null;
     if(expReturn){ const r=expReturn; expReturn=null; r(); return; }   // 대륙 개척: 개척 허브로 복귀
-    returnToTown(); return;   // 🏃 도망 성공 → 마을로 (탑 계속 등반 방지)
+    fleeRetreat(); return;   // 🏃 도망 성공 → 지나온 마지막 포탈(거점)로 후퇴
   } else{ line("도망 실패!","dmg"); afterPlayerAction(); } }
+/* 🏃 도망 성공 시 지나온 마지막 포탈로 후퇴 → 거기서 휴식·재등반·마을 선택 */
+function fleeRetreat(){ const passed=(P.portals||[1]).filter(f=>f<=(P.floor||1)); const back=passed.length?Math.max.apply(null,passed):1;
+  if(CHECKPOINTS[back]){ P.floor=back; P.mp=clamp(P.mp,0,MAXMP()); render(); save(true);
+    line(`지나온 <b>${back}층 거점 '${CHECKPOINTS[back].n}'</b>(으)로 후퇴했다.`,"sys");
+    setTimeout(()=>checkpointTown(back),160); return; }
+  // 지나온 거점이 없다(초반 1~5층) → 탑 입구로
+  P.floor=1; render(); save(true); clearLog(); setScene("🚪","탑 입구 — 도망쳐 내려왔다.");
+  line("지나온 거점이 없어 <b>탑 입구</b>까지 도망쳐 내려왔다.","sys");
+  setActions([
+    {label:"🪜 다시 오른다 (1층부터)",full:true,act:()=>{ enterFloor(); }},
+    {label:"🏘 마을로 돌아간다",full:true,act:returnToTown},
+  ]); }
 /* 확률 헬퍼: 두 주사위(rnd12) 대결에서 이길 확률 등 */
 function pctRoll(margin){ let c=0; for(let a=0;a<12;a++)for(let b=0;b<12;b++)if(a-b>=margin)c++; return c/144; }
 
@@ -1171,7 +1186,7 @@ function regionResisted(){ const d=regionDebuff(); return !!(d && P.buffs && P.b
 function applyRegionDebuff(){ const d=regionDebuff(); if(!d||!B)return;   // 전투 시작 시 정적 디버프 적용(내성 없으면)
   if(regionResisted()){ line(`🧪 <b>${d.n}</b> 내성 — 지역 디버프 무효.`,"heal"); return; }
   if(d.applyB)d.applyB(B); line(`${d.icon} 지역 디버프 <b>${d.n}</b> 활성 — ${d.desc}`,"dmg"); }
-function regionTurnTick(){ const d=regionDebuff(); if(!d||!d.onTurn||!enemy||regionResisted())return; d.onTurn(); render(); if(P.hp<=0){ die(); return true; } return false; }
+function regionTurnTick(){ const d=regionDebuff(); if(!d||!d.onTurn||!enemy||regionResisted())return; d.onTurn(); if(P.hp<=0)deathCause=`${d.icon||"🌫"} 지역 효과 · ${d.n||"디버프"}`; render(); if(P.hp<=0){ die(); return true; } return false; }
 /* 🧭 대륙 선택 */
 function startExpedition(){ if(enemy){ toast("전투 중엔 갈 수 없다"); return; } stopAuctionTimer(); auction=null; expSelectContinent(); }
 function expSelectContinent(){ mode="town"; EXP=null; render(); clearLog(); setScene("🧭","대륙 개척 — 어느 대륙으로?");

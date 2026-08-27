@@ -83,7 +83,7 @@ async function netRecoveryRegen() {   // 🔑 로그인 상태에서 복구 코�
   const d = await netFetch("/api/recovery/regen", { method: "POST", body: {} }); return d.recoveryCode;
 }
 function netStoreAuth(d) {
-  NET.token = d.token; NET.userId = d.userId; NET.name = d.name; NET.nick = d.nick || d.name; NET.online = true;
+  NET.token = d.token; NET.userId = d.userId; NET.name = d.name; NET.nick = d.nick || d.name; NET.online = true; NET.justLoggedInAt = Date.now();   // 🚫 방금 로그인 표시(자기 킥 방지)
   localStorage.setItem("nt_token", d.token); localStorage.setItem("nt_uid", d.userId); localStorage.setItem("nt_name", d.name);
   localStorage.setItem("nt_nick", NET.nick);
 }
@@ -127,6 +127,13 @@ function netConnectSSE() {
   es.addEventListener("auction", (e) => { try { NET.onAuction && NET.onAuction(JSON.parse(e.data)); } catch (x) {} });
   es.addEventListener("townpos", (e) => { try { NET.onTownPos && NET.onTownPos(JSON.parse(e.data)); } catch (x) {} });
   es.addEventListener("townleave", (e) => { try { NET.onTownLeave && NET.onTownLeave(JSON.parse(e.data)); } catch (x) {} });
+  es.addEventListener("kicked", (e) => {   // 🚫 다른 기기에서 로그인 → 이 연결 강제 종료
+    if (es !== NET.sse) return;   // 이미 새 연결로 교체됐으면 무시(자기 자신 킥 방지)
+    if (Date.now() - (NET.justLoggedInAt || 0) < 3000) return;   // 방금 내가 로그인한 직후면 무시
+    let reason = "다른 기기에서 로그인"; try { reason = (JSON.parse(e.data) || {}).reason || reason; } catch (x) {}
+    try { es.close(); } catch (x) {} NET.sse = null; NET.online = false;
+    if (typeof onKicked === "function") onKicked(reason);
+  });
   es.onerror = () => { /* EventSource가 자동 재연결 */ };
   netPing(); startVersionWatch();   // 🔄 접속 시 부팅ID 기준값 기록 + 주기적 재배포 감지
 }

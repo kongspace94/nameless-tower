@@ -2,11 +2,17 @@
 /* ============================================================
    죽음 / 승리 (로그라이트: 마을 귀환, 캐릭터 유지)
    ============================================================ */
-function die(){ stopAuctionTimer(); enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); clearLog(); setScene("💀","");
+function die(){ stopAuctionTimer();
+  let lastLog=[]; try{ const lg=$("log"); if(lg){ lastLog=(lg.innerText||"").trim().split("\n").map(s=>s.trim()).filter(Boolean).slice(-4); } }catch(e){}   // 죽기 직전 로그(맥락) 보존
+  const cause=(typeof deathCause==="string"&&deathCause)?deathCause:"";
+  enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); clearLog(); setScene("💀","");
   line(`<b style="color:var(--danger)">탑 ${P.floor}층에서 정신을 잃었다…</b>`);
+  if(cause)line(`<b>사인:</b> ${cause}`,"dmg");   // 💀 무엇에 쓰러졌는지 명확히
+  if(lastLog.length)line(`<div style="font-size:11.5px;color:var(--dim);margin-top:2px">— 마지막 순간 —<br>${lastLog.map(s=>s.replace(/</g,"&lt;")).join("<br>")}</div>`,"quote");
   line("눈을 떠보니 마을 어귀였다. 누군가 당신을 옮겨준 모양이다.","quote");
   const loss=Math.floor(P.gold*0.1); if(loss>0){ P.gold-=loss; line(`정신없는 사이 금화 ${loss}를 잃었다.`,"dmg"); }
   line("얻은 재료와 스킬, 스탯은 그대로다.","sys");
+  if(typeof deathCause!=="undefined")deathCause="";   // 초기화
   render(); setActions([{label:"🏘 마을로 돌아간다",full:true,act:townMenu}]); }
 function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene("👑","");
   const good=P.karma>=3, evil=P.karma<=-3;
@@ -306,6 +312,19 @@ async function submitRecover(){ const err=$("recErr"); const setErr=(m,c)=>{ if(
   setErr("복구 중…","var(--dim)");
   try{ await netRecover(name, code, np); toast("복구 완료 — 로그인됐어요: "+NET.name); onlineScreen(); }
   catch(e){ setErr("복구 실패 — "+e.message); }
+}
+/* 🚫 다른 기기에서 로그인되어 이 세션이 강제 종료됨 (net.js kicked 이벤트) */
+function onKicked(reason){
+  try{ if(typeof stopTownPresence==="function")stopTownPresence(); }catch(e){}
+  try{ if(typeof stopChatTimer==="function")stopChatTimer(); }catch(e){}
+  enemy=null; B=null; auction=null;
+  try{ localStorage.removeItem("nt_token"); }catch(e){}
+  if(typeof NET!=="undefined"){ NET.online=false; NET.token=null; }
+  clearLog(); setScene("🚫","다른 기기에서 접속했습니다");
+  line(`<b style="color:var(--danger)">${reason||"다른 기기에서 로그인"}</b> — 이 기기의 접속이 종료되었습니다.`,"dmg");
+  line("한 계정은 한 곳에서만 플레이할 수 있어요. 계속하려면 이 기기에서 다시 로그인하세요.","quote");
+  line("진행 상황은 클라우드에 저장돼 있어요.","sys");
+  setActions([{label:"🔑 다시 로그인",full:true,act:()=>{ if(typeof authForm==="function")authForm("login"); else titleScreen(); }},{label:"🏠 타이틀로",full:true,act:titleScreen}]);
 }
 /* 🔄 서버 재배포 감지 시 업데이트 배너 (net.js checkServerBoot → onServerUpdated) */
 function onServerUpdated(){

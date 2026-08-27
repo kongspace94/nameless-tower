@@ -74,6 +74,13 @@ function sseSend(client, event, data) {
 }
 function broadcast(event, data) { for (const c of sseClients) sseSend(c, event, data); }
 setInterval(() => broadcast("ping", { t: Date.now() }), 25000);   // keep-alive
+/* 🚫 이중접속 방지: 새 로그인 시 같은 계정의 기존 토큰 무효화 + 기존 SSE 연결 강제 종료(최신 로그인 우선) */
+function dropUserSessions(userId) {
+  for (const [t, uid] of tokens) { if (uid === userId) tokens.delete(t); }
+  const kicked = []; for (const c of sseClients) { if (c.userId === userId) kicked.push(c); }
+  for (const c of kicked) { try { sseSend(c, "kicked", { reason: "다른 기기에서 로그인" }); } catch (e) {} try { c.res.end(); } catch (e) {} sseClients.delete(c); townPos.delete(userId); }
+  if (kicked.length) { broadcast("townleave", { id: userId }); broadcast("presence", { online: sseClients.size }); }
+}
 
 /* ---------- 라우팅 ---------- */
 const server = http.createServer(async (req, res) => {
@@ -108,6 +115,7 @@ const server = http.createServer(async (req, res) => {
       if (acc.rec !== hashPw(normRec(code), acc.salt)) return json(res, 401, { error: "이름 또는 복구 코드가 틀려요" });
       if (!newPassword || String(newPassword).length < 4) return json(res, 400, { error: "새 비밀번호는 4자 이상" });
       acc.hash = hashPw(newPassword, acc.salt); markDirty("accounts");
+      dropUserSessions(acc.id);   // 🚫 복구(비번 재설정) 시 기존 접속 종료
       const token = newId() + newId(); tokens.set(token, acc.id);
       return json(res, 200, { token, userId: acc.id, name: acc.name, nick: acc.nick || acc.name });
     }
@@ -125,6 +133,7 @@ const server = http.createServer(async (req, res) => {
       const acc = Object.values(db.accounts).find((a) => a.name.toLowerCase() === String(name || "").toLowerCase());
       const ok = acc && (acc.hash === hashPw(password, acc.salt) || (passwordRaw != null && acc.hash === hashPw(passwordRaw, acc.salt)));   // 변환값/원본 둘 다 허용(옛 계정 호환)
       if (!ok) return json(res, 401, { error: "이름 또는 비밀번호가 틀림" });
+      dropUserSessions(acc.id);   // 🚫 기존 접속 강제 종료(이중접속 방지)
       const token = newId() + newId(); tokens.set(token, acc.id);
       return json(res, 200, { token, userId: acc.id, name: acc.name, nick: acc.nick || acc.name });
     }
