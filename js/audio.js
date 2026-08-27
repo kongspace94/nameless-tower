@@ -33,7 +33,7 @@ const SFX = {
   // 예) 파일 교체:  click: { src:"sounds/click.mp3", gain:0.5 }
 };
 const BGM = {   // 배경음악 (src 없으면 무음 대기). vol=트랙별 기본 볼륨(0~1), 최종=vol×설정마스터
-  town:   { src: "", vol: 0.6, loop: true },   // 예) src:"sounds/bgm-town.mp3"
+  town:   { src: "sounds/bgm-town.mp3", vol: 0.6, loop: true },   // 🎵 사용자 제작 마을 BGM
   combat: { src: "", vol: 0.7, loop: true },
 };
 const AMB = {   // 환경음 (바람·풀벌레·마을 소음 등, 배경음악과 별도 레이어). src 넣으면 재생
