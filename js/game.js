@@ -2,7 +2,8 @@
 /* ============================================================
    죽음 / 승리 (로그라이트: 마을 귀환, 캐릭터 유지)
    ============================================================ */
-function die(){ stopAuctionTimer();
+function die(){ if(P&&P._duel){ if(typeof pvpLoss==="function")return pvpLoss(P._duel); P._duel=null; }   // ⚔ PvP 결투 패배는 완전 사망이 아니라 손실만
+  stopAuctionTimer();
   let lastLog=[]; try{ const lg=$("log"); if(lg){ lastLog=(lg.innerText||"").trim().split("\n").map(s=>s.trim()).filter(Boolean).slice(-4); } }catch(e){}   // 죽기 직전 로그(맥락) 보존
   const cause=(typeof deathCause==="string"&&deathCause)?deathCause:"";
   enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); clearLog(); setScene("💀","");

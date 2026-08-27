@@ -1033,7 +1033,11 @@ function fleeRetreat(){ const passed=(P.portals||[1]).filter(f=>f<=(P.floor||1))
 /* 확률 헬퍼: 두 주사위(rnd12) 대결에서 이길 확률 등 */
 function pctRoll(margin){ let c=0; for(let a=0;a<12;a++)for(let b=0;b<12;b++)if(a-b>=margin)c++; return c/144; }
 
-function winCombat(){ P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor;
+function winCombat(){
+  if(P._duel && enemy && enemy.pvp){ const npc=P._duel; P._duel=null; const g=npc.gold||0; P.gold+=g;   // ⚔ PvP 결투 승리
+    line(`⚔ <b>결투 승리!</b> ${npc.name}을(를) 제압하고 <b>${g}G</b>를 약탈했다!`,"loot"); if(npc.item&&chance(0.6)){ addRelic(npc.item); line(`전리품: <b>${npc.item}</b>!`,"loot"); }
+    toast("약탈 +"+g+"G"); if(typeof sfx==="function")sfx("victory"); enemy=null; B=null; save(true); setScene("🏆","결투에서 승리했다!"); showClimb(); return; }
+  P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor;
   line(`<b style="color:var(--good)">${enemy.n}을(를) 쓰러뜨렸다!</b>`); if(typeof sfx==="function")sfx("victory");
   if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사
   const g=enemy.g+rnd(6); P.gold+=g; line(`💰 금화 +${g}`,"loot"); spawnFloat("💰+"+g,"#ffe08a","foe");
@@ -1119,8 +1123,17 @@ function enterFloor(){ const f=P.floor; P.flags.maxFloor=Math.max(P.flags.maxFlo
     line(bossStory(f,"approach"));   // 데이터 기반 보스 서사
     const be=makeEnemy(); setActions([{label:"⚔ 문을 열고 들어간다",full:true,act:()=>startCombat(be,"")},{label:"🧪 버프 걸고 들어가기",desc:"보스전 전 자기 버프 준비",act:()=>bossPrep(()=>startCombat(be,""))}]); return; }
   if(f>=3 && f<=9 && !P.quests.q_tower1 && chance(0.25)){ floorQuestNPC(); return; }
-  const r=Math.random();   // 전투 비중↑
-  if(r<0.58)floorCombat(); else if(r<0.68)floorStory(); else if(r<0.78)floorFork(); else if(r<0.86)floorTreasure(); else if(r<0.92)floorRest(); else if(r<0.97)floorPlayerEncounter(); else floorTrap(); }
+  const r=Math.random();   // 전투 비중 유지 + 이벤트 다양화
+  if(r<0.50)floorCombat();
+  else if(r<0.60)floorStory();
+  else if(r<0.66)floorRiddle();
+  else if(r<0.72)floorFork();
+  else if(r<0.80)floorTreasure();
+  else if(r<0.85)floorRest();
+  else if(r<0.90)floorMerchant();
+  else if(r<0.94)floorAmbush();
+  else if(r<0.98)floorPlayerEncounter();
+  else floorTrap(); }
 function floorQuestNPC(){ const q=QUESTS.q_tower1; setScene("👻","반투명한 유령이 손짓한다.");
   line(`탑의 유령: <span class="quote">"내 부적을… 더 깊은 곳에서 봤다. ${q.desc}. 찾아주면 사례하지."</span>`);
   setActions([
@@ -1158,7 +1171,7 @@ function floorPlayerEncounter(){ const npc=makeNpcPlayer();
   setScene("🧑‍🤝‍🧑","다른 모험가와 마주쳤다."); line(`탑 ${P.floor}층에서 <b>${npc.name}</b> 님을 만났다. (전투력 ~${npc.power})`,"sys");
   const acts=[{label:"🤝 인사한다",desc:"친선 · 소소한 선물/버프",act:()=>npcGreet(npc)}];
   if(npc.item)acts.push({label:"💰 거래 제안 받기",desc:`${npc.name}: "${npc.item} 팝니다"`,act:()=>npcTrade(npc)});
-  acts.push({label:"⚔ 결투 (약탈)",desc:`승률 ~${Math.round(duelWinPct(npc)*100)}% · 이기면 약탈 · 지면 손실 · 악행`,act:()=>npcDuel(npc)});
+  acts.push({label:"⚔ 결투 (PvP 전투)",desc:`진짜 전투로 겨룬다 · 이기면 약탈 · 지면 손실 · 악행`,act:()=>npcDuel(npc)});
   acts.push({label:"지나친다",full:true,act:()=>{ line(`${npc.name} 님과 가볍게 목례하고 지나쳤다.`,"sys"); showClimb(); }});
   setActions(acts); }
 function npcGreet(npc){ karma(1); const r=Math.random();
@@ -1172,11 +1185,48 @@ function npcTrade(npc){ if(!npc.item){ showClimb(); return; } const price=Math.r
     {label:`구매 (${price}G)`,disabled:P.gold<price,act:()=>{ if(P.gold<price){ toast("금화 부족"); return; } P.gold-=price; addRelic(npc.item); toast("거래 성사"); render(); showClimb(); }},
     {label:"거절한다",full:true,act:()=>{ line("거래를 정중히 거절했다.","sys"); showClimb(); }},
   ]); }
-function npcDuel(npc){ karma(-2); const mine=Math.round(ATK()*1.6+DEF()*2.2+MAXHP()*0.12+LUKv()*1.5)+rnd(12); const theirs=Math.round(npc.power*1.15+rnd(12));
-  clearLog(); setScene("⚔","결투!"); line(`${npc.name}에게 결투를 신청했다! (내 전투력 ${mine} vs 상대 ${theirs})`,"sys");
-  if(mine>=theirs){ const g=npc.gold; P.gold+=g; line(`⚔ <b>승리!</b> ${npc.name}을(를) 제압하고 ${g}G를 약탈했다!`,"loot"); if(npc.item&&chance(0.6))addRelic(npc.item); toast("약탈 성공 +"+g+"G"); }
-  else { const loss=Math.min(P.gold, 12+rnd(25)+P.floor); P.gold-=loss; P.hp=Math.max(1,P.hp-Math.round(MAXHP()*0.2)); line(`⚔ <b>패배…</b> ${npc.name}에게 ${loss}G를 빼앗기고 부상당했다.`,"dmg"); toast("결투 패배"); }
-  render(); showClimb(); }
+function npcToEnemy(npc){ const f=P.floor; const hp=Math.round(npc.power*4.2+f*7+30);   // 실제 전투용 적으로 변환
+  return { n:npc.name, ic:"player", hp, hpMax:hp, atk:Math.round(npc.power*0.85+5), def:Math.round(npc.power*0.22),
+    g:npc.gold, taunt:['"실력을 보여주지!"','"먼저 쓰러지는 쪽이 지는 거다."','"덤벼라, 도전자!"'], pvp:true, pvpItem:npc.item }; }
+function npcDuel(npc){ karma(-2); P._duel=npc; const e=npcToEnemy(npc);
+  if(typeof turnBanner==="function")setTimeout(()=>turnBanner("PVP!","foe"),60);
+  startCombat(e, `⚔ <b>${npc.name}</b>과(와)의 결투 — 진짜 실력으로 겨룬다!`); }
+function pvpLoss(npc){ enemy=null; B=null; P._duel=null; if(typeof sfx==="function")sfx("defeat");
+  const loss=Math.min(P.gold, 20+rnd(30)+P.floor); P.gold-=loss; P.hp=Math.max(1,Math.round(MAXHP()*0.15));
+  clearLog(); setScene("💀","결투 패배…"); line(`⚔ <b>${npc.name}</b>에게 패했다. ${loss}G를 빼앗기고 간신히 목숨만 건졌다.`,"dmg"); toast("결투 패배 -"+loss+"G");
+  render(); setActions([{label:"🪜 계단으로",full:true,act:showClimb}]); }
+/* 🗿 셔플 수수께끼 — 여러 문제 + 보기 순서 랜덤(외우기 방지) */
+const RIDDLES=[
+  {q:"낮엔 자고 밤에 깨며, 한 눈으로 마을을 지킨다. 나는?", a:"달", w:["등대","올빼미","별"]},
+  {q:"가질수록 무거워지고, 나눌수록 가벼워지는 것은?", a:"비밀", w:["금화", "짐", "슬픔"]},
+  {q:"문도 창도 없는 집 안에 황금이 가득한 것은?", a:"달걀", w:["무덤","보물상자","해골"]},
+  {q:"높이 오를수록 커지고, 정상에서 당신을 삼키는 것은?", a:"고독", w:["그림자","공포","바람"]},
+  {q:"주면 줄지만, 아끼면 결국 모두 잃는 것은?", a:"시간", w:["금화","목숨","기억"]},
+  {q:"불에 타지 않고, 물에 젖지 않으며, 모든 것을 먹어치우는 것은?", a:"세월", w:["재","어둠","공허"]},
+];
+function floorRiddle(){ const r=pick(RIDDLES); const opts=[{t:r.a,ok:true}].concat(r.w.map(t=>({t,ok:false}))).sort(()=>Math.random()-0.5);
+  setScene("🗿",""); line(`고대의 석상이 눈을 뜬다. <span class="quote">"${r.q}"</span>`);
+  setActions(opts.map(o=>({label:o.t,act:()=>{ if(o.ok){ line('"…옳다." 석상이 지혜를 나눈다.',"loot"); trainStat("int",14+rnd(10)); P.gold+=18+rnd(16); } else { line('"…아니다." 석상이 다시 잠든다.',"sys"); if(chance(0.3)){ const d=6+rnd(6); P.hp=Math.max(1,P.hp-d); line(`석상의 실망이 스민다 — ${d} 피해.`,"dmg"); } } render(); showClimb(); }})).concat([{label:"침묵하고 지나친다",full:true,act:()=>{ line("답하지 않고 지나친다.","sys"); showClimb(); }}])); }
+/* 🧳 떠돌이 상인 — 층 티어의 좋은 무기 + 축복/물약 (프리미엄가) */
+function floorMerchant(){ const f=P.floor;
+  const pool=(f>=31?GEAR_TIERS.rift:f>=16?GEAR_TIERS.sky:["월광 세이버","무쇠 세이버","사냥꾼의 활","이 빠진 롱소드","보조 단검"]).filter(k=>RELICS[k]&&RELICS[k].slot==="weapon");
+  const picks=[]; let tries=0; while(picks.length<2 && tries<12 && pool.length){ tries++; const k=pick(pool); if(!picks.some(p=>p.k===k))picks.push({k,price:Math.round((RELICS[k].val||100)*(0.9+Math.random()*0.6))}); }
+  renderMerchant(picks, {charm:chance(0.4), potion:{n:3,price:90+f*3}}); }
+function renderMerchant(picks, ex){ setScene("🧳","떠돌이 상인이 좌판을 편다.");
+  line('떠돌이 상인: <span class="quote">"먼 곳에서 왔소. 좋은 물건 있으니 구경하고 가시오."</span>');
+  const acts=picks.map((p,i)=>({label:`🗡 ${p.k}`,desc:`${RELICS[p.k].note||""} · 💰${p.price}`,disabled:P.gold<p.price,act:()=>{ if(P.gold<p.price){ toast("골드 부족"); return; } P.gold-=p.price; addRelic(p.k); line(`🧳 <b>${p.k}</b>을(를) 샀다!`,"loot"); toast("구매: "+p.k); picks.splice(i,1); render(); renderMerchant(picks,ex); }}));
+  if(ex.charm)acts.push({label:"⚜️ 강화의 축복",desc:"강화 성공↑·파괴방지 · 💰2000",disabled:P.gold<2000,act:()=>{ if(P.gold<2000){ toast("골드 부족"); return; } P.gold-=2000; gainCons("enhance_charm"); line("⚜️ 강화의 축복을 샀다.","loot"); toast("구매"); ex.charm=false; render(); renderMerchant(picks,ex); }});
+  if(ex.potion)acts.push({label:`🧪 물약 ${ex.potion.n}개`,desc:`💰${ex.potion.price}`,disabled:P.gold<ex.potion.price,act:()=>{ if(P.gold<ex.potion.price){ toast("골드 부족"); return; } P.gold-=ex.potion.price; P.potions+=ex.potion.n; line(`🧪 물약 ${ex.potion.n}개 구매.`,"loot"); ex.potion=null; render(); renderMerchant(picks,ex); }});
+  acts.push({label:"떠난다",full:true,act:()=>{ line("상인이 좌판을 접고 어둠 속으로 사라진다.","sys"); showClimb(); }});
+  setActions(acts); }
+/* 👤 의태 몬스터 — 친근한 NPC가 돌발 전투 */
+function floorAmbush(){ setScene("🧑","길에서 한 사람이 웃으며 다가온다.");
+  line(pick(['낯선 이: <span class="quote">"여어— 동료를 만나 반갑구려!"</span>','한 여행자가 손을 흔들며 다가온다.']));
+  setActions([
+    {label:"🤝 인사한다",full:true,act:()=>{ line("…그 순간, 그의 얼굴이 흐물흐물 일그러진다!","dmg"); line('<b style="color:var(--danger)">돌발 전투!</b> 그것은 사람이 아니었다 — 의태하던 괴물!',"dmg");
+      const e=makeEnemy(); e.n="탈을 쓴 "+(e.n||"괴물"); if(typeof turnBanner==="function")setTimeout(()=>turnBanner("AMBUSH!","foe"),50); setTimeout(()=>startCombat(e,"본모습을 드러낸다!"),320); }},
+    {label:"👁 경계한다",act:()=>{ if(chance(0.55)){ line("낌새가 이상하다 — 거리를 두자 상대가 스르륵 사라진다.","sys"); showClimb(); } else { line("역시 사람이었다. 미안한 마음에 물약 하나를 받았다.","loot"); P.potions++; render(); showClimb(); } }},
+  ]); }
 function floorTreasure(){ setScene("🎁","먼지 쌓인 보물상자가 놓여 있다."); line(pick(["먼지 쌓인 보물상자가 놓여 있다.","벽감 안에서 무언가 반짝인다."]));
   setActions([
     {label:"상자를 연다",act:()=>{ line("녹슨 걸쇠를 젖힌다…"); const r=Math.random();
@@ -1199,11 +1249,7 @@ const STORY=[
   {ico:"🍷",text:"제단 위 검은 성배. 마시면 강해진다는 속삭임.",opts:[
     {label:"마신다",act:()=>{ karma(-2,"금기의 힘에 손댔다."); P.stats.str+=1; line("피가 끓는다! 힘 +1 (영구).","loot"); render(); }},
     {label:"깨뜨린다",act:()=>{ karma(2,"유혹을 물리쳤다."); line("성배가 부서진다. (기력 완전 회복)","heal"); P.mp=MAXMP(); render(); }}]},
-  {ico:"🗿",text:'석상의 수수께끼. <span class="quote">"낮엔 자고 밤에 깨며, 한 눈으로 마을을 지킨다. 나는?"</span>',opts:[
-    {label:"달",act:()=>{ line('"…옳다." 지혜의 보상.',"loot"); trainStat("int",20); P.gold+=25; render(); }},
-    {label:"등대",act:()=>{ line('"…아니다."',"sys"); }},
-    {label:"올빼미",act:()=>{ line('"흥미롭지만 아니다." 작은 금화.',"loot"); P.gold+=8; render(); }}]},
-  /* --- 추가 조우: 기억·도박·희생·판정·세계관 --- */
+  /* --- 추가 조우: 기억·도박·희생·판정·세계관 (수수께끼는 floorRiddle에서 셔플) --- */
   {ico:"🕯",text:'벽에 박힌 수정 조각에 낯선 기억이 어린다 — 누군가의 얼굴, 무너지는 탑. <span class="quote">"…이건, 내 기억인가?"</span>',opts:[
     {label:"기억을 들여다본다",act:()=>{ if(chance(0.6)){ trainStat("int",1); line("잊었던 감각이 돌아온다. 지능 +1 (영구).","loot"); } else { const d=Math.round(MAXHP()*0.1); P.hp=Math.max(1,P.hp-d); line(`기억이 너무 아프다… ${d} 피해.`,"dmg"); } render(); }},
     {label:"외면한다",act:()=>{ line("알고 싶지 않은 것도 있다. 조용히 지나친다.","sys"); }}]},
