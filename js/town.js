@@ -165,11 +165,29 @@ function companionMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
   else if(!owned.length)acts.push({label:"줄 재료가 없다",desc:"채집·전투로 재료를 모으자",disabled:true,act:()=>{}});
   else owned.forEach(([mk,[e,nm]])=>{ const have=P.mats[mk]||0, per=compFeedBond(mk), batch=Math.min(have,5);
     acts.push({label:`${e} ${nm} 먹이기 (보유 ${have})`,desc:`${batch}개 → 유대 +${batch*per}`,act:()=>feedCompanion(mk,batch)}); });
+  // 🔁 보유 동료 교체
+  const ownedKeys=Object.keys(P.comps||{}).filter(k=>COMPANIONS[k]);
+  acts.push({header:true,label:`🔁  동료 교체  (보유 ${ownedKeys.length}/${Object.keys(COMPANIONS).length})`});
+  ownedKeys.forEach(k=>{ const r=compRec(k), dd=compDisp(k,r.lv), active=(k===P.companion), roleLab=({heal:"회복",dps:"공격",tank:"방어"})[COMPANIONS[k].role]||"";
+    acts.push({label:`${dd.emoji} ${dd.n}  Lv.${r.lv||1}`, desc:`${roleLab}형${compTier(r.lv)>0?" · ✦각성":""}${active?" · 현재 동행 중":""}`, disabled:active, act:()=>setActiveCompanion(k)}); });
+  // ✨ 영입 (스타터: 크리스탈 / 희귀: 보스 드랍)
+  const recruitable=STARTER_COMPS.filter(k=>!compOwned(k));
+  if(recruitable.length){ acts.push({header:true,label:`✨  영입  (💎${STARTER_RECRUIT_GEMS})`});
+    recruitable.forEach(k=>{ const c=COMPANIONS[k]; acts.push({label:`${c.emoji} ${c.n} 영입`, desc:`${c.note} · 💎${STARTER_RECRUIT_GEMS}`, disabled:(P.gems||0)<STARTER_RECRUIT_GEMS, act:()=>recruitCompanion(k)}); }); }
+  const rareLeft=RARE_COMPS.filter(k=>!compOwned(k)).length;
+  if(rareLeft)acts.push({header:true,label:`💀 희귀 동료 ${rareLeft}종 — 보스 처치로 영입`});
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 function feedCompanion(mk,n){ n=Math.min(n,P.mats[mk]||0); if(n<=0){ toast("재료 부족"); return; }
-  P.mats[mk]-=n; const gain=n*compFeedBond(mk); const d0=compDisp(P.companion,compRec(P.companion).lv);
+  P.mats[mk]-=n; const gain=n*compFeedBond(mk);
   line(`🍖 ${MATS[mk][0]} ${MATS[mk][1]} ${n}개를 주었다. 유대 +${gain}`,"loot");
   gainCompBond(gain); if(typeof sfx==="function")sfx("heal"); render(); save(true); companionMenu(); }
+function setActiveCompanion(key){ if(!compOwned(key)){ toast("보유하지 않은 동료"); return; } if(key===P.companion){ companionMenu(); return; }
+  P.companion=key; const d=compDisp(key,compRec(key).lv); line(`🔁 <b>${d.emoji} ${d.n}</b>와(과) 동행한다.`,"sys"); toast("동행 동료: "+d.n);
+  if(typeof sfx==="function")sfx("click"); render(); save(true); companionMenu(); }
+function recruitCompanion(key){ const c=COMPANIONS[key]; if(!c||c.rare){ toast("영입할 수 없어요"); return; } if(compOwned(key)){ toast("이미 보유 중"); return; }
+  if((P.gems||0)<STARTER_RECRUIT_GEMS){ toast("크리스탈 부족"); return; }
+  P.gems-=STARTER_RECRUIT_GEMS; ensureComp(key); line(`✨ <b>${c.emoji} ${c.n}</b>을(를) 영입했다! (💎-${STARTER_RECRUIT_GEMS})`,"loot"); toast("영입: "+c.n);
+  if(typeof sfx==="function")sfx("loot"); render(); save(true); companionMenu(); }
 /* ⛺ 부족 거점 — 일꾼이 시간 기반으로 자원 자동 생산 */
 function farmMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
   if(!P.farm.unlocked){ P.farm.unlocked=true; P.farm.lastTs=Date.now();

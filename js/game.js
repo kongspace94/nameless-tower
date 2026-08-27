@@ -83,8 +83,9 @@ function syncNick(){ if(P&&P._online&&typeof netSetNick==="function")netSetNick(
 function askName(){ const n=prompt("게임에서 쓸 닉네임은? (남들에게 보여요)","방랑자"); P.name=(n&&n.trim())?n.trim().slice(0,12):"방랑자"; syncNick(); render(); chooseCompanion(); }
 function chooseCompanion(){ clearLog(); setScene("🧚","작은 정령 셋이 당신을 바라본다.");
   line(`<b>${P.name}</b>. 함께 탑을 오를 <b>서포트 동료</b>를 고르자. 전투마다 자동으로 돕는다.`);
-  Object.entries(COMPANIONS).forEach(([k,c])=>line(`${c.emoji} <b>${c.n}</b> — ${c.note}`,"sys"));
-  setActions(Object.entries(COMPANIONS).map(([k,c])=>({ label:`${c.emoji} ${c.n}`, desc:c.note, act:()=>{ P.companion=k; render(); tutorial(); } }))); }
+  const starters=Object.entries(COMPANIONS).filter(([k,c])=>!c.rare);
+  starters.forEach(([k,c])=>line(`${c.emoji} <b>${c.n}</b> — ${c.note}`,"sys"));
+  setActions(starters.map(([k,c])=>({ label:`${c.emoji} ${c.n}`, desc:c.note, act:()=>{ P.companion=k; ensureComp(k); render(); tutorial(); } }))); }
 function tutorial(){ clearLog(); setScene("🏘️","거점 마을에 도착했다.");
   line("좋다. 이제 <b>거점 마을</b>에서 시작한다.","sys");
   line("• <b>생활 활동</b>으로 스탯을 단련하고 재료를 모아라 (예: 벌목→힘).","sys");

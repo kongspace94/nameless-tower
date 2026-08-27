@@ -120,7 +120,17 @@ const COMPANIONS={
     evo:[{n:"불꽃 임프",emoji:"🔥"},{n:"업화 데몬",emoji:"👺"},{n:"멸화의 이프리트",emoji:"🌋"}]},
   steel:{n:"강철 정령",emoji:"🛡️",role:"tank",ic:"fairy_steel",note:"받는 피해↓ · 각성할수록 단단해짐",
     evo:[{n:"강철 정령",emoji:"🛡️"},{n:"수호 골렘",emoji:"🗿"},{n:"불멸의 아이기스",emoji:"⚔️"}]},
+  // ✨ 희귀 동료 — 보스 처치 시 낮은 확률로 영입(상점 구매 불가)
+  wisp:{n:"위령의 혼불",emoji:"🕯️",role:"heal",ic:"fairy_light",rare:true,note:"온기로 회복 · 각성할수록 강한 치유",
+    evo:[{n:"위령의 혼불",emoji:"🕯️"},{n:"안식의 정령",emoji:"👻"},{n:"승천의 성화",emoji:"🔥"}]},
+  raven:{n:"피의 까마귀",emoji:"🐦‍⬛",role:"dps",ic:"fairy_imp",rare:true,note:"그림자 일격 · 각성할수록 치명적",
+    evo:[{n:"피의 까마귀",emoji:"🐦‍⬛"},{n:"까마귀 군주",emoji:"🦅"},{n:"밤의 처형자",emoji:"🌑"}]},
+  warden:{n:"무덤지기",emoji:"🪦",role:"tank",ic:"fairy_steel",rare:true,note:"받는 피해↓ · 각성할수록 불굴",
+    evo:[{n:"무덤지기",emoji:"🪦"},{n:"납골당 수호자",emoji:"⚰️"},{n:"불멸의 파수꾼",emoji:"💀"}]},
 };
+const STARTER_COMPS=["light","imp","steel"], RARE_COMPS=["wisp","raven","warden"], STARTER_RECRUIT_GEMS=8;
+function compOwned(key){ return !!(P&&P.comps&&P.comps[key]); }
+function ensureComp(key){ if(!P.comps)P.comps={}; if(!P.comps[key])P.comps[key]={bond:0,lv:1,awk:0}; return P.comps[key]; }
 /* 🐾 동료 성장(유대/각성) — 동료별로 기록(P.comps[key]={bond,lv,awk}) */
 const COMP_LV_CAP=30, AWAKEN_LV=[12,24];   // 각성 티어 경계(0/1/2)
 function compBondNeed(lv){ return 18+(lv-1)*11; }          // lv→lv+1 필요 유대치

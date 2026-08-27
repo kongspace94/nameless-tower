@@ -761,6 +761,10 @@ function gainCompBond(n){ if(!P||!P.companion||n<=0)return; const rec=compRec(P.
   if(awoke){ const d=compDisp(P.companion,rec.lv); rec.awk=compTier(rec.lv);
     line(`🌟 <b>각성!</b> 동료가 <b>${d.emoji} ${d.n}</b>(으)로 진화했다!`,"loot"); if(typeof toast==="function")toast("동료 각성: "+d.n); if(typeof spawnFloat==="function")spawnFloat("🌟각성!","#ffd36a","me"); if(B&&B.comp&&B.comp.key===P.companion){ const nc=buildComp(P.companion); if(nc){ nc.energy=B.comp.energy; B.comp=nc; } } }
   else if(leveled){ const d=compDisp(P.companion,rec.lv); line(`✦ ${d.emoji} ${d.n} 유대 Lv.${rec.lv}`,"sys"); if(B&&B.comp&&B.comp.key===P.companion)B.comp.lv=rec.lv; } }
+/* ✨ 보스 처치 시 낮은 확률로 희귀 동료 영입 */
+function maybeDropCompanion(floor){ if(typeof RARE_COMPS==="undefined")return; const pool=RARE_COMPS.filter(k=>!compOwned(k)); if(!pool.length)return;
+  if(!chance(clamp(0.05+(floor||1)*0.0015,0,0.12)))return; const key=pick(pool); ensureComp(key); const c=COMPANIONS[key];
+  line(`✨ <b>${c.emoji} ${c.n}</b>이(가) 당신을 따르기로 했다! (동료 메뉴에서 교체 가능)`,"loot"); if(typeof toast==="function")toast("희귀 동료 영입: "+c.n); }
 
 function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(enemy.ail&&enemy.ail.frost&&enemy.ail.frost.t>0)?0.75:1;   // ❄️ 냉기: 적 공격 약화
   let raw=enemy.atk*mult*aw*fr+rnd(4)-1; let dmg=Math.max(1,Math.round(raw)-DEF());   // 약화: 적 공격력↓
@@ -957,6 +961,7 @@ function winCombat(){ P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=ene
     if(chance(0.02))dropBook(); else if(chance(clamp((0.012+LUKv()*0.0006)*(1+metaEff().drop),0,0.035)))dropRelic(); else if(chance(0.5)){ const gb=5+rnd(12); P.gold+=gb; line(`💰 금화 +${gb}`,"loot"); } }   // 리니지급 제네릭 드랍(캡 3.5%) · 좋은 장비는 시그니처 파밍으로
   dropSignature(enemy, wasBoss);   // ✨ 몬스터 고유(시그니처) 드랍 + 몬스터 도감 처치 기록
   if(P.companion&&typeof gainCompBond==="function")gainCompBond(wasBoss?Math.round(15+floor*0.8):Math.round(3+floor*0.25));   // 🐾 동료 유대 획득(전투)
+  if(wasBoss&&typeof maybeDropCompanion==="function")maybeDropCompanion(floor);   // ✨ 보스: 희귀 동료 영입 기회
   checkTitleUnlocks(); checkQuests();
   enemy=null; B=null; save(true);
   if(expReturn){ const r=expReturn; expReturn=null; render(); setScene("🏆","전투에서 승리했다!"); setTimeout(r,180); return; }   // 개척 중이면 개척 흐름으로 복귀
