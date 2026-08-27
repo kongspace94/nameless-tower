@@ -12,7 +12,9 @@ let invTab="wpn";   // 🎒 인벤 카테고리 탭(wpn/arm/acc/cons/mat/quest)
 function setInvTab(t){ invTab=t; inventoryMenu(); }
 window.setInvTab=setInvTab;
 let whTab="wpn";   // 🏦 창고 카테고리 탭(wpn/arm/acc/cons/mat)
-function setWhTab(t){ whTab=t; warehouseMenu(); }
+let whView="stash";   // 🏦 창고 화면: stash(창고 보기) / bag(소지품 넣기)
+function setWhTab(t){ whTab=t; whRefresh(); }
+function whRefresh(){ if(whView==="bag")warehouseBag(); else warehouseMenu(); }
 let bsTab="wpn";   // ⚒️ 대장간 카테고리 탭(wpn/arm/acc)
 function setBsTab(t){ bsTab=t; blacksmithMenu(); }
 window.setBsTab=setBsTab;
@@ -530,13 +532,18 @@ function mailboxMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } 
   if(!P.mail.length){ line("우편함이 비어 있다.","sys"); setActions([{label:"🏘 마을로",full:true,act:townMenu}]); return; }
   line("운영자·이벤트 보상이 도착하면 여기로 와요. 수령 버튼으로 보상을 받으세요.","sys");
   const rows=P.mail.slice().reverse().map(m=>{ const rt=rewardText2(m.reward);
-    return `<div class="grow ${m.claimed?'':'eq'}"><span class="emo" style="width:34px;height:34px;font-size:19px">${m.claimed?'📭':'📬'}</span>`+
-      `<div class="gmeta"><div class="gn">${m.subj} ${m.claimed?'<span style="color:var(--dim);font-size:11px">수령완료</span>':'<span style="color:var(--gold);font-size:11px">NEW</span>'}</div>`+
+    return `<div class="grow ${m.claimed?'mailread':'eq'}"><span class="emo" style="width:34px;height:34px;font-size:19px">${m.claimed?'📭':'📬'}</span>`+
+      `<div class="gmeta"><div class="gn">${m.subj} ${m.claimed?'<span style="color:var(--dim);font-size:11px">읽음 · 수령완료</span>':'<span style="color:var(--gold);font-size:11px">● NEW</span>'}</div>`+
       `<div class="ge">✉ ${m.from} — ${m.body}</div>${rt?`<div class="ge" style="color:var(--gold)">🎁 ${rt}</div>`:''}</div>`+
       `<div class="gbtns">${m.claimed?'':`<button class="ibtn on" onclick="claimMail('${m.id}')">수령</button>`}</div></div>`; }).join("");
   $("log").innerHTML=`<div class="invv"><div class="glist">${rows}</div></div>`;
+  const readN=(P.mail||[]).filter(m=>m.claimed).length;
   const acts=[]; if(mailUnread()>0)acts.push({label:`📬 모두 수령 (${mailUnread()})`,full:true,act:claimAllMail});
+  if(readN>0)acts.push({label:`🗑 읽은 우편 지우기 (${readN})`,act:clearReadMail});
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+function clearReadMail(){ const before=(P.mail||[]).length; P.mail=(P.mail||[]).filter(m=>!m.claimed); const removed=before-P.mail.length;
+  if(removed>0){ toast(`읽은 우편 ${removed}개 삭제`); if(typeof sfx==="function")sfx("click"); save(true); } mailboxMenu(); }
+window.clearReadMail=clearReadMail;
 function claimMail(id){ const m=(P.mail||[]).find(x=>x.id===id); if(!m||m.claimed)return; grantReward(m.reward); m.claimed=true;
   const rt=rewardText2(m.reward); line(`📬 <b>${m.subj}</b> 수령! ${rt?`획득: ${rt}`:''}`,"loot"); toast("우편 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); mailboxMenu(); }
 function claimAllMail(){ let any=false; for(const m of (P.mail||[])){ if(!m.claimed){ grantReward(m.reward); m.claimed=true; any=true; } } if(any){ line("📬 모든 우편을 수령했다!","loot"); toast("전체 수령"); if(typeof sfx==="function")sfx("loot"); render(); save(true); } mailboxMenu(); }
@@ -869,48 +876,62 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
 /* 🏦 창고 (은행) — 마을 보관함. 가방(개인 소지품)↔창고 이동. 탑에서는 접근 불가(추후 캐쉬 아이템으로 원격 개방 예정). */
 function stashCount(){ if(!P||!P.stash)return 0; const s=P.stash; let n=(Array.isArray(s.inv)?s.inv.length:0)+(s.potions||0);
   for(const m in (s.mats||{}))n+=s.mats[m]||0; for(const k in (s.consumables||{}))n+=s.consumables[k]||0; return n; }
-function warehouseMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; townReturn=warehouseMenu; render(); setScene("🏦","창고 — 마을 보관함");
-  const st=P.stash;
-  const gearRow=(it,where)=>{ const g=RELICS[it.k]||{}; const eq=(where==="bag")&&isEquippedItem(it);
-    const btn = where==="bag"
-      ? `<button class="ibtn" onclick="whDep(${it.id})">맡기기${eq?' (해제)':''}</button>`
-      : `<button class="ibtn on" onclick="whWd(${it.id})">찾기</button>`;
-    return `<div class="grow"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),30)}</span><div class="gmeta"><div class="gn">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}</div><div class="ge">${g.note||''}</div></div><div class="gbtns">${btn}</div></div>`; };
-  const stackRow=(emoji,name,q,where,fn)=>`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">${emoji}</span><div class="gmeta"><div class="gn">${name} <b>×${q}</b></div></div><div class="gbtns"><button class="ibtn ${where==='bag'?'':'on'}" onclick="${fn}">${where==='bag'?'맡기기':'찾기'}</button></div></div>`;
-  const bagItems=[], stItems=[];
-  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key).forEach(it=>bagItems.push({cat:gearCat3(RELICS[it.k]),html:gearRow(it,"bag")}));
-  if(P.potions>0)bagItems.push({cat:"cons",html:stackRow("🧪","물약",P.potions,"bag","whDepPot()")});
-  Object.entries(P.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)bagItems.push({cat:"cons",html:stackRow(c.emoji,c.n,q,"bag",`whDepCons('${k}')`)}); });
-  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=P.mats[m]||0; if(q>0)bagItems.push({cat:"mat",html:stackRow(e,nm,q,"bag",`whDepMat('${m}')`)}); });
-  st.inv.filter(it=>RELICS[it.k]).forEach(it=>stItems.push({cat:gearCat3(RELICS[it.k]),html:gearRow(it,"stash")}));
-  if((st.potions||0)>0)stItems.push({cat:"cons",html:stackRow("🧪","물약",st.potions,"stash","whWdPot()")});
-  Object.entries(st.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)stItems.push({cat:"cons",html:stackRow(c.emoji,c.n,q,"stash",`whWdCons('${k}')`)}); });
-  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=st.mats[m]||0; if(q>0)stItems.push({cat:"mat",html:stackRow(e,nm,q,"stash",`whWdMat('${m}')`)}); });
-  const wt=["wpn","arm","acc","cons","mat"].includes(whTab)?whTab:"wpn", cnt=(a,c)=>a.filter(r=>r.cat===c).length;
-  const bagRows=bagItems.filter(r=>r.cat===wt).map(r=>r.html).join(""), stRows=stItems.filter(r=>r.cat===wt).map(r=>r.html).join("");
-  const whTabBar=`<div class="invtabs">`+[["wpn","🗡 무기"],["arm","🛡 방어구"],["acc","💍 악세"],["cons","🧪 소비품"],["mat","🪵 재료"]].map(([t,lab])=>{ const n=cnt(bagItems,t)+cnt(stItems,t); return `<button type="button" class="invtab ${wt===t?'on':''}" onclick="setWhTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`; }).join("")+`</div>`;
-  const goldBag=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">골드 <b>${P.gold}G</b></div></div><div class="gbtns"><button class="ibtn" ${P.gold<=0?'disabled':''} onclick="whDepGold()">맡기기</button></div></div>`;
-  const goldStash=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">보관 골드 <b>${st.gold||0}G</b></div></div><div class="gbtns"><button class="ibtn on" ${(st.gold||0)<=0?'disabled':''} onclick="whWdGold()">찾기</button></div></div>`;
+/* 🏦 창고 공용 행 빌더 */
+function whGearRow(it,where){ const g=RELICS[it.k]||{}; const eq=(where==="bag")&&isEquippedItem(it);
+  const btn = where==="bag" ? `<button class="ibtn" onclick="whDep(${it.id})">창고에 넣기${eq?' (해제)':''}</button>` : `<button class="ibtn on" onclick="whWd(${it.id})">꺼내기</button>`;
+  return `<div class="grow"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),30)}</span><div class="gmeta"><div class="gn">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}</div><div class="ge">${g.note||''}</div></div><div class="gbtns">${btn}</div></div>`; }
+function whStackRow(emoji,name,q,where,fn){ return `<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">${emoji}</span><div class="gmeta"><div class="gn">${name} <b>×${q}</b></div></div><div class="gbtns"><button class="ibtn ${where==='bag'?'':'on'}" onclick="${fn}">${where==='bag'?'창고에 넣기':'꺼내기'}</button></div></div>`; }
+function whBagItems(){ const arr=[];
+  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key).forEach(it=>arr.push({cat:gearCat3(RELICS[it.k]),html:whGearRow(it,"bag")}));
+  if(P.potions>0)arr.push({cat:"cons",html:whStackRow("🧪","물약",P.potions,"bag","whDepPot()")});
+  Object.entries(P.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)arr.push({cat:"cons",html:whStackRow(c.emoji,c.n,q,"bag",`whDepCons('${k}')`)}); });
+  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=P.mats[m]||0; if(q>0)arr.push({cat:"mat",html:whStackRow(e,nm,q,"bag",`whDepMat('${m}')`)}); });
+  return arr; }
+function whStashItems(){ const st=P.stash, arr=[];
+  st.inv.filter(it=>RELICS[it.k]).forEach(it=>arr.push({cat:gearCat3(RELICS[it.k]),html:whGearRow(it,"stash")}));
+  if((st.potions||0)>0)arr.push({cat:"cons",html:whStackRow("🧪","물약",st.potions,"stash","whWdPot()")});
+  Object.entries(st.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)arr.push({cat:"cons",html:whStackRow(c.emoji,c.n,q,"stash",`whWdCons('${k}')`)}); });
+  Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=st.mats[m]||0; if(q>0)arr.push({cat:"mat",html:whStackRow(e,nm,q,"stash",`whWdMat('${m}')`)}); });
+  return arr; }
+function whTabBarHtml(items){ const wt=["wpn","arm","acc","cons","mat"].includes(whTab)?whTab:"wpn", cnt=c=>items.filter(r=>r.cat===c).length;
+  return `<div class="invtabs">`+[["wpn","🗡 무기"],["arm","🛡 방어구"],["acc","💍 악세"],["cons","🧪 소비품"],["mat","🪵 재료"]].map(([t,lab])=>`<button type="button" class="invtab ${wt===t?'on':''}" onclick="setWhTab('${t}')">${lab}${cnt(t)?` <i>${cnt(t)}</i>`:''}</button>`).join("")+`</div>`; }
+/* 🏦 창고 보기 — 창고에 보관 중인 물건만 (꺼내기). 넣으려면 '소지품 열기' */
+function warehouseMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; townReturn=warehouseMenu; whView="stash"; render(); setScene("🏦","창고 — 마을 보관함");
+  const st=P.stash, items=whStashItems(), wt=["wpn","arm","acc","cons","mat"].includes(whTab)?whTab:"wpn";
+  const rows=items.filter(r=>r.cat===wt).map(r=>r.html).join("");
+  const goldStash=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">보관 골드 <b>${st.gold||0}G</b></div></div><div class="gbtns"><button class="ibtn on" ${(st.gold||0)<=0?'disabled':''} onclick="whWdGold()">꺼내기</button><button class="ibtn" ${P.gold<=0?'disabled':''} onclick="whDepGold()">넣기</button></div></div>`;
   $("log").innerHTML=`<div class="invv">
-    <div class="ge" style="color:var(--dim);margin-bottom:2px">🎒 가방=탑에 들고 가는 소지품 · 🏦 창고=마을 보관함 (골드도 보관)</div>
-    <div class="glist" style="margin-bottom:4px">${goldBag}${goldStash}</div>
-    ${whTabBar}
-    <div><div class="ih"><span>🎒 가방 → 창고 (맡기기)</span></div><div class="glist">${bagRows||`<div class="inv-empty">이 분류에 가방 아이템 없음</div>`}</div></div>
-    <div><div class="ih"><span>🏦 창고 → 가방 (찾기)</span><span class="cnt">${stashCount()}칸</span></div><div class="glist">${stRows||`<div class="inv-empty">이 분류에 창고 아이템 없음</div>`}</div></div>
+    <div class="ge" style="color:var(--dim);margin-bottom:2px">🏦 창고에 보관 중인 물건 · 넣으려면 아래 <b>소지품 열기</b></div>
+    <div class="glist" style="margin-bottom:4px">${goldStash}</div>
+    ${whTabBarHtml(items)}
+    <div><div class="ih"><span>🏦 창고 보관함</span><span class="cnt">${stashCount()}칸</span></div><div class="glist">${rows||`<div class="inv-empty">이 분류에 창고 아이템이 없다</div>`}</div></div>
   </div>`;
-  setActions([{label:"🎒 소지품 열기",act:inventoryMenu},{label:"🏘 마을로",full:true,act:townMenu}]); }
+  setActions([{label:"🎒 소지품 열기 (창고에 넣기)",full:true,act:warehouseBag},{label:"🏘 마을로",full:true,act:townMenu}]); }
+/* 🎒 창고-소지품 화면 — 가방 물건만 (창고에 넣기) */
+function warehouseBag(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; townReturn=warehouseBag; whView="bag"; render(); setScene("🎒","소지품 — 창고에 넣을 물건");
+  const items=whBagItems(), wt=["wpn","arm","acc","cons","mat"].includes(whTab)?whTab:"wpn";
+  const rows=items.filter(r=>r.cat===wt).map(r=>r.html).join("");
+  const goldBag=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">보유 골드 <b>${P.gold}G</b></div></div><div class="gbtns"><button class="ibtn" ${P.gold<=0?'disabled':''} onclick="whDepGold()">창고에 넣기</button></div></div>`;
+  $("log").innerHTML=`<div class="invv">
+    <div class="ge" style="color:var(--dim);margin-bottom:2px">🎒 내 소지품 · <b>창고에 넣기</b>로 보관함으로 옮겨요 (착용 중이면 자동 해제)</div>
+    <div class="glist" style="margin-bottom:4px">${goldBag}</div>
+    ${whTabBarHtml(items)}
+    <div><div class="ih"><span>🎒 내 소지품</span></div><div class="glist">${rows||`<div class="inv-empty">이 분류에 가방 아이템이 없다</div>`}</div></div>
+  </div>`;
+  setActions([{label:"🏦 창고 보기",full:true,act:warehouseMenu},{label:"🏘 마을로",full:true,act:townMenu}]); }
+window.warehouseBag=warehouseBag;
 function whDep(id){ const i=P.inv.findIndex(x=>x.id===id); if(i<0)return; const it=P.inv[i];
   const g=RELICS[it.k]; const wasEq=g&&g.slot&&P.equip[g.slot]===it.id; if(wasEq)P.equip[g.slot]=null;   // 착용 중이면 해제 후 보관
-  P.inv.splice(i,1); P.stash.inv.push(it); toast(wasEq?"해제 후 창고에 맡김":"창고에 맡김"); render(); warehouseMenu(); }
-function whWd(id){ const i=P.stash.inv.findIndex(x=>x.id===id); if(i<0)return; const it=P.stash.inv[i]; P.stash.inv.splice(i,1); P.inv.push(it); toast("가방으로 꺼냄"); warehouseMenu(); }
-function whDepPot(){ if(P.potions<=0)return; P.stash.potions=(P.stash.potions||0)+P.potions; P.potions=0; toast("물약 맡김"); warehouseMenu(); }
-function whWdPot(){ if((P.stash.potions||0)<=0)return; P.potions+=P.stash.potions; P.stash.potions=0; toast("물약 찾음"); warehouseMenu(); }
-function whDepCons(k){ const q=P.consumables[k]||0; if(q<=0)return; P.stash.consumables[k]=(P.stash.consumables[k]||0)+q; delete P.consumables[k]; toast("맡김"); warehouseMenu(); }
-function whWdCons(k){ const q=P.stash.consumables[k]||0; if(q<=0)return; P.consumables[k]=(P.consumables[k]||0)+q; delete P.stash.consumables[k]; toast("찾음"); warehouseMenu(); }
-function whDepMat(m){ const q=P.mats[m]||0; if(q<=0)return; P.stash.mats[m]=(P.stash.mats[m]||0)+q; P.mats[m]=0; toast("재료 맡김"); warehouseMenu(); }
-function whWdMat(m){ const q=P.stash.mats[m]||0; if(q<=0)return; P.mats[m]=(P.mats[m]||0)+q; P.stash.mats[m]=0; toast("재료 찾음"); warehouseMenu(); }
-function whDepGold(){ if(P.gold<=0)return; const raw=prompt(`창고에 맡길 골드 (보유 ${P.gold}G):`, String(P.gold)); if(raw==null)return; const n=clamp(parseInt(raw,10)||0,0,P.gold); if(n<=0)return; P.gold-=n; P.stash.gold=(P.stash.gold||0)+n; toast(`골드 ${n} 맡김`); render(); warehouseMenu(); }
-function whWdGold(){ const have=P.stash.gold||0; if(have<=0)return; const raw=prompt(`찾을 골드 (창고 ${have}G):`, String(have)); if(raw==null)return; const n=clamp(parseInt(raw,10)||0,0,have); if(n<=0)return; P.stash.gold-=n; P.gold+=n; toast(`골드 ${n} 찾음`); render(); warehouseMenu(); }
+  P.inv.splice(i,1); P.stash.inv.push(it); toast(wasEq?"해제 후 창고에 넣음":"창고에 넣음"); render(); whRefresh(); }
+function whWd(id){ const i=P.stash.inv.findIndex(x=>x.id===id); if(i<0)return; const it=P.stash.inv[i]; P.stash.inv.splice(i,1); P.inv.push(it); toast("가방으로 꺼냄"); whRefresh(); }
+function whDepPot(){ if(P.potions<=0)return; P.stash.potions=(P.stash.potions||0)+P.potions; P.potions=0; toast("물약 넣음"); whRefresh(); }
+function whWdPot(){ if((P.stash.potions||0)<=0)return; P.potions+=P.stash.potions; P.stash.potions=0; toast("물약 꺼냄"); whRefresh(); }
+function whDepCons(k){ const q=P.consumables[k]||0; if(q<=0)return; P.stash.consumables[k]=(P.stash.consumables[k]||0)+q; delete P.consumables[k]; toast("넣음"); whRefresh(); }
+function whWdCons(k){ const q=P.stash.consumables[k]||0; if(q<=0)return; P.consumables[k]=(P.consumables[k]||0)+q; delete P.stash.consumables[k]; toast("꺼냄"); whRefresh(); }
+function whDepMat(m){ const q=P.mats[m]||0; if(q<=0)return; P.stash.mats[m]=(P.stash.mats[m]||0)+q; P.mats[m]=0; toast("재료 넣음"); whRefresh(); }
+function whWdMat(m){ const q=P.stash.mats[m]||0; if(q<=0)return; P.mats[m]=(P.mats[m]||0)+q; P.stash.mats[m]=0; toast("재료 꺼냄"); whRefresh(); }
+function whDepGold(){ if(P.gold<=0)return; const raw=prompt(`창고에 넣을 골드 (보유 ${P.gold}G):`, String(P.gold)); if(raw==null)return; const n=clamp(parseInt(raw,10)||0,0,P.gold); if(n<=0)return; P.gold-=n; P.stash.gold=(P.stash.gold||0)+n; toast(`골드 ${n} 넣음`); render(); whRefresh(); }
+function whWdGold(){ const have=P.stash.gold||0; if(have<=0)return; const raw=prompt(`꺼낼 골드 (창고 ${have}G):`, String(have)); if(raw==null)return; const n=clamp(parseInt(raw,10)||0,0,have); if(n<=0)return; P.stash.gold-=n; P.gold+=n; toast(`골드 ${n} 꺼냄`); render(); whRefresh(); }
 window.whDep=whDep; window.whWd=whWd; window.whDepPot=whDepPot; window.whWdPot=whWdPot;
 window.whDepCons=whDepCons; window.whWdCons=whWdCons; window.whDepMat=whDepMat; window.whWdMat=whWdMat;
 window.whDepGold=whDepGold; window.whWdGold=whWdGold;
