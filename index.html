@@ -246,19 +246,23 @@
   /* 전투 중: 정석 분리형 — 씬(상) / 메시지박스 3줄(중) / 커맨드박스(하) 를 겹침 없이 쌓는다 */
   body.combat .stage{ height:296px; border-radius:14px 14px 0 0 }
   body.combat .bme{ bottom:12px }
-  /* 메시지 박스: 5줄 높이 고정 → 텍스트 길이와 무관하게 항상 같은 크기 (아래 커맨드 버튼이 안 움직임) */
-  body.combat .log{ height:124px; max-height:124px; margin:0; padding:14px 16px 12px; font-size:14.5px; line-height:1.55;
-    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px); mask-image:linear-gradient(180deg,transparent 0,#000 14px);
-    border:1px solid var(--line); border-top:0; border-bottom:0; border-radius:0; background:#0d1119;
-    -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 22px, #000 100%); mask-image:linear-gradient(180deg, transparent 0, #000 22px, #000 100%) }   /* 위로 넘친 옛 줄은 하드컷 대신 페이드 */
-  body.combat .actions{ margin:0; padding:12px 14px 14px; border:1px solid var(--line); border-top:0; border-radius:0 0 14px 14px; background:#0b0e15 }
+  /* 💬 포켓몬식 대화박스: 고정 높이 + 최신 줄 강조 + 높은 대비 (가독성↑) */
+  body.combat .log{ height:140px; max-height:140px; margin:0; padding:14px 18px 14px; font-size:15.5px; line-height:1.62; color:#e9eef8;
+    border:2px solid #37425f; border-top:0; border-bottom:0; border-radius:0; background:linear-gradient(180deg,#141a29 0%,#0e131e 100%);
+    -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 24px, #000 100%); mask-image:linear-gradient(180deg, transparent 0, #000 24px, #000 100%) }   /* 위로 넘친 옛 줄은 하드컷 대신 페이드 */
+  body.combat .actions{ margin:0; padding:12px 14px 14px; border:2px solid #37425f; border-top:0; border-radius:0 0 14px 14px; background:#0b0e15 }
   .log::-webkit-scrollbar{width:8px} .log::-webkit-scrollbar-thumb{background:#2a3143; border-radius:8px}
-  .log p{margin:0 0 11px; animation:fade .4s ease}
-  .log .sys{color:var(--dim); font-size:13.5px; font-style:italic}
-  .log .dmg{color:var(--danger); font-family:var(--mono); font-size:13.5px}
-  .log .heal{color:var(--good); font-family:var(--mono); font-size:13.5px}
-  .log .loot{color:var(--gold); font-family:var(--mono); font-size:13.5px}
-  .log .quote{color:#cfd6e6; border-left:3px solid var(--accent); padding-left:12px; font-style:italic}
+  .log p{margin:0 0 10px; animation:fade .4s ease}
+  .log .sys{color:#aab4c7; font-size:14px; font-style:italic}
+  .log .dmg{color:#ff8f8f; font-family:var(--mono); font-size:14.5px}
+  .log .heal{color:#84e7ae; font-family:var(--mono); font-size:14.5px}
+  .log .loot{color:#ffd979; font-family:var(--mono); font-size:14.5px; font-weight:600}
+  .log .quote{color:#dbe2f0; border-left:3px solid var(--accent); padding-left:12px; font-style:italic}
+  /* 최신 메시지(맨 아래 줄)를 크고 또렷하게 — 대화박스 '지금 대사' 느낌 */
+  body.combat .log p:last-child{ color:#fff; font-size:17px; font-weight:600; letter-spacing:.1px; text-shadow:0 1px 3px rgba(0,0,0,.55) }
+  body.combat .log p:last-child.dmg{ color:#ff9d9d } body.combat .log p:last-child.heal{ color:#96f0bf } body.combat .log p:last-child.loot{ color:#ffe08a }
+  body.combat .log p:last-child::after{ content:"▼"; display:inline-block; margin-left:8px; font-size:11px; color:#7f8db0; transform:translateY(-1px); animation:dlgblink 1s steps(1) infinite }
+  @keyframes dlgblink{ 0%,50%{opacity:.85} 51%,100%{opacity:0} }
   @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
 
   .actions{padding:14px 16px 18px; border:1px solid var(--line); border-top:0; border-radius:0 0 16px 16px; background:#0b0e15; display:grid; grid-template-columns:1fr 1fr; gap:10px}
@@ -549,7 +553,8 @@
     button .desc{ font-size:12.5px }
     .log{ max-height:52vh; font-size:16px }
     body.combat .stage{ height:224px } body.combat .bme{ bottom:10px }
-    body.combat .log{ margin:0; height:108px; max-height:108px; font-size:14px; line-height:1.5 }
+    body.combat .log{ margin:0; height:120px; max-height:120px; font-size:15px; line-height:1.55 }
+    body.combat .log p:last-child{ font-size:16px }
     body.combat .actions{ margin:0 }
     .ibtn,.lot .lb{ padding:10px 14px; font-size:14px }
     .foot{ font-size:14px; line-height:1 }
