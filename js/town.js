@@ -447,9 +447,8 @@ function chatSeed(){ if(chatLog.length)return; for(let i=0;i<7;i++)chatLog.push(
 function startTownChat(){ if(!P||enemy||mode!=="town")return; const d=$("chatdock"); if(!d)return; d.hidden=false;
   if((window.innerWidth||999)<=640 && !d.dataset.userToggled)d.classList.add("collapsed");   // 모바일: 기본 접힘
   stopChatTimer();
-  if(P._online){   // 🌐 온라인: 실시간 광장 채팅(SSE) — 휘발성(접속 중 오는 글만, 나갔다 오면 비움)
+  if(P._online){   // 🌐 온라인: 실시간 광장 채팅(SSE) — 접속 세션 동안 유지, 지난 기록은 미로드(로그인 시 enterOnline에서 초기화)
     const myNick=()=>NET.nick||NET.name;   // 채팅 표시명은 닉네임 기준으로 '나' 판별
-    chatLog=[];   // 지난 기록은 불러오지 않는다(재접속/재입장 시 초기화)
     NET.onChat=(m)=>{ chatLog.push({name:m.name,av:m.av,text:m.text,me:(m.name===myNick()),ts:m.ts}); if(chatLog.length>60)chatLog=chatLog.slice(-60); renderChatDock(); };
     NET.onPresence=(n)=>{ const el=$("cdonline"); if(el)el.textContent=n+"명 접속"; };
     renderChatDock(); return;

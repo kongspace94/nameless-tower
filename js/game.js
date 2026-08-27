@@ -307,6 +307,7 @@ async function submitRecover(){ const err=$("recErr"); const setErr=(m,c)=>{ if(
   catch(e){ setErr("복구 실패 — "+e.message); }
 }
 async function enterOnline(){
+  if(typeof chatLog!=="undefined")chatLog=[];   // 🆕 새 로그인 세션 → 광장 채팅 초기화(같은 접속 중엔 유지, 로그인마다 비움)
   let cloud=null, authErr=false, loadErr=false;
   try{ cloud=await netSaveLoad(); }catch(e){ const m=(e&&e.message)||""; if(/로그인|401/.test(m))authErr=true; else loadErr=true; }
   if(authErr){ netLogout(); toast("세션이 만료됐어요 — 다시 로그인해주세요"); authForm("login"); return; }   // 서버 재시작 등으로 토큰 만료 시
