@@ -248,6 +248,9 @@ const SLOT_LABEL={weapon:"무기",offhand:"보조무기",armor:"방어구",ring:
 /* 아이템 종류 라벨 — 무기는 세부 종류(단검/검/활/주사위/카드…), 그 외는 슬롯 */
 const SLOT_ICON={weapon:"⚔",offhand:"🛡",armor:"🥋",ring:"💍",amulet:"📿",boots:"👢"};
 function gearTypeLabel(g){ if(!g||!g.slot)return "📦 장비"; if(g.slot==="weapon"){ const w=g.wt&&WEAPONS[g.wt]; return w?`${w.ic} ${w.n}`:"⚔ 무기"; } return `${SLOT_ICON[g.slot]||"📦"} ${SLOT_LABEL[g.slot]||"장비"}`; }
+/* 🎒 장비 3분류 — 무기(weapon/offhand) · 방어구(armor/boots) · 악세(ring/amulet). 인벤/창고/대장간 탭 공용 */
+const GEARCAT3={ wpn:["🗡","무기"], arm:["🛡","방어구"], acc:["💍","악세사리"] };
+function gearCat3(g){ if(!g||!g.slot)return "acc"; if(g.slot==="weapon"||g.slot==="offhand")return "wpn"; if(g.slot==="armor"||g.slot==="boots")return "arm"; return "acc"; }
 /* 아이템의 주 스탯(강화가 올리는 스탯): 무기=공격, 그 외엔 아이템이 실제로 가진 최고 스탯 */
 function gearMainStat(g){ if(!g)return "luck"; if(g.slot==="weapon")return "atk";
   const c=[["atk",g.atk||0],["def",g.def||0],["luck",g.luck||0]].sort((a,b)=>b[1]-a[1]);

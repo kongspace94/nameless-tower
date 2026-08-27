@@ -8,11 +8,14 @@ const TOWN_BUILDINGS=TOWN_AB+"ui/town-buildings.png";// 🏠 건물 레이어(�
 const TOWN_BG_LEGACY=TOWN_AB+"ui/town-map.png";      // (구) 글씨까지 박힌 단일 이미지도 지원
 const TOWN_SPR_DIR=TOWN_AB+"ui/buildings/";          // 🏠 개별 건물 스프라이트 폴더(tower.png 등, 투명 PNG)
 let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는지 기억 → 거기로 복귀
-let invTab="gear";   // 🎒 인벤 카테고리 탭(gear/cons/mat/quest)
+let invTab="wpn";   // 🎒 인벤 카테고리 탭(wpn/arm/acc/cons/mat/quest)
 function setInvTab(t){ invTab=t; inventoryMenu(); }
 window.setInvTab=setInvTab;
-let whTab="gear";   // 🏦 창고 카테고리 탭(gear/cons/mat)
+let whTab="wpn";   // 🏦 창고 카테고리 탭(wpn/arm/acc/cons/mat)
 function setWhTab(t){ whTab=t; warehouseMenu(); }
+let bsTab="wpn";   // ⚒️ 대장간 카테고리 탭(wpn/arm/acc)
+function setBsTab(t){ bsTab=t; blacksmithMenu(); }
+window.setBsTab=setBsTab;
 window.setWhTab=setWhTab;
 function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; townReturn=null;
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
@@ -94,7 +97,7 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     {emo:"📖",label:"수련관",x:10,y:78,w:14,spr:"dojo",act:skillMenu,hi:"수련하러 왔군"},
     {emo:"🌌",label:"제단",x:44,y:82,w:13,spr:"altar",act:altarMenu,hi:"돌아왔는가…"},
   ];
-  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,w:14,spr:null,act:farmMenu,hi:"일꾼들이 반겨요"});   // 왼쪽 배경 동굴 입구 사용
+  if(contUnlocked)blds.push({emo:"🧭",label:"개척·부족거점",x:72,y:80,w:14,spr:null,act:outpostMenu,hi:"개척 나갈 준비 됐나?"});   // 왼쪽 배경 동굴 입구 사용 · 개척 출발지 겸 부족거점
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap">
     <canvas class="tmcanvas" id="tmcanvas"></canvas>
@@ -234,6 +237,16 @@ function runeUnequip(key,i){ const rec=compRec(key); if(!rec.runes||!rec.runes[i
 function craftRune(rk){ const r=RUNES[rk]; if(!r){ toast("알 수 없는 룬"); return; } const cost=r.cost||{gold:150,mats:{}};
   if(!canAfford(cost)){ toast("재료·금화 부족"); return; } payCost(cost); P.runes[rk]=(P.runes[rk]||0)+1;
   line(`🔩 <b>${r.emoji} ${r.n}</b> 제작 완료!`,"loot"); toast("제작: "+r.n); if(typeof sfx==="function")sfx("loot"); render(); save(true); workshopMenu(); }
+/* 🧭 개척·부족거점 허브 — 지도 부족거점 입구에서 진입. 개척 출발 + 거점 관리 */
+function outpostMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
+  render(); clearLog(); setScene("🧭","대륙 개척 거점 — 탑 너머로 나설 준비.");
+  line("여기서 대륙으로 <b>개척</b>을 떠나거나, 데려온 일꾼들의 <b>부족 거점</b>을 관리한다.","sys");
+  line("⚠ 개척지 몬스터는 탑과 <b>비교도 안 되게</b> 강하다 — 지역 <b>내성 물약</b> 꼭 챙길 것.","quote");
+  setActions([
+    {label:"🧭 대륙 개척 나가기",full:true,desc:"탑 너머의 대륙 · 더 강한 적 · 새로운 탑들",act:startExpedition},
+    {label:"⛺ 부족 거점 관리",full:true,desc:`일꾼 자동 채집 · 슬롯 ${(P.farm&&P.farm.slots&&P.farm.slots.length)||0}칸`,act:farmMenu},
+    {label:"🏘 마을로",full:true,act:townMenu},
+  ]); }
 /* ⛺ 부족 거점 — 일꾼이 시간 기반으로 자원 자동 생산 */
 function farmMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
   if(!P.farm.unlocked){ P.farm.unlocked=true; P.farm.lastTs=Date.now();
@@ -388,14 +401,25 @@ function blacksmithMenu(){ if(enemy)return; stopAuctionTimer(); auction=null; mo
   line('고르드: <span class="quote">"강화할 장비를 고르게. 가방이든 창고든, 착용 여부와 상관없이 다 강화해주지. 강화 전·후 능력치를 보여주겠네."</span>');
   const gear=bsGearList();
   if(gear.length===0){ line("강화할 장비가 없다. (탑·경매장에서 얻는다)","sys"); setActions([{label:"🏘 마을로",full:true,act:townMenu}]); return; }
-  line("강화할 장비 선택 — 🎒 가방 / 🏦 창고로 구분돼 있어요.","sys");
-  const bag=gear.filter(o=>o.loc==="bag"), stash=gear.filter(o=>o.loc==="stash");
-  const mk=({it,loc})=>{ const up=it.up||0, maxed=up>=UP_MAX; const where=isEquippedItem(it)?"착용중":loc==="stash"?"창고":"가방";
-    return { label:`${it.k} +${up}`, desc:`📍${where}${maxed?" · 최대 강화":` · ${upStatText(it)} · 성공 ${Math.round(upChance(up)*100)}%`}`, act:()=>upgradePreview(it.id) }; };
-  const acts=[];
-  if(bag.length){ acts.push({label:"🎒 ─ 가방 ─",disabled:true,act:()=>{}}); bag.forEach(o=>acts.push(mk(o))); }
-  if(stash.length){ acts.push({label:"🏦 ─ 창고 ─",disabled:true,act:()=>{}}); stash.forEach(o=>acts.push(mk(o))); }
-  acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+  const tab=["wpn","arm","acc"].includes(bsTab)?bsTab:"wpn";
+  const byCat={wpn:[],arm:[],acc:[]}; gear.forEach(o=>{ byCat[gearCat3(RELICS[o.it.k])].push(o); });
+  const tabBar=`<div class="invtabs">`+[["wpn","🗡 무기"],["arm","🛡 방어구"],["acc","💍 악세"]].map(([t,lab])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setBsTab('${t}')">${lab}${byCat[t].length?` <i>${byCat[t].length}</i>`:''}</button>`).join("")+`</div>`;
+  const mkRow=({it,loc})=>{ const g=RELICS[it.k], up=it.up||0, maxed=up>=UP_MAX; const eq=isEquippedItem(it);
+    const where=eq?'<span style="color:var(--good)">착용중</span>':loc==="stash"?'🏦 창고':'🎒 가방';
+    const ch=Math.round(upChance(up)*100);
+    const right=maxed?`<b style="color:var(--gold)">최대 +${UP_MAX}</b>`:`<button class="ibtn on" onclick="upgradePreview(${it.id})">강화 ${ch}%</button>`;
+    return `<div class="grow ${maxed?'':'eq'}"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),34)}</span>`+
+      `<div class="gmeta"><div class="gn">${it.k} <span style="color:var(--gold)">+${up}</span></div>`+
+      `<div class="ge"><span class="gtype">${gearTypeLabel(g)}</span> · ${where}${maxed?'':` · ${upStatText(it)}`}</div></div>`+
+      `<div class="gbtns">${right}</div></div>`; };
+  const list=byCat[tab]; const emptyMsg={wpn:"강화할 무기가 없다.",arm:"강화할 방어구가 없다.",acc:"강화할 악세사리가 없다."};
+  const rowsHtml = list.length ? `<div class="glist">${list.map(mkRow).join("")}</div>` : `<div class="inv-empty">${emptyMsg[tab]}</div>`;
+  $("log").innerHTML=`<div class="invv">
+    <div class="ge" style="color:var(--dim);margin-bottom:2px">⚒️ 강화할 장비를 골라요 · 🎒 가방/🏦 창고 · 착용 여부 상관없이 강화 가능</div>
+    ${tabBar}
+    <div class="invtabbody">${rowsHtml}</div>
+  </div>`;
+  setActions([{label:"🎒 소지품 열기",act:inventoryMenu},{label:"🏘 마을로",full:true,act:townMenu}]); }
 /* 선택한 장비 1개의 강화 전→후 능력치 비교 화면 (이 장비를 착용했다고 가정하고 계산) */
 function upgradePreview(id){ const it=bsFind(id); if(!it||!RELICS[it.k]||!RELICS[it.k].slot){ blacksmithMenu(); return; }
   const g=RELICS[it.k], up=it.up||0, maxed=up>=UP_MAX, stat=upStatText(it), slot=g.slot;
@@ -697,11 +721,11 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
   // 보유 장비
   const owned = P.inv.map((it,i)=>({it,i})).filter(o=>RELICS[o.it.k])
     .sort((a,b)=>(isEquippedItem(b.it)?1:0)-(isEquippedItem(a.it)?1:0));   // 착용 중을 위로
-  const gearRows = owned.length ? owned.map(({it,i})=>{ const g=RELICS[it.k]; const equipped=isEquippedItem(it);
+  const mkGearRow=({it,i})=>{ const g=RELICS[it.k]; const equipped=isEquippedItem(it);
     const tip=`${it.k}${it.up?' +'+it.up:''} — ${gearTypeLabel(g)} · ${(g.note||'').replace(/"/g,'')} · 판매 ${g.val}G${equipped?' · 착용중':''}`;
     return `<div class="grow ${equipped?'eq':''}" title="${tip}"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),34)}</span><div class="gmeta"><div class="gn" onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}${equipped?' <span style="color:var(--good);font-size:11px">착용중</span>':''} <span style="color:var(--dim);font-size:11px">ⓘ</span></div><div class="ge"><span class="gtype">${gearTypeLabel(g)}</span> · ${g.note} · ${g.val}G</div></div>`+
-      `<div class="gbtns">${equipped?`<button class="ibtn on" onclick="invUnequip('${g.slot}')">해제</button>`:`<button class="ibtn" onclick="invEquip(${i})">착용</button>`}<button class="ibtn del" onclick="invDrop(${i})">버리기</button></div></div>`; }).join("")
-    : `<div class="inv-empty">보유한 장비가 없다. 탑·경매장에서 얻는다.</div>`;
+      `<div class="gbtns">${equipped?`<button class="ibtn on" onclick="invUnequip('${g.slot}')">해제</button>`:`<button class="ibtn" onclick="invEquip(${i})">착용</button>`}<button class="ibtn del" onclick="invDrop(${i})">버리기</button></div></div>`; };
+  const gearByCat={wpn:[],arm:[],acc:[]}; owned.forEach(o=>{ gearByCat[gearCat3(RELICS[o.it.k])].push(o); });
   // 소비품
   const consRows = [`<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">🧪</span><div class="gmeta"><div class="gn">물약 <b>×${P.potions}</b></div><div class="ge">HP 25 회복</div></div><div class="gbtns"><button class="ibtn" ${P.potions<=0?'disabled':''} onclick="invPotion()">사용</button></div></div>`]
     .concat(Object.entries(P.consumables||{}).filter(([,q])=>q>0).map(([key,q])=>{ const c=CONS[key]; if(!c)return"";
@@ -712,14 +736,15 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
   const quest = (P.questItems&&P.questItems.length) ? P.questItems.map(n=>`<span class="chip" style="cursor:pointer" onclick="itemInfo('quest','${n}')">🗝 ${n} ⓘ</span>`).join("") : `<div class="inv-empty">없음</div>`;
   const buffLine = (P.buffs&&Object.keys(P.buffs).some(k=>P.buffs[k])) ? `<div class="ge" style="margin-top:6px;color:var(--mp)">활성 버프: ${P.buffs.atkPct?`공격 +${Math.round(P.buffs.atkPct*100)}% `:''}${P.buffs.magicPct?`마법 +${Math.round(P.buffs.magicPct*100)}% `:''}${P.buffs.critBonus?`치명 +${Math.round(P.buffs.critBonus*100)}% `:''}${P.buffs.defBonus?`방어 +${P.buffs.defBonus}`:''}</div>`:"";
   const consN=1+Object.values(P.consumables||{}).filter(q=>q>0).length, matN=Object.values(P.mats||{}).filter(n=>n>0).length, qN=(P.questItems||[]).length;
-  const tab=invTab||"gear";
+  const tab=["wpn","arm","acc","cons","mat","quest"].includes(invTab)?invTab:"wpn";
   const tabBar=`<div class="invtabs">`+
-    [["gear","🗡 장비",owned.length],["cons","🧪 소비품",consN],["mat","🪵 재료",matN],["quest","🗝 퀘스트",qN]]
+    [["wpn","🗡 무기",gearByCat.wpn.length],["arm","🛡 방어구",gearByCat.arm.length],["acc","💍 악세",gearByCat.acc.length],["cons","🧪 소비품",consN],["mat","🪵 재료",matN],["quest","🗝 퀘스트",qN]]
       .map(([t,lab,n])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setInvTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`).join("")+`</div>`;
+  const gearCatEmpty={wpn:"보유한 무기가 없다. 탑·상점·경매장에서 얻는다.",arm:"보유한 방어구가 없다.",acc:"보유한 악세사리가 없다."};
   const body = tab==="cons" ? `<div class="glist">${consRows}</div>${buffLine}`
     : tab==="mat" ? `<div class="mgrid">${mats}</div>`
     : tab==="quest" ? `<div class="statchips">${quest}</div>`
-    : (owned.length?`<div class="glist">${gearRows}</div>`:`<div class="inv-empty">보유한 장비가 없다. 탑·경매장에서 얻는다.</div>`);
+    : (gearByCat[tab].length?`<div class="glist">${gearByCat[tab].map(mkGearRow).join("")}</div>`:`<div class="inv-empty">${gearCatEmpty[tab]}</div>`);
   $("log").innerHTML = `<div class="invv">
     <div><div class="ih"><span>착용 중</span><span class="cnt">⚔+${b.atk} 🛡+${b.def} 🍀+${b.luck}${b.vamp?' 🩸':''}</span></div><div class="glist">${slotRow}</div></div>
     ${setHtml?`<div><div class="ih"><span>✦ 세트 효과</span></div><div class="glist">${setHtml}</div></div>`:""}
@@ -743,17 +768,17 @@ function warehouseMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
     return `<div class="grow"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),30)}</span><div class="gmeta"><div class="gn">${it.k}${it.up?` <span style="color:var(--gold)">+${it.up}</span>`:''}</div><div class="ge">${g.note||''}</div></div><div class="gbtns">${btn}</div></div>`; };
   const stackRow=(emoji,name,q,where,fn)=>`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">${emoji}</span><div class="gmeta"><div class="gn">${name} <b>×${q}</b></div></div><div class="gbtns"><button class="ibtn ${where==='bag'?'':'on'}" onclick="${fn}">${where==='bag'?'맡기기':'찾기'}</button></div></div>`;
   const bagItems=[], stItems=[];
-  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key).forEach(it=>bagItems.push({cat:"gear",html:gearRow(it,"bag")}));
+  P.inv.filter(it=>RELICS[it.k]&&!RELICS[it.k].key).forEach(it=>bagItems.push({cat:gearCat3(RELICS[it.k]),html:gearRow(it,"bag")}));
   if(P.potions>0)bagItems.push({cat:"cons",html:stackRow("🧪","물약",P.potions,"bag","whDepPot()")});
   Object.entries(P.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)bagItems.push({cat:"cons",html:stackRow(c.emoji,c.n,q,"bag",`whDepCons('${k}')`)}); });
   Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=P.mats[m]||0; if(q>0)bagItems.push({cat:"mat",html:stackRow(e,nm,q,"bag",`whDepMat('${m}')`)}); });
-  st.inv.filter(it=>RELICS[it.k]).forEach(it=>stItems.push({cat:"gear",html:gearRow(it,"stash")}));
+  st.inv.filter(it=>RELICS[it.k]).forEach(it=>stItems.push({cat:gearCat3(RELICS[it.k]),html:gearRow(it,"stash")}));
   if((st.potions||0)>0)stItems.push({cat:"cons",html:stackRow("🧪","물약",st.potions,"stash","whWdPot()")});
   Object.entries(st.consumables||{}).filter(([,q])=>q>0).forEach(([k,q])=>{ const c=CONS[k]; if(c)stItems.push({cat:"cons",html:stackRow(c.emoji,c.n,q,"stash",`whWdCons('${k}')`)}); });
   Object.entries(MATS).forEach(([m,[e,nm]])=>{ const q=st.mats[m]||0; if(q>0)stItems.push({cat:"mat",html:stackRow(e,nm,q,"stash",`whWdMat('${m}')`)}); });
-  const wt=whTab||"gear", cnt=(a,c)=>a.filter(r=>r.cat===c).length;
+  const wt=["wpn","arm","acc","cons","mat"].includes(whTab)?whTab:"wpn", cnt=(a,c)=>a.filter(r=>r.cat===c).length;
   const bagRows=bagItems.filter(r=>r.cat===wt).map(r=>r.html).join(""), stRows=stItems.filter(r=>r.cat===wt).map(r=>r.html).join("");
-  const whTabBar=`<div class="invtabs">`+[["gear","🗡 장비"],["cons","🧪 소비품"],["mat","🪵 재료"]].map(([t,lab])=>{ const n=cnt(bagItems,t)+cnt(stItems,t); return `<button type="button" class="invtab ${wt===t?'on':''}" onclick="setWhTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`; }).join("")+`</div>`;
+  const whTabBar=`<div class="invtabs">`+[["wpn","🗡 무기"],["arm","🛡 방어구"],["acc","💍 악세"],["cons","🧪 소비품"],["mat","🪵 재료"]].map(([t,lab])=>{ const n=cnt(bagItems,t)+cnt(stItems,t); return `<button type="button" class="invtab ${wt===t?'on':''}" onclick="setWhTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`; }).join("")+`</div>`;
   const goldBag=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">골드 <b>${P.gold}G</b></div></div><div class="gbtns"><button class="ibtn" ${P.gold<=0?'disabled':''} onclick="whDepGold()">맡기기</button></div></div>`;
   const goldStash=`<div class="grow"><span class="emo" style="width:30px;height:30px;font-size:17px">🪙</span><div class="gmeta"><div class="gn">보관 골드 <b>${st.gold||0}G</b></div></div><div class="gbtns"><button class="ibtn on" ${(st.gold||0)<=0?'disabled':''} onclick="whWdGold()">찾기</button></div></div>`;
   $("log").innerHTML=`<div class="invv">

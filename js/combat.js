@@ -1320,7 +1320,9 @@ const CONTINENTS=[
 function CONT(){ return CONTINENTS[(EXP&&EXP.ci)||0]; }
 function contUnlockedCount(){ return Math.min(CONTINENTS.length, (P.flags.contCleared||0)+1); }
 function expDifficulty(){ if(!EXP)return 10; return CONT().diffBase + EXP.ai*2 + Math.floor(EXP.step/2); }
-function expScale(diff){ return 1 + (diff-1)*0.12; }   // 밸런스: 대륙 곡선 소폭 강화(0.11→0.12)
+function expScale(diff){ return 1 + (diff-1)*0.17; }   // 밸런스: 대륙 곡선 대폭 강화(0.12→0.17) — 탑과 격차 확대
+/* 🌩 개척은 탑과 '비교도 안 될' 강함: 몬스터 자체에 배수 부여 */
+const EXP_HPMUL=1.85, EXP_ATKMUL=1.6, EXP_DEFADD=3;
 function expPool(){ const p=CONT().pool; return p==="void"?ENEMIES3 : p==="sky"?ENEMIES2 : ENEMIES; }
 function regionDebuff(){ return EXP?REGION_DEBUFFS[CONT().debuff]:null; }
 function regionResisted(){ const d=regionDebuff(); return !!(d && P.buffs && P.buffs.regionResist===CONT().debuff); }
@@ -1433,9 +1435,9 @@ function trueEnding(){ stopAuctionTimer(); enemy=null; B=null; EXP=null; clearLo
   line("💰 금화 +2000, 재료 대량 획득! 당신의 전설이 새겨졌다.","loot"); checkTitleUnlocks(); render();
   setActions([{label:"🏘 마을로 (계속 플레이)",full:true,act:townMenu}]); }
 function expEnemy(diff){ const base=pick(expPool()); const s=expScale(diff)*ngMul();
-  const e={...base,hp:Math.round(base.hp*s),atk:Math.round(base.atk*s),def:base.def+Math.floor(diff/5),g:Math.round(base.g*(1+(diff-1)*0.14))};
+  const e={...base,hp:Math.round(base.hp*s*EXP_HPMUL),atk:Math.round(base.atk*s*EXP_ATKMUL),def:base.def+Math.floor(diff/5)+EXP_DEFADD,g:Math.round(base.g*(1+(diff-1)*0.14)*1.4)};
   e.hpMax=e.hp; e.groggy=0; e.groggyMax=Math.round((40+diff*3)); e.staggered=false; e.stagUsed=false; return e; }
-function expBoss(def,diff,cont){ const base=pick(expPool()); const s=expScale(diff)*ngMul(), mul=cont?3.0:1.9;
+function expBoss(def,diff,cont){ const base=pick(expPool()); const s=expScale(diff)*ngMul(), mul=cont?3.4:2.2;
   const e={n:def.n,ic:def.ic,taunt:["기이한 기운이 몰아친다.","공기가 무겁게 짓눌린다.","대륙이 진동한다."],
-    hp:Math.round(base.hp*s*mul),atk:Math.round(base.atk*s*1.15),def:base.def+Math.floor(diff/5)+2,g:Math.round(base.g*s*(cont?3:1.8)),boss:true,sp:cont?"대륙의 분노":"강타",ultMult:cont?2.9:2.6};
+    hp:Math.round(base.hp*s*mul*EXP_HPMUL),atk:Math.round(base.atk*s*1.25*EXP_ATKMUL),def:base.def+Math.floor(diff/5)+2+EXP_DEFADD,g:Math.round(base.g*s*(cont?3:1.8)*1.5),boss:true,sp:cont?"대륙의 분노":"강타",ultMult:cont?3.1:2.7};
   e.hpMax=e.hp; e.groggy=0; e.groggyMax=Math.round((40+diff*3)*2.0); e.staggered=false; e.stagUsed=false; return e; }
