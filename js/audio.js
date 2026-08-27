@@ -36,6 +36,7 @@ const BGM = {   // 배경음악 (src 없으면 무음 대기). vol=트랙별 기
   town:   { src: "sounds/bgm-town.mp3", vol: 0.6, loop: true },   // 🎵 사용자 제작 마을 BGM
   combat: { src: "", vol: 0.7, loop: true },
   boss:   { src: "sounds/bgm-boss.mp3", vol: 0.75, loop: true },  // 👑 보스 전투 BGM (파일 넣으면 보스전에서 자동 재생)
+  finalboss: { src: "sounds/bgm-finalboss.mp3", vol: 0.8, loop: true },  // 🔥 최종보스(50층 창조주 · 마지막 대륙 보스)
 };
 const AMB = {   // 환경음 (바람·풀벌레·마을 소음 등, 배경음악과 별도 레이어). src 넣으면 재생
   town:   { src: "", vol: 0.6, loop: true },   // 예) src:"sounds/amb-town.mp3"

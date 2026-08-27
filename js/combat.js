@@ -56,7 +56,7 @@ const BOSSES={
   35:{n:"차원의 파수꾼 · 크로노스",ic:"riftlord",hp:500,atk:40,def:16,g:620,boss:true,sp:"시간 정지",taunt:["시간이 멈춘 듯 고요하다.",'"네 시간은 여기서 끝난다."']},
   40:{n:"공허의 군주",ic:"voidlord",hp:560,atk:43,def:17,g:720,boss:true,sp:"공허 붕괴",taunt:["모든 빛이 빨려 들어간다.","무(無)가 입을 벌린다."]},
   45:{n:"별을 삼킨 자",ic:"stareater",hp:600,atk:44,def:17,g:820,boss:true,sp:"초신성",taunt:["삼켜진 별들이 뱃속에서 타오른다.","하늘이 텅 비었다."]},
-  50:{n:"탑의 창조주 · 이름 없는 신",ic:"godhead",hp:680,atk:47,def:19,g:1200,boss:true,sp:"창조의 파동",taunt:["탑의 끝. 모든 것의 시작이 당신을 본다.",'"드디어… 나를 마주하러 왔는가."']},
+  50:{n:"탑의 창조주 · 이름 없는 신",ic:"godhead",hp:680,atk:47,def:19,g:1200,boss:true,final:true,sp:"창조의 파동",taunt:["탑의 끝. 모든 것의 시작이 당신을 본다.",'"드디어… 나를 마주하러 왔는가."']},
 };
 /* ✨ 몬스터 시그니처 드랍 — "이 몹 잡으면 이게 나온다"(테마 매칭) · 풀 드랍 위에 낮은 확률로 얹음 */
 const MONSTER_SIG={
@@ -95,7 +95,8 @@ function makeEnemy(){ const f=P.floor; const ng=ngMul();
   const e={...base,hp:Math.round(base.hp*s*ng),atk:Math.round(base.atk*s*ng),def:base.def+Math.floor(f/6),g:Math.round(base.g*(1+(f-1)*0.12))};
   e.hpMax=e.hp; e.groggy=0; e.groggyMax=40+f*2; e.staggered=false; e.stagUsed=false; return e; }
 
-function startCombat(e,intro){ if(typeof bgm==="function")bgm((e&&e.boss&&typeof BGM!=="undefined"&&BGM.boss&&BGM.boss.src)?"boss":"combat"); enemy=e; if(!enemy.weak)enemy.weak=elemForName(enemy.n); enemy.ail={}; enemy._weakShown=!!(P.codexWeak&&P.codexWeak[enemy.n]);   // 속성 약점(몬스터별 고정) + 상태이상 컨테이너
+function startCombat(e,intro){ if(typeof bgm==="function"){ const _B=(typeof BGM!=="undefined")?BGM:{};
+    const _bn=(e&&e.final&&_B.finalboss&&_B.finalboss.src)?"finalboss":(e&&e.boss&&_B.boss&&_B.boss.src)?"boss":"combat"; bgm(_bn); } enemy=e; if(!enemy.weak)enemy.weak=elemForName(enemy.n); enemy.ail={}; enemy._weakShown=!!(P.codexWeak&&P.codexWeak[enemy.n]);   // 속성 약점(몬스터별 고정) + 상태이상 컨테이너
   if(enemy.mech===undefined)enemy.mech=MONSTER_MECH[enemy.n]||null;   // 👹 고유 기믹
   if(enemy.mech==="shield"){ enemy.shieldHp=Math.round(enemy.hpMax*0.28); enemy.shieldMax=enemy.shieldHp; }
   enemy.enraged=false; enemy.splitUsed=false;
@@ -1281,7 +1282,7 @@ function afterAreaClear(){ if(!EXP)return; const c=CONT(); clearLog(); setScene(
   line(`다음 구역: <b>${c.areas[EXP.ai].n}</b>`,"sys"); setActions([{label:"🧭 다음 구역으로",full:true,act:expeditionHub}]); }
 function contBossIntro(){ if(!EXP)return; const c=CONT(); expReturn=afterContClear; P.floor=expDifficulty()+4;
   clearLog(); setScene("👑",`${c.name} — 대륙 수호체`); line(`대륙의 심장부. <b>${c.contBoss.n}</b>이(가) 깨어난다!`,"dmg");
-  const e=expBoss(c.contBoss,expDifficulty(),true);
+  const e=expBoss(c.contBoss,expDifficulty(),true); if(EXP.ci>=CONTINENTS.length-1)e.final=true;   // 🔥 마지막 대륙 보스 = 최종보스
   setActions([{label:"⚔ 결전",full:true,act:()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
 function dropSetPiece(setKey){ const pieces=Object.keys(RELICS).filter(k=>RELICS[k].set===setKey); if(!pieces.length)return;
   const unowned=pieces.filter(k=>!P.inv.some(x=>x.k===k)&&!(P.stash&&P.stash.inv||[]).some(x=>x.k===k)); addRelic(pick(unowned.length?unowned:pieces)); }
