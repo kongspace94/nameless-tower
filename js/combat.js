@@ -1210,17 +1210,21 @@ function expSelectContinent(){ mode="town"; EXP=null; render(); clearLog(); setS
   line("탑 너머로 펼쳐진 대륙들. 갈수록 강력한 적과 <b>지역 디버프</b>가 기다린다.","sys");
   const unlocked=contUnlockedCount();
   const acts=CONTINENTS.map((c,i)=>{ const d=REGION_DEBUFFS[c.debuff]; const cleared=(P.flags.contCleared||0)>i; const open=i<unlocked;
+    const pr=P.expProg&&P.expProg[i]; const inProg=!cleared&&pr&&(pr.ai>0||pr.step>0);
     return open
-      ? {label:`${cleared?"✅":c.ic} ${c.name}`,desc:`${d.icon} ${d.n} · ${d.desc}${cleared?" · 개척완료(재도전)":""}`,full:true,act:()=>beginContinent(i)}
+      ? {label:`${cleared?"✅":inProg?"▶":c.ic} ${c.name}${inProg?` <span style="color:var(--gold)">개척 중 ${pr.ai}/${c.areas.length}</span>`:""}`,desc:`${d.icon} ${d.n} · ${d.desc}${cleared?" · 개척완료(재도전)":inProg?" · 이어서 개척":""}`,full:true,act:()=>beginContinent(i)}
       : {label:`🔒 ${c.name}`,desc:"이전 대륙을 먼저 개척해야 열린다",full:true,disabled:true,act:()=>{}}; });
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
-function beginContinent(ci){ mode="dive"; EXP={ci,ai:0,step:0}; EXP.debuff=REGION_DEBUFFS[CONTINENTS[ci].debuff]; EXP.debuffKey=CONTINENTS[ci].debuff; expReturn=null;
+function saveExpProg(){ if(!EXP||!P)return; if(!P.expProg)P.expProg={}; P.expProg[EXP.ci]={ai:EXP.ai,step:EXP.step}; save(true); }   // 🧭 개척 진행 저장(마을 갔다 와도 이어짐)
+function beginContinent(ci){ mode="dive"; const sv=(P.expProg&&P.expProg[ci])||null; const rai=(sv&&sv.ai)||0, rstep=(sv&&sv.step)||0;
+  EXP={ci,ai:rai,step:rstep}; EXP.debuff=REGION_DEBUFFS[CONTINENTS[ci].debuff]; EXP.debuffKey=CONTINENTS[ci].debuff; expReturn=null;
   P.dives++; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(P.buffs)P.buffs.regionResist=null; P.floor=expDifficulty();
   const total=(P.potions||0)+(P._divePotBank||0); P._divePotBank=Math.max(0,total-DIVE_POTION_MAX); P.potions=Math.min(total,DIVE_POTION_MAX);
   const c=CONT(), d=regionDebuff(); render(); clearLog(); setScene(c.ic,c.name);
   line(`🗺️ <b>${c.name}</b> — ${c.intro}`,"sys");
   line(`${d.icon} <b>지역 디버프: ${d.n}</b> — ${d.desc}. <b>${CONS[d.resist].n}</b>(잡화점)으로 무효화 가능.`,"dmg");
   if(P._divePotBank>0)line(`🧪 물약은 최대 ${DIVE_POTION_MAX}개만 반입 (나머지 ${P._divePotBank}개 마을 보관).`,"sys");
+  if(rai>0||rstep>0)line(`📍 이전 진행부터 이어서 개척한다 — <b>${(CONTINENTS[ci].areas[rai]||{}).n||"수호체"}</b> (${rai}/${CONTINENTS[ci].areas.length} 구역 완료).`,"loot");
   expeditionHub(); }
 function expMapHtml(){ const c=CONT(), spa=STEPS_PER_AREA, areas=c.areas, total=areas.length*spa;
   const done=EXP.ai*spa+Math.min(EXP.step,spa), pct=Math.round(done/total*100);
@@ -1246,7 +1250,7 @@ function expeditionHub(){ if(!EXP||enemy)return; mode="dive"; P.floor=expDifficu
   ]); }
 function exploreStep(){ if(!EXP||enemy)return; const spa=STEPS_PER_AREA;
   if(EXP.step>=spa){ areaBoss(); return; }
-  EXP.step++; P.floor=expDifficulty(); clearLog();
+  EXP.step++; saveExpProg(); P.floor=expDifficulty(); clearLog();
   const r=Math.random();
   if(r<0.58)expCombat(); else if(r<0.73)expLifeNode(); else if(r<0.86)expTreasure(); else expEvent(); }
 function expCombat(){ expReturn=expeditionHub; setScene("⚔️","무언가 다가온다.");
@@ -1272,7 +1276,7 @@ function areaBoss(){ if(!EXP)return; const area=CONT().areas[EXP.ai]; expReturn=
   setActions([{label:"⚔ 맞선다",full:true,act:()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`)},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
 function afterAreaClear(){ if(!EXP)return; const c=CONT(); clearLog(); setScene("✅","구역 개척 완료"); line(`✅ <b>${c.areas[EXP.ai].n}</b> 구역을 개척했다!`,"loot");
   if(c.setKey&&chance(0.22)){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각 발견!`,"loot"); dropSetPiece(c.setKey); }   // 구역 보스: 세트 조각 확률 드랍(파밍)
-  EXP.ai++; EXP.step=0;
+  EXP.ai++; EXP.step=0; saveExpProg();
   if(EXP.ai>=c.areas.length){ contBossIntro(); return; }
   line(`다음 구역: <b>${c.areas[EXP.ai].n}</b>`,"sys"); setActions([{label:"🧭 다음 구역으로",full:true,act:expeditionHub}]); }
 function contBossIntro(){ if(!EXP)return; const c=CONT(); expReturn=afterContClear; P.floor=expDifficulty()+4;
@@ -1289,6 +1293,7 @@ function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINEN
   if(c.setKey){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각을 획득했다!`,"loot"); dropSetPiece(c.setKey); }
   if(chance(0.5))dropRelic();
   if((P.flags.contCleared||0)<ci+1)P.flags.contCleared=ci+1;   // 다음 대륙 해금
+  if(P.expProg)delete P.expProg[ci];   // 🧭 완전 개척 → 진행 기록 정리(재도전은 처음부터)
   EXP=null; expReturn=null; checkTitleUnlocks(); render();
   if(last){ setTimeout(trueEnding,300); return; }
   line(`🧭 <b>다음 대륙</b>이 열렸다 — ${CONTINENTS[ci+1].name}!`,"loot");

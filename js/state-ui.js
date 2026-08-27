@@ -10,6 +10,7 @@ function freshPlayer(){ return {
   title:null, titles:[], codex:{}, codexWeak:{}, tamed:[], portals:[1], quests:{}, flags:{maxFloor:0}, hp:0, mp:0, floor:1, dives:0, stamina:STAM_MAX, staminaTs:Date.now(),
   shopDay:"", shopBought:{},
   meta:{echoes:0,spent:{},runs:0,bestFloor:0,bestCont:0}, runPeakFloor:0, runContClears:0, runKills:0,   // 🌌 회귀 메타성장 + 이번 런 추적
+  expProg:{},   // 🧭 대륙 개척 구역 진행 저장(대륙별 {ai,step}) — 마을 갔다 와도 이어짐
   bestiary:{},   // 📖 몬스터 도감(처치수·약점·시그니처 드랍 기록)
   farm:{unlocked:false,slots:[],lastTs:Date.now()},   // ⛺ 자동 파밍(부족 거점)
 };}
@@ -51,6 +52,7 @@ function normalizeP(){ if(!P)return;
   if(!P.meta||typeof P.meta!=="object")P.meta={echoes:0,spent:{},runs:0,bestFloor:0,bestCont:0};   // 🌌 회귀 메타
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
+  if(!P.expProg||typeof P.expProg!=="object")P.expProg={};   // 🧭 개척 구역 진행 저장
   if(!P.farm||typeof P.farm!=="object")P.farm={unlocked:false,slots:[],lastTs:Date.now()};   // ⛺ 자동 파밍
   if(!Array.isArray(P.farm.slots))P.farm.slots=[]; if(!P.farm.lastTs)P.farm.lastTs=Date.now();
   for(const s of P.farm.slots){ if(s.lv==null)s.lv=1; if(s.acc==null)s.acc=0; }
