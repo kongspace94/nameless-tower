@@ -314,12 +314,15 @@
     background:radial-gradient(120% 90% at 50% 0%, #6fb85a 0%, #58a047 42%, #47883b 100%);
     box-shadow:inset 0 -40px 60px -30px rgba(10,30,10,.6), inset 0 20px 40px -20px rgba(255,255,255,.12)}
   .townmap .tmcanvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-  /* 🖼 배경 이미지 모드(파일 있을 때) — 캔버스/안내문 숨기고 이미지 비율로 표시 */
+  /* 🖼 배경 이미지 모드(파일 있을 때) — 캔버스 숨기고 이미지 비율로 표시 */
   .townmap.hasbg{ background-size:100% 100%; background-position:center; background-repeat:no-repeat; box-shadow:none }
   body.mapview .townmap.hasbg{ height:auto; max-height:82vh }
   .townmap.hasbg .tmcanvas{ display:none }
-  .townmap.hasbg .tmhint{ display:none }
-  .tmlabel{position:absolute; transform:translate(-50%,-50%); z-index:14; font-size:11px; font-weight:700; color:#ffe6b0; background:rgba(10,14,22,.6); border:1px solid rgba(255,255,255,.22); border-radius:8px; padding:2px 7px; pointer-events:none; white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,.85)}
+  .townmap .tmbuildings{position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; z-index:1; filter:drop-shadow(0 6px 6px rgba(0,0,0,.5))}
+  .tmlabel{position:absolute; transform:translate(-50%,-50%); z-index:14; display:none; font-size:11px; font-weight:700; color:#ffe6b0; background:rgba(10,14,22,.6); border:1px solid rgba(255,255,255,.22); border-radius:8px; padding:2px 7px; pointer-events:none; white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,.85)}
+  .townmap.hasbg .tmlabel{ display:block }             /* 2레이어(글씨 없는) 모드: 코드 라벨 표시 */
+  .townmap.hasbg.baked .tmlabel{ display:none }         /* (구) 글씨 박힌 단일 이미지: 라벨·힌트 숨김 */
+  .townmap.hasbg.baked .tmhint{ display:none }
   .tmhit{position:absolute; transform:translate(-50%,-50%); width:58px; height:56px; background:transparent; border:0; padding:0; margin:0; cursor:pointer;
     -webkit-appearance:none; appearance:none; outline:none; color:inherit; font:inherit;
     -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none}

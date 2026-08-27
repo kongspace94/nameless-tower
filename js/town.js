@@ -2,7 +2,10 @@
 /* ============================================================
    거점 마을
    ============================================================ */
-const TOWN_BG=(typeof ASSET_BASE!=="undefined"?ASSET_BASE:"assets/")+"ui/town-map.png";   // 🖼 마을 지도 배경(있으면 사용, 없으면 캔버스 폴백)
+const TOWN_AB=(typeof ASSET_BASE!=="undefined"?ASSET_BASE:"assets/");
+const TOWN_BG=TOWN_AB+"ui/town-bg.png";              // 🖼 배경 레이어(지형)
+const TOWN_BUILDINGS=TOWN_AB+"ui/town-buildings.png";// 🏠 건물 레이어(투명 PNG) — 글씨는 코드로
+const TOWN_BG_LEGACY=TOWN_AB+"ui/town-map.png";      // (구) 글씨까지 박힌 단일 이미지도 지원
 let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는지 기억 → 거기로 복귀
 let invTab="gear";   // 🎒 인벤 카테고리 탭(gear/cons/mat/quest)
 function setInvTab(t){ invTab=t; inventoryMenu(); }
@@ -94,13 +97,19 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap">
     <canvas class="tmcanvas" id="tmcanvas"></canvas>
+    <img class="tmbuildings" id="tmbuildings" alt="" hidden>
     ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" aria-label="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
+    ${blds.map(b=>`<div class="tmlabel" style="left:${b.x}%;top:${(b.y+9)}%">${b.emo} ${b.label}</div>`).join("")}
     <div class="tmothers" id="tmothers"></div>
-    ${contUnlocked?`<div class="tmlabel" style="left:72%;top:80%">⛺ 부족거점</div>`:""}
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
   const map=$("townmap"), pl=$("tmplayer"), cv=$("tmcanvas"); let walking=false;
-  try{ const bg=new Image(); bg.onload=()=>{ if(!map)return; map.classList.add("hasbg"); map.style.backgroundImage=`url("${TOWN_BG}")`; if(bg.naturalWidth&&bg.naturalHeight)map.style.aspectRatio=bg.naturalWidth+" / "+bg.naturalHeight; }; bg.src=TOWN_BG; }catch(e){}   // 🖼 배경 이미지 있으면 적용(없으면 캔버스 유지)
+  // 🖼 배경 레이어(town-bg.png, 없으면 구 town-map.png) → 성공 시 캔버스 대신 이미지 사용
+  try{ const bg=new Image(); bg.onload=()=>{ if(!map)return; map.classList.add("hasbg"); map.style.backgroundImage=`url("${bg.src}")`; if(bg.naturalWidth&&bg.naturalHeight)map.style.aspectRatio=bg.naturalWidth+" / "+bg.naturalHeight; };
+    bg.onerror=()=>{ const bg2=new Image(); bg2.onload=()=>{ if(!map)return; map.classList.add("hasbg","baked"); map.style.backgroundImage=`url("${bg2.src}")`; if(bg2.naturalWidth&&bg2.naturalHeight)map.style.aspectRatio=bg2.naturalWidth+" / "+bg2.naturalHeight; }; bg2.src=TOWN_BG_LEGACY; };   // 폴백: 글씨 박힌 단일 이미지
+    bg.src=TOWN_BG; }catch(e){}
+  // 🏠 건물 레이어(투명 PNG) — 있으면 배경 위에 얹음
+  try{ const bd=$("tmbuildings"); if(bd){ bd.onload=()=>{ bd.hidden=false; }; bd.onerror=()=>{ bd.hidden=true; }; bd.src=TOWN_BUILDINGS; } }catch(e){}
   const drawIt=()=>{ try{ drawTownCanvas(cv, blds); }catch(e){} };
   drawIt(); setTimeout(drawIt,0); if(typeof requestAnimationFrame==="function")requestAnimationFrame(drawIt);   // 즉시+다음틱+rAF
   if(typeof ResizeObserver==="function"){ try{ const ro=new ResizeObserver(()=>drawIt()); ro.observe(cv); }catch(e){} }   // 🔧 크기 바뀔 때마다 재그리기(히트박스와 항상 정렬)
