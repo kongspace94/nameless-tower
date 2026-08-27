@@ -305,8 +305,9 @@ function itemInfo(kind,key){ let emoji="❔",name=key,tag="",rows=[];
 window.closeModal=closeModal; window.itemInfo=itemInfo;
 
 /* ---------- 액션 버튼 ---------- */
-const ACT_GUARD_MS=250;   // 버튼이 새로 뜬 직후엔 클릭 무시(연타로 다음 메뉴 실수 클릭 방지)
-function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=""; const t=Date.now(); let n=0;
+const ACT_GUARD_MS=420;   // 버튼이 새로 뜬 직후엔 클릭 무시(연타로 안 읽고 넘기는 것 방지 · 읽을 틈) — 빠르면 줄이기
+let _actTime=0;   // 마지막 setActions 시각(클릭·키보드 가드 공용)
+function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=""; const t=Date.now(); _actTime=t; let n=0;
   list.forEach((a)=>{
     if(a.header){ const h=document.createElement("div"); h.className="acthdr full"; h.innerHTML=`<span>${a.label}</span>`; box.appendChild(h); return; }   // 섹션 헤더
     n++; const num=n; const b=document.createElement("button"); if(a.full)b.className="full";
@@ -315,6 +316,7 @@ function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=
 document.addEventListener("keydown",e=>{ if(!awaiting)return;
   const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName||""))return;   // 입력칸 타이핑 중엔 메뉴 숫자키 무시(비번/이름/채팅 입력 보호)
   if(e.code==="Space")return; const n=parseInt(e.key,10);
+  if(Date.now()-_actTime<ACT_GUARD_MS)return;   // 방금 뜬 메뉴는 잠깐 무시(연타 방지·읽을 틈)
   const acts=awaiting.filter(a=>!a.header);   // 번호는 헤더 제외하고 매김
   if(n>=1&&n<=acts.length){ const a=acts[n-1]; if(a&&!a.disabled)a.act(); } });
 
