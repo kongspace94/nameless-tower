@@ -219,8 +219,11 @@
   .ecdown.aim .aimwrap{position:relative; width:160px; height:160px; flex:none; display:flex; align-items:center; justify-content:center}
   .aimbull{font-size:44px; line-height:1}
   .aimring{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); box-sizing:border-box; aspect-ratio:1; border:3px solid #8fd0ff; border-radius:50%; box-shadow:0 0 14px rgba(140,200,255,.6); pointer-events:none}
-  .ecdown.parry .aimring{border-color:#ffd36a; box-shadow:0 0 16px rgba(255,211,106,.7)}
-  .ecdown.parry .aimbull{font-size:40px; text-shadow:0 0 12px rgba(255,211,106,.5)}
+  .ecdown.parry .aimring{border-color:#8fd0ff; box-shadow:0 0 16px rgba(140,200,255,.7)}   /* 줄어드는 원 = 파랑(타겟과 대비) */
+  .aimzone{position:absolute; left:50%; top:50%; width:58px; height:58px; transform:translate(-50%,-50%); border:2px dashed rgba(255,211,106,.55); border-radius:50%; pointer-events:none}   /* good 존 */
+  .aimcore{position:absolute; left:50%; top:50%; width:26px; height:26px; transform:translate(-50%,-50%); border:3px solid #ffd36a; border-radius:50%; box-shadow:0 0 14px rgba(255,211,106,.85); pointer-events:none; animation:aimpulse 1s ease-in-out infinite}   /* perfect 타겟 */
+  @keyframes aimpulse{50%{transform:translate(-50%,-50%) scale(1.14)}}
+  .aimdot{position:absolute; left:50%; top:50%; width:6px; height:6px; transform:translate(-50%,-50%); background:#ffd36a; border-radius:50%; box-shadow:0 0 8px #ffd36a; pointer-events:none}
   .bigpop{position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); font-family:var(--mono); font-weight:800; font-size:clamp(38px,9vw,58px); letter-spacing:.05em; z-index:10; pointer-events:none; text-shadow:0 3px 14px rgba(0,0,0,.85), 0 0 26px currentColor; animation:bigpop .78s cubic-bezier(.2,1.4,.35,1) forwards}
   @keyframes bigpop{0%{opacity:0; transform:translate(-50%,-50%) scale(.35) rotate(-6deg)}22%{opacity:1; transform:translate(-50%,-50%) scale(1.18) rotate(0)}68%{opacity:1; transform:translate(-50%,-50%) scale(1)}100%{opacity:0; transform:translate(-50%,-50%) scale(1.08)}}
   /* 주문 영창 */

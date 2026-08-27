@@ -47,7 +47,7 @@ const MATS={ wood:["🪵","원목"], ore:["🪨","광석"], herb:["🌿","약초
 const FARM_BASE_RATE=4, FARM_CAP_PER_LV=40, FARM_MAX_SLOTS=6, FARM_START_SLOTS=2;
 function farmRate(lv){ return FARM_BASE_RATE*(lv||1); }            // 시간당 생산량
 function farmCap(lv){ return FARM_CAP_PER_LV*(lv||1); }            // 슬롯 저장 상한
-function farmHireCost(n){ return 150+n*150; }                     // 다음 일꾼(슬롯) 고용 금화
+function farmHireCost(n){ return 800+n*n*700; }                   // 다음 일꾼(슬롯) 고용 금화 — 대폭↑(자동 파밍은 강력한 수익원)
 function farmUpCostGold(lv){ return 60*(lv||1); }                 // 슬롯 강화 금화
 /* 🔥 속성 상성 + 상태이상 — 적마다 약점 속성, 무기·스킬에 속성 부여 */
 const ELEMENTS={ fire:{n:"화염",ic:"🔥",col:"#ff8a3a",ail:"화상"}, frost:{n:"냉기",ic:"❄️",col:"#8fd0ff",ail:"빙결"},

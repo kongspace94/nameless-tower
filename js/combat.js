@@ -106,15 +106,25 @@ function startCombat(e,intro){ if(typeof bgm==="function"){ const _B=(typeof BGM
     const ru=B.comp.rune; if(ru){ if(ru.pAtk)B.atkPct=(B.atkPct||0)+ru.pAtk; if(ru.pCrit)B.critB=(B.critB||0)+ru.pCrit; if(ru.pDef)B.defB=(B.defB||0)+ru.pDef; } }   // 🔩 동료 룬: 동행 중 플레이어 패시브
   if(EXP)applyRegionDebuff();   // 개척: 지역 디버프 적용
   B.enemyIntent=rollIntent(); startPlayerTurn(); }
-function rollIntent(){ const e=enemy; let it;
-  if(e.boss&&chance(0.28)) it={type:"special",icon:"✴",label:e.sp||"필살기",preview:Math.round(e.atk*2.0)};
-  else { const r=Math.random();
-    if(r<0.25) it={type:"heavy",icon:"💢",label:"강타 준비",preview:Math.round(e.atk*1.8)};
-    else if(r<0.40) it={type:"guard",icon:"🛡️",label:"방어 태세",preview:0};
-    else if(r<0.55) it={type:"poison",icon:"☠",label:"맹독",preview:Math.round(e.atk*0.6)};
-    else it={type:"attack",icon:"⚔️",label:"공격",preview:e.atk}; }
-  if(it.type==="heavy") line(`⚠️ ${e.n}이(가) <b>강력한 일격</b>을 준비하고 있다…`,"dmg");        // 강한 공격만 텍스트로 예고
-  else if(it.type==="special") line(`⚠️ ${e.n}에게서 심상찮은 기운 — <b>${it.label}</b>이(가) 다가온다!`,"dmg");
+/* 🧠 몬스터 적응형 AI — 플레이어 상태를 읽고 반응(위기면 마무리 노림·궁지면 발악) */
+function rollIntent(){ const e=enemy; const hpP=P.hp/Math.max(1,MAXHP()), eHpP=e.hp/Math.max(1,e.hpMax||e.hp);
+  const lowP=hpP<0.35, critP=hpP<0.2, lowE=eHpP<0.3;
+  const prev=(B&&B.enemyIntent)?B.enemyIntent.type:null;
+  let w={ attack:1.0, heavy:e.boss?0.9:0.8, guard:0.5, poison:e.boss?0.5:0.45, special:e.boss?0.9:0 };
+  if(lowP){ w.heavy*=1.9; w.special*=2.0; w.guard*=0.2; w.poison*=0.4; }   // 플레이어 위기 → 몰아붙임
+  if(critP){ w.heavy*=1.3; w.special*=1.4; }                              // 빈사 → 더 세게
+  if(lowE){ if(e.boss)w.special*=2.2; else w.guard*=1.9; w.heavy*=1.2; }   // 적 궁지 → 발악/생존
+  if((prev==="heavy"||prev==="special")&&!chance(0.22)){ w.heavy*=0.35; w.special*=0.35; }   // 연속 예고 방지(가끔 콤보)
+  const ent=Object.entries(w).filter(([,v])=>v>0); const tot=ent.reduce((a,[,v])=>a+v,0)||1; let r=Math.random()*tot, k="attack";
+  for(const [kk,v] of ent){ r-=v; if(r<=0){ k=kk; break; } }
+  let it;
+  if(k==="special") it={type:"special",icon:"✴",label:e.sp||"필살기",preview:Math.round(e.atk*2.4)};
+  else if(k==="heavy") it={type:"heavy",icon:"💢",label:"강타 준비",preview:Math.round(e.atk*2.0)};
+  else if(k==="guard") it={type:"guard",icon:"🛡️",label:"방어 태세",preview:0};
+  else if(k==="poison") it={type:"poison",icon:"☠",label:"맹독",preview:Math.round(e.atk*0.6)};
+  else it={type:"attack",icon:"⚔️",label:"공격",preview:e.atk};
+  if(it.type==="heavy") line(`⚠️ ${e.n}이(가) <b>강력한 일격</b>을 준비하고 있다…${lowP?" <b>위험!</b>":""}`,"dmg");
+  else if(it.type==="special") line(`⚠️ ${e.n}에게서 심상찮은 기운 — <b>${it.label}</b>!${lowP?" <b>막지 못하면 끝이다!</b>":""}`,"dmg");
   return it; }
 
 const POTION_HEAL=25;
@@ -856,7 +866,7 @@ function enemyPhase(){ if(!enemy)return;
   if(it.type==="guard"){ B.enemyGuard=0.5; line(`${enemy.n}이(가) 방어 태세를 취한다.`,"sys"); endEnemyTurn(); return; }
   if(it.type==="poison"){ const d=incoming(0.6); applyPlayerDamage(d,`${enemy.n}의 맹독 공격!`); if(P.hp>0){ B.poison=Math.max(B.poison,3); line("중독됐다! (3턴)","dmg"); } endEnemyTurn(); return; }
   // 물리 공격 — 돌발 패링 기회(확률)가 뜨면 반응 QTE, 아니면 그대로 피격
-  const mult=it.type==="heavy"?1.8:it.type==="special"?2.0:1.0; if(it.type==="special")line(`✴ ${enemy.n}의 ${it.label}!`,"dmg");
+  const mult=it.type==="heavy"?2.0:it.type==="special"?2.4:1.0; if(it.type==="special")line(`✴ ${enemy.n}의 ${it.label}!`,"dmg");
   if(!B.disarmed && !B.block && enemy && enemy.hp>0 && chance(parryProcChance())){ reactiveParry(mult,it); return; }   // 돌발 패링 (방어 안 했을 때)
   resolveEnemyAttack(mult,it,"none"); }
 /* 적 공격 최종 처리 (패링 결과 pr: perfect/good/miss/none) → 엔드턴 */
@@ -913,8 +923,8 @@ function parryProcChance(){ return clamp(0.14 + estat("dex")*0.006 + LUKv()*0.00
 function reactiveParry(mult,it){ awaiting=null;
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ resolveEnemyAttack(mult,it,"good"); return; }
   const s=$("stage"); const box=document.createElement("div"); box.className="ecdown aim parry";
-  box.innerHTML=`<div class="et" style="color:#ffd36a">⚡ <b>돌발! 패링 기회</b> — 원이 <b>정중앙</b>일 때 [클릭/스페이스]</div>`+
-    `<div class="aimwrap"><div class="aimbull">⚔️</div><div class="aimring" id="pring"></div></div>`;
+  box.innerHTML=`<div class="et" style="color:#ffd36a">⚡ <b>돌발! 패링</b> — 줄어드는 파란 원이 <b>금색 원</b>에 들어올 때 [클릭/스페이스] (안쪽=완벽)</div>`+
+    `<div class="aimwrap"><div class="aimzone"></div><div class="aimcore"></div><div class="aimdot"></div><div class="aimring" id="pring"></div></div>`;
   s.appendChild(box); const ring=box.querySelector("#pring");
   let r=100,raf=null,done=false; const RSZ=150, spd=2.7;
   const finish=(q)=>{ if(done)return; done=true; cancelAnimationFrame(raf); document.removeEventListener("keydown",key); box.remove();
