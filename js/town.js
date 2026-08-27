@@ -158,8 +158,10 @@ function companionMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
   line(`${tier>0?d.emoji:ico(d.ic,26)} <b>${d.n}</b> · 유대 <b>Lv.${lv}</b>${tier>0?` <span style="color:var(--gold)">✦각성 ${tier}</span>`:""}`,"sys");
   line(`<div style="margin:4px 0 2px">${compEffectText(key,lv,tier)}</div>`,"sys");
   line(`<div class="cbondbar"><i style="width:${Math.round(prog*100)}%"></i></div><div style="font-size:11.5px;color:var(--dim)">${maxed?"최대 성장 완료":`유대 ${Math.floor(rec.bond||0)}/${need} → 다음 레벨`}${nextAwk?` · 다음 각성 Lv.${nextAwk}`:tier>=2?"":" · 각성 완료"}</div>`,"quote");
+  { const slots=compRuneSlots(key), eq=(rec.runes||[]); const chips=Array.from({length:slots},(_,i)=>{ const rk=eq[i]; return rk&&RUNES[rk]?`<span class="runechip">${RUNES[rk].emoji}${RUNES[rk].n}</span>`:`<span class="runechip empty">빈 슬롯</span>`; }).join(" ");
+    line(`<div style="font-size:11.5px;color:var(--dim);margin-top:2px">🔩 룬 ${eq.length}/${slots} ${chips}</div>`,"sys"); }
   line("먹이(재료)를 주면 유대가 오른다. 전투 승리로도 쌓인다.","quote");
-  const acts=[{header:true,label:"🍖  먹이 주기 (재료 → 유대)"}];
+  const acts=[{label:"🔩 룬 장착·해제",full:true,desc:`슬롯 ${(rec.runes||[]).length}/${compRuneSlots(key)} · 각성할수록 슬롯 개방`,act:()=>companionRuneMenu(key)},{header:true,label:"🍖  먹이 주기 (재료 → 유대)"}];
   const owned=Object.entries(MATS).filter(([mk])=>(P.mats[mk]||0)>0);
   if(maxed)acts.push({label:"이미 최대 성장",disabled:true,act:()=>{}});
   else if(!owned.length)acts.push({label:"줄 재료가 없다",desc:"채집·전투로 재료를 모으자",disabled:true,act:()=>{}});
@@ -188,6 +190,27 @@ function recruitCompanion(key){ const c=COMPANIONS[key]; if(!c||c.rare){ toast("
   if((P.gems||0)<STARTER_RECRUIT_GEMS){ toast("크리스탈 부족"); return; }
   P.gems-=STARTER_RECRUIT_GEMS; ensureComp(key); line(`✨ <b>${c.emoji} ${c.n}</b>을(를) 영입했다! (💎-${STARTER_RECRUIT_GEMS})`,"loot"); toast("영입: "+c.n);
   if(typeof sfx==="function")sfx("loot"); render(); save(true); companionMenu(); }
+/* 🔩 룬 장착·해제 — 동료 슬롯(각성 티어만큼)에 보유 룬을 끼운다 */
+function companionRuneMenu(key){ if(enemy){ toast("전투 중엔 안 돼요"); return; } key=key||P.companion; const c=COMPANIONS[key]; if(!c){ companionMenu(); return; }
+  mode="town"; render(); clearLog(); const rec=compRec(key), d=compDisp(key,rec.lv), slots=compRuneSlots(key), eq=rec.runes||(rec.runes=[]);
+  setScene("🔩",`${d.n} — 룬 장착`);
+  line(`${compTier(rec.lv)>0?d.emoji:ico(d.ic,26)} <b>${d.n}</b> · 룬 슬롯 <b>${eq.length}/${slots}</b> <span style="color:var(--dim);font-size:11.5px">(각성할수록 개방: Lv.1→1 · Lv.12→2 · Lv.24→3)</span>`,"sys");
+  const acts=[{header:true,label:"장착된 룬 (눌러서 해제)"}];
+  if(!eq.length)acts.push({label:"— 비어 있음 —",disabled:true,act:()=>{}});
+  else eq.forEach((rk,i)=>{ const r=RUNES[rk]; acts.push({label:`${r?r.emoji+" "+r.n:rk}`,desc:(r?r.note:"")+" · 눌러서 해제",act:()=>runeUnequip(key,i)}); });
+  const poolKeys=Object.keys(RUNES).filter(rk=>(P.runes[rk]||0)>0);
+  acts.push({header:true,label:"보유 룬 (눌러서 장착)"});
+  if(!poolKeys.length)acts.push({label:"보유한 룬이 없다",desc:"제작소에서 룬을 제작하자",disabled:true,act:()=>{}});
+  else poolKeys.forEach(rk=>{ const r=RUNES[rk]; acts.push({label:`${r.emoji} ${r.n} ×${P.runes[rk]}`,desc:r.note,disabled:eq.length>=slots,act:()=>runeEquip(key,rk)}); });
+  acts.push({label:"← 동료로",full:true,act:()=>companionMenu()}); setActions(acts); }
+function runeEquip(key,rk){ const rec=compRec(key); if(!rec.runes)rec.runes=[]; if(rec.runes.length>=compRuneSlots(key)){ toast("슬롯이 가득 찼다"); return; }
+  if((P.runes[rk]||0)<=0){ toast("보유한 룬이 없다"); return; } P.runes[rk]--; if(P.runes[rk]<=0)delete P.runes[rk]; rec.runes.push(rk);
+  const r=RUNES[rk]; line(`🔩 ${r.emoji} ${r.n}을(를) 장착했다.`,"loot"); if(typeof sfx==="function")sfx("click"); render(); save(true); companionRuneMenu(key); }
+function runeUnequip(key,i){ const rec=compRec(key); if(!rec.runes||!rec.runes[i])return; const rk=rec.runes.splice(i,1)[0]; P.runes[rk]=(P.runes[rk]||0)+1;
+  const r=RUNES[rk]; line(`🔩 ${r?r.n:rk}을(를) 해제했다.`,"sys"); if(typeof sfx==="function")sfx("click"); render(); save(true); companionRuneMenu(key); }
+function craftRune(rk){ const r=RUNES[rk]; if(!r){ toast("알 수 없는 룬"); return; } const cost=r.cost||{gold:150,mats:{}};
+  if(!canAfford(cost)){ toast("재료·금화 부족"); return; } payCost(cost); P.runes[rk]=(P.runes[rk]||0)+1;
+  line(`🔩 <b>${r.emoji} ${r.n}</b> 제작 완료!`,"loot"); toast("제작: "+r.n); if(typeof sfx==="function")sfx("loot"); render(); save(true); workshopMenu(); }
 /* ⛺ 부족 거점 — 일꾼이 시간 기반으로 자원 자동 생산 */
 function farmMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town";
   if(!P.farm.unlocked){ P.farm.unlocked=true; P.farm.lastTs=Date.now();
@@ -618,6 +641,9 @@ function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; }
   acts.push({header:true,label:"🧪 지역 내성 아이템"});
   Object.keys(CONS).filter(k=>CONS[k].use==="resist").forEach(k=>{ const cost=craftConsCost(k);
     acts.push({label:`${CONS[k].emoji} ${CONS[k].n}`,desc:`${CONS[k].note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftCons(k)}); });
+  if(typeof RUNES!=="undefined"){ acts.push({header:true,label:"🔩 동료 룬 (동료 슬롯에 장착)"});
+    Object.keys(RUNES).forEach(rk=>{ const r=RUNES[rk], cost=r.cost||{gold:150,mats:{}};
+      acts.push({label:`${r.emoji} ${r.n}${(P.runes&&P.runes[rk])?` (보유 ${P.runes[rk]})`:""}`,desc:`${r.note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftRune(rk)}); }); }
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 function craftGear(k){ const cost=craftGearCost(k); if(!canAfford(cost)){ toast("재료·금화 부족"); return; } payCost(cost); addRelic(k); toast("제작: "+k); render(); workshopMenu(); }
 function craftCons(k){ const cost=craftConsCost(k); if(!canAfford(cost)){ toast("재료·금화 부족"); return; } payCost(cost); gainCons(k); line(`🔨 <b>${CONS[k].n}</b> 제작 완료!`,"loot"); toast("제작: "+CONS[k].n); render(); workshopMenu(); }

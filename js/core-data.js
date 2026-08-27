@@ -137,8 +137,24 @@ function compBondNeed(lv){ return 18+(lv-1)*11; }          // lv→lv+1 필요 �
 function compTier(lv){ return lv>=AWAKEN_LV[1]?2 : lv>=AWAKEN_LV[0]?1 : 0; }
 function compRec(key){ key=key||(P&&P.companion); if(!P)return{bond:0,lv:1,awk:0}; if(!P.comps)P.comps={}; return P.comps[key]||(P.comps[key]={bond:0,lv:1,awk:0}); }
 function compDisp(key,lv){ const d=COMPANIONS[key]; if(!d)return{n:"동료",emoji:"❓",ic:null}; const t=compTier(lv||1); const e=(d.evo&&d.evo[t])?d.evo[t]:{n:d.n,emoji:d.emoji}; return {n:e.n,emoji:e.emoji,ic:d.ic,tier:t}; }
+/* 🔩 동료 룬 — 각성 티어만큼 슬롯 개방(0→1·1→2·2→3칸). 제작소서 제작, 동료 메뉴서 장착 */
+const RUNES={
+  rune_vigor:{n:"활력의 룬",emoji:"💚",note:"동료 회복 효과 +3%p",eff:{healPct:0.03},cost:{gold:120,mats:{herb:3}}},
+  rune_ember:{n:"불씨의 룬",emoji:"🔥",note:"동료 딜 +6%p · 화염 부여",eff:{dpsPct:0.06,elem:"fire"},cost:{gold:150,mats:{ore:3}}},
+  rune_bulwark:{n:"방벽의 룬",emoji:"🧱",note:"동료 피해감소 +4%p",eff:{tankRed:0.04},cost:{gold:150,mats:{ore:3}}},
+  rune_haste:{n:"신속의 룬",emoji:"⏩",note:"동료 특수기 쿨 -1턴",eff:{cdCut:1},cost:{gold:220,mats:{mana:2,ore:2}}},
+  rune_leech:{n:"흡정의 룬",emoji:"🩸",note:"동료 공격이 날 회복(피해 20%)",eff:{vamp:0.2},cost:{gold:200,mats:{mana:2}}},
+  rune_valor:{n:"용맹의 룬",emoji:"⚔️",note:"동행 중 내 공격 +8%",eff:{pAtk:0.08},cost:{gold:200,mats:{ore:2,mana:1}}},
+  rune_focus:{n:"집중의 룬",emoji:"🎯",note:"동행 중 내 치명 +6%",eff:{pCrit:0.06},cost:{gold:200,mats:{mana:2}}},
+  rune_aegis:{n:"철벽의 룬",emoji:"🛡️",note:"동행 중 내 방어 +4",eff:{pDef:4},cost:{gold:180,mats:{ore:3}}},
+  rune_tempo:{n:"기세의 룬",emoji:"🌟",note:"동료 행동마다 기세 +6",eff:{mom:6},cost:{gold:220,mats:{mana:2,herb:2}}},
+};
+function compRuneSlots(key){ return 1+compTier((compRec(key).lv)||1); }   // 각성 티어만큼 +1(최대 3)
+function compRuneEff(key){ const rec=compRec(key); const list=(rec&&rec.runes)||[]; const s={healPct:0,dpsPct:0,tankRed:0,cdCut:0,vamp:0,mom:0,pAtk:0,pCrit:0,pDef:0,elem:null};
+  for(const rk of list){ const r=RUNES[rk]; if(!r)continue; const e=r.eff||{}; for(const k in e){ if(k==="elem"){ if(!s.elem)s.elem=e.elem; } else s[k]=(s[k]||0)+e[k]; } } return s; }
 function buildComp(key){ const d=COMPANIONS[key]; if(!d)return null; const rec=compRec(key); const lv=rec.lv||1; const tier=compTier(lv); const disp=compDisp(key,lv);
-  return {key,ic:d.ic,n:disp.n,emoji:disp.emoji,role:d.role,lv,tier,energy:0,max:tier>=2?2:3}; }
+  const rune=compRuneEff(key); const baseMax=tier>=2?2:3;
+  return {key,ic:d.ic,n:disp.n,emoji:disp.emoji,role:d.role,lv,tier,energy:0,max:Math.max(2,baseMax-(rune.cdCut||0)),rune}; }
 /* 장비: slot = weapon | armor | accessory (착용해야 효과) */
 const RELICS={
   "녹슨 단검":{slot:"weapon",wt:"dagger",atk:2,note:"공격 +2",ic:"dagger",val:40,shop:"weapon"}, "낡은 단궁":{slot:"weapon",wt:"bow",atk:3,note:"공격 +3 · 원거리",ic:"bow",val:55,shop:"weapon"},

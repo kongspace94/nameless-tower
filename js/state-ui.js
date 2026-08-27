@@ -2,7 +2,7 @@
 /* ---------- 상태 ---------- */
 let P, mode="town", enemy=null, B=null, awaiting=null, auction=null, auctionTimer=null;
 function freshPlayer(){ return {
-  name:"방랑자", avatar:null, gems:5, gold:30, potions:3, companion:"light", comps:{light:{bond:0,lv:1,awk:0}}, karma:0, kills:0,
+  name:"방랑자", avatar:null, gems:5, gold:30, potions:3, companion:"light", comps:{light:{bond:0,lv:1,awk:0,runes:[]}}, runes:{}, karma:0, kills:0,
   stats:{str:5,int:5,dex:5,vit:5,luk:3}, train:{str:0,int:0,dex:0,vit:0,luk:0}, lifeStat:{str:0,int:0,dex:0,vit:0,luk:0},
   life:{logging:{lv:1,xp:0},mining:{lv:1,xp:0},herbing:{lv:1,xp:0},fishing:{lv:1,xp:0},arcana:{lv:1,xp:0}},
   mats:{}, skills:[], skillProf:{}, skillSlots:SLOT_BASE, loadout:[], passives:[], inv:[], uidc:0, equip:{weapon:null,offhand:null,armor:null,ring:null,amulet:null,boots:null}, consumables:{}, buffs:{}, questItems:[],
@@ -45,7 +45,8 @@ function normalizeP(){ if(!P)return;
   if(!Array.isArray(P.tamed))P.tamed=[];   // 계약(테이밍)한 소환수 로스터
   if(!P.comps||typeof P.comps!=="object")P.comps={};   // 🐾 동료 성장(유대/각성) 기록
   if(P.companion&&!P.comps[P.companion])P.comps[P.companion]={bond:0,lv:1,awk:0};
-  for(const k in P.comps){ const r=P.comps[k]; if(r.lv==null)r.lv=1; if(r.bond==null)r.bond=0; if(r.awk==null)r.awk=compTier(r.lv); }
+  for(const k in P.comps){ const r=P.comps[k]; if(r.lv==null)r.lv=1; if(r.bond==null)r.bond=0; if(r.awk==null)r.awk=compTier(r.lv); if(!Array.isArray(r.runes))r.runes=[]; }
+  if(!P.runes||typeof P.runes!=="object")P.runes={};   // 🔩 보유 룬(미장착 풀)
   if(!P.meta||typeof P.meta!=="object")P.meta={echoes:0,spent:{},runs:0,bestFloor:0,bestCont:0};   // 🌌 회귀 메타
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
