@@ -8,6 +8,16 @@ function startDive(){ if(!P.portals||P.portals.length<=1){ beginDive(1); return;
   line("탑 곳곳의 거점으로 통하는 포탈이 열려 있다. 시작 지점을 고르자.","sys");
   const acts=P.portals.slice().sort((a,b)=>a-b).map(f=>({ label: f===1?"🚪 1층 (탑 입구)":`🌀 ${f}층 · ${CHECKPOINTS[f]?CHECKPOINTS[f].zone+" "+CHECKPOINTS[f].n:"거점"}`, desc:f===1?"처음부터":"거점에서 시작", act:()=>beginDive(f) }));
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+/* 🗼 탑 목록 — '이름 없는 탑' + 정복한 대륙마다 열린 탑 포탈. 대륙 정복 전엔 그냥 기존 탑으로 직행 */
+function towerList(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; stopAuctionTimer(); auction=null;
+  const conquered=[]; for(let i=0;i<CONTINENTS.length;i++){ if((P.flags.contCleared||0)>i)conquered.push(i); }
+  if(!conquered.length){ startDive(); return; }   // 아직 대륙 정복 전 — 기존 '이름 없는 탑'만
+  render(); clearLog(); setScene("🗼","탑 목록 — 열린 포탈들");
+  line("정복한 대륙마다 그 <b>탑으로 통하는 포탈</b>이 열렸다. 오를 탑을 고르자.","sys");
+  const acts=[{label:"🗼 이름 없는 탑",desc:`시작의 탑 · 포탈 ${(P.portals||[1]).length}개 · 최고 ${P.flags.maxFloor||0}층`,full:true,act:startDive}];
+  conquered.forEach(i=>{ const c=CONTINENTS[i]; const d=REGION_DEBUFFS[c.debuff];
+    acts.push({label:`🗼 ${c.name}`,desc:`정복한 대륙의 탑 · ${d?d.icon+" "+d.n+" · ":""}포탈 재도전`,full:true,act:()=>beginContinent(i)}); });
+  acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(typeof amb==="function")amb("tower");
   const total=(P.potions||0)+(P._divePotBank||0); P._divePotBank=Math.max(0,total-DIVE_POTION_MAX); P.potions=Math.min(total,DIVE_POTION_MAX);  // 반입 제한
   render(); clearLog(); setScene("🚪","탑의 문이 열린다."); line(`탑 ${floor}층에서 등반을 시작한다. 얻은 것은 마을로 가져갈 수 있다.`,"sys");
@@ -1478,6 +1488,7 @@ function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINEN
   if(chance(0.5))dropRelic();
   if((P.flags.contCleared||0)<ci+1)P.flags.contCleared=ci+1;   // 다음 대륙 해금
   if(P.expProg)delete P.expProg[ci];   // 🧭 완전 개척 → 진행 기록 정리(재도전은 처음부터)
+  line(`🗼 <b>${c.name}</b>의 탑으로 통하는 <b>포탈</b>이 열렸다! — 마을 <b>탑 등반</b> 목록에서 다시 오를 수 있다.`,"loot");   // 🗼 탑 포탈 해금
   EXP=null; expReturn=null; checkTitleUnlocks(); render();
   if(last){ setTimeout(trueEnding,300); return; }
   line(`🧭 <b>다음 대륙</b>이 열렸다 — ${CONTINENTS[ci+1].name}!`,"loot");

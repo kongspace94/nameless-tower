@@ -35,7 +35,7 @@ function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuc
   setActions([
     {label:"🗺 마을 둘러보기 (지도)",desc:"걸어다니며 건물 방문 · 미리보기",full:true,act:townMap},
     {header:true,label:"⚔  모  험"},
-    {label:"🗼 탑 등반",desc:"이름 없는 탑을 오른다 · 전투로 성장",full:true,act:startDive},
+    {label:"🗼 탑 등반",desc:(P.flags.contCleared||0)>0?"이름 없는 탑 + 정복한 대륙의 탑 포탈":"이름 없는 탑을 오른다 · 전투로 성장",full:true,act:towerList},
     contUnlocked
       ? {label:"🧭 대륙 개척",desc:"탑 너머의 대륙 · 더 강한 적 · 새로운 탑들",full:true,act:startExpedition}
       : {label:"🔒 대륙 개척",desc:"탑 정상(50층)에 도달하면 열린다",full:true,disabled:true,act:()=>{}},
@@ -94,7 +94,7 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   if(document.body)document.body.classList.add("mapview");   // 상단 씬 숨기고 지도를 크게 (공간 활용)
   const contUnlocked=(P.flags.cleared||0)>0||P.flags.continentUnlocked;
   const blds=[
-    {emo:"🗼",label:"탑",x:50,y:14,w:16,spr:null,act:startDive,hi:"탑에 오른다…"},   // 배경 동굴 입구 사용(스프라이트 없음)
+    {emo:"🗼",label:"탑",x:50,y:14,w:16,spr:null,act:towerList,hi:"탑에 오른다…"},   // 배경 동굴 입구 사용(스프라이트 없음) · 정복 대륙 탑 포탈 목록
     {emo:"🛡️",label:"장비상점",x:15,y:34,w:15,spr:"gearshop",act:gearShop,hi:"어서오세요, 손님!"},
     {emo:"⚒️",label:"대장간",x:33,y:28,w:17,spr:"blacksmith",act:blacksmithMenu,hi:"강화해 줄까?"},
     {emo:"🔨",label:"제작소",x:18,y:60,w:14,spr:"workshop",act:workshopMenu,hi:"뭘 만들어볼까?"},
