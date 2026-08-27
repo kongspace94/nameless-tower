@@ -613,8 +613,33 @@ function guildCategory(cat){ if(enemy)return; const g=GUILD_CATS[cat]; clearLog(
   if(avail.length===0) line("지금 받을 수 있는 의뢰가 없다. (이미 받았거나 완료함)","sys");
   else line(`길드마스터: <span class="quote">"${g.n} 목록이네. 맡을 걸 고르게."</span>`);
   const acts=avail.map(id=>{ const q=QUESTS[id];
-    return { label:`📜 ${q.n}`, desc:`${q.desc} → 보상 ${rewardText(q.reward)}`, act:()=>{ acceptQuest(id); toast("의뢰 수락: "+q.n); guildCategory(cat); } }; });
+    return { label:`📜 ${q.n}`, desc:`${q.desc} → 보상 ${rewardText(q.reward)}`, act:()=>questScroll(id,cat) }; });
   acts.push({label:"← 다른 종류",act:guildMasterMenu},{label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+/* 📜 의뢰서(양피지) — 읽어보고 '수락' 누르면 도장이 쾅 찍힌다 */
+function questScroll(id,cat){ if(enemy)return; const q=QUESTS[id]; if(!q){ guildCategory(cat); return; }
+  clearLog(); setScene("📜","의뢰서 — 양피지를 펼친다.");
+  const rt=rewardText(q.reward)||"—", giver=q.giver||"길드", typ=q.type==="main"?"주 의뢰":"의뢰";
+  $("log").innerHTML=`<div class="scrollwrap"><div class="parchment">
+    <div class="pttl">✦  ${typ}  ✦</div>
+    <div class="pquestn">${q.n}</div>
+    <div class="pmeta">의뢰인 · ${giver}</div>
+    <div class="pdesc">"${q.desc}"</div>
+    <div class="preward"><span>보상</span>${rt}</div>
+    <div class="psign">— 수락하면 이 자리에 승인 도장을 찍는다 —</div>
+    <div class="pstamp" id="pstamp">승인<small>APPROVED</small></div>
+  </div></div>`;
+  setActions([
+    {label:"🖋 수락하고 도장 찍기",full:true,act:()=>stampQuest(id,cat)},
+    {label:"← 의뢰 목록",act:()=>guildCategory(cat)},
+    {label:"🏘 마을로",act:townMenu},
+  ]); }
+function stampQuest(id,cat){ const q=QUESTS[id]; if(!q||P.quests[id]){ guildCategory(cat); return; }
+  const st=$("pstamp"); if(st){ st.classList.remove("show"); void st.offsetWidth; st.classList.add("show"); }
+  if(typeof sfx==="function")sfx("loot"); if(typeof fxShake==="function")fxShake();
+  setActions([{label:"⏳ 도장 찍는 중…",full:true,disabled:true,act:()=>{}}]);
+  setTimeout(()=>{ acceptQuest(id); toast("의뢰 수락: "+q.n);
+    setActions([{label:"✅ 수락 완료 — 의뢰 목록으로",full:true,act:()=>guildCategory(cat)},{label:"🏘 마을로",act:townMenu}]); }, 480); }
+window.questScroll=questScroll; window.stampQuest=stampQuest;
 /* 💬 광장 채팅 — 오프라인 NPC 시뮬레이션 (추후 서버 채팅으로 교체 가능하도록 chatFetch/chatPost로 분리) */
 let chatTimer=null, chatLog=[], _lastChatSend=0;
 const CHAT_NAMES=["강철나비","달빛사냥꾼","탑돌이","고인물","야간모드","용사김밥","무빙장인","광부왕","초보환영","힐러구함","포션과부하","1등할끄야","은둔고수","길잃은요정","세이버장인"];

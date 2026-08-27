@@ -339,6 +339,25 @@
   .skclabel{font-size:12px; font-weight:800; letter-spacing:.4px; color:#9fb0d6; margin:8px 2px 3px; text-transform:uppercase}
   .skclabel i{font-style:normal; color:#71809f; font-weight:700}
   .grow.skoff{opacity:.62; filter:saturate(.7)} .grow.skoff:hover{opacity:1}
+  /* 📜 의뢰서 양피지 + 승인 도장 */
+  .scrollwrap{display:flex; justify-content:center; padding:8px 2px 4px}
+  .parchment{position:relative; width:100%; max-width:440px; padding:22px 24px 24px; border-radius:6px; color:#3a2c17; overflow:hidden;
+    background:linear-gradient(135deg,#efe0bf,#e7d3a8 55%,#dcc593); border:1px solid #b89b63; font-family:Georgia,'Times New Roman',serif;
+    box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 0 44px rgba(150,110,50,.28)}
+  .parchment::before{content:""; position:absolute; inset:6px; border:2px double #a9863f; border-radius:4px; pointer-events:none}
+  .pttl{text-align:center; letter-spacing:.28em; font-size:12.5px; color:#7a5a20; margin-bottom:9px}
+  .pquestn{text-align:center; font-size:22px; font-weight:800; color:#2c2110; margin-bottom:4px}
+  .pmeta{text-align:center; font-size:12.5px; color:#6c5426; font-style:italic; margin-bottom:12px}
+  .pdesc{font-size:15px; line-height:1.6; color:#332611; padding:0 4px; min-height:38px}
+  .preward{margin-top:12px; padding-top:10px; border-top:1px dashed #a9863f; font-size:14px; color:#4a3a1a}
+  .preward span{font-weight:800; color:#7a5a20; margin-right:6px}
+  .psign{margin-top:12px; text-align:right; font-size:11.5px; color:#8a6c33; font-style:italic}
+  .pstamp{position:absolute; right:22px; bottom:26px; width:92px; height:92px; border-radius:50%; border:4px solid #b5342a; color:#b5342a;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:900; font-size:24px; line-height:1;
+    transform:rotate(-16deg) scale(2.4); opacity:0; text-align:center; box-shadow:inset 0 0 0 2px #b5342a; pointer-events:none; font-family:Georgia,serif}
+  .pstamp small{display:block; font-size:8.5px; letter-spacing:.14em; margin-top:4px; font-weight:700}
+  .pstamp.show{animation:stampin .45s cubic-bezier(.2,1.7,.4,1) forwards}
+  @keyframes stampin{0%{opacity:0; transform:rotate(-16deg) scale(2.5)}55%{opacity:1; transform:rotate(-16deg) scale(.86)}100%{opacity:.9; transform:rotate(-16deg) scale(1)}}
   .sdrow{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line)}
   .sdrow b{color:var(--gold); font-size:15px}
   .sdsub{font-size:11px; color:var(--dim); margin:-3px 0 3px}
