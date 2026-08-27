@@ -224,10 +224,14 @@ const RELICS={
 };
 /* 세트 효과 — 착용 조각 수(2/4피스)에 따라 발동 */
 const SETS={
-  strata:{n:"성층 세트",bonus:{2:{def:10,note:"방어 +10"}, 4:{luck:8,atkPct:0.06,note:"행운 +8 · 공격 +6%"}}},
-  blackiron:{n:"흑철 세트",bonus:{2:{atk:8,note:"공격 +8"}, 4:{atkPct:0.12,crit:0.10,note:"공격 +12% · 치명 +10%"}}},
-  voidset:{n:"공허 세트",bonus:{2:{atk:14,def:10,note:"공격 +14 · 방어 +10"}, 4:{atkPct:0.15,crit:0.12,vamp:true,note:"공격 +15% · 치명 +12% · 흡혈"}}},
+  strata:{n:"성층 세트",bonus:{2:{def:10,note:"방어 +10"}, 4:{luck:8,atkPct:0.06,gim:{doubleHit:0.18},note:"행운 +8 · 공격 +6% · 🗡18% 2연타"}}},
+  blackiron:{n:"흑철 세트",bonus:{2:{atk:8,note:"공격 +8"}, 4:{atkPct:0.12,crit:0.10,gim:{lightning:0.30},note:"공격 +12% · 치명 +10% · ⚡치명 시 번개"}}},
+  voidset:{n:"공허 세트",bonus:{2:{atk:14,def:10,note:"공격 +14 · 방어 +10"}, 4:{atkPct:0.15,crit:0.12,vamp:true,gim:{dodge:0.12},note:"공격 +15% · 치명 +12% · 흡혈 · ✨12% 피해 무효"}}},
 };
+function setGim(){ const c=setCounts(), g={doubleHit:0,lightning:0,dodge:0};
+  for(const key in c){ const s=SETS[key]; if(!s)continue; const n=c[key];
+    for(const th of Object.keys(s.bonus)){ if(n>=(+th)){ const gm=s.bonus[th].gim; if(gm){ for(const k in gm)g[k]=Math.max(g[k]||0,gm[k]); } } } }
+  return g; }
 function setCounts(){ const c={}; for(const s of SLOTS){ const it=equippedItem(s[0]); const g=it&&RELICS[it.k]; if(g&&g.set)c[g.set]=(c[g.set]||0)+1; } return c; }
 function setBonus(){ const c=setCounts(), b={atk:0,def:0,luck:0,vamp:false,atkPct:0,crit:0};
   for(const key in c){ const s=SETS[key]; if(!s)continue; const n=c[key];

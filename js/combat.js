@@ -736,7 +736,10 @@ function playerHit(quality,mult,label,forceCrit,opts){ opts=opts||{}; const qm=q
   if(B.enemyGuard){ dmg=Math.round(dmg*(1-B.enemyGuard)); B.enemyGuard=0; line(`${enemy.n}의 방어를 뚫는다…`,"sys"); }
   dmg=Math.max(1,dmg-enemy.def); if(crit)fxShake(); addGroggy(opts.groggy==null?10:opts.groggy);
   gainMomentum((quality==="perfect"?20:quality==="good"?8:3)+(crit?12:0));   // 🌟 잘 칠수록 기세↑
-  hitEnemy(dmg,label,crit?"#ff8f3c":"#ff8a8a", opts.elem||weaponElemNow()); }   // 치명타=주황 · 무기 속성 전달
+  hitEnemy(dmg,label,crit?"#ff8f3c":"#ff8a8a", opts.elem||weaponElemNow());   // 치명타=주황 · 무기 속성 전달
+  if(!opts._setbonus && enemy && enemy.hp>0 && typeof setGim==="function"){ const g=setGim();   // ✦ 세트 기믹
+    if(crit && g.lightning && chance(g.lightning)){ const ld=Math.max(1,Math.round(ATK()*0.5+rnd(6))); line("⚡ <b>흑철 세트 — 번개가 내리친다!</b>","loot"); hitEnemy(ld,"⚡ 번개","#8fd0ff","shock"); }
+    if(enemy && enemy.hp>0 && g.doubleHit && chance(g.doubleHit)){ line("🗡 <b>성층 세트 — 2연타!</b>","loot"); playerHit(quality, mult*0.55, "성층 연타", false, {_setbonus:true, elem:opts.elem}); } } }
 function useTranscend(){ if(!enemy||(B.momentum||0)<MOM_MAX)return; B.momentum=0;
   line("🌟 <b>초 월 !</b> 쌓인 기세를 모두 실어 필살의 일격을 내리친다!","loot"); bigPop("초월!","#ffd36a"); fxShake(); fxHit(); render();
   const dmg=Math.max(1,Math.round(ATK()*4.5+rnd(20)));   // 방어 무시(대량)
@@ -832,7 +835,9 @@ function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(
   let raw=enemy.atk*mult*aw*fr+rnd(4)-1; let dmg=Math.max(1,Math.round(raw)-DEF());   // 약화: 적 공격력↓
   const gp=hasSkill("guard_up");
   if(B.block==="perfect")dmg=Math.round(dmg*(gp?0:0.05)); else if(B.block==="good")dmg=Math.round(dmg*(gp?0.35:0.5)); else if(B.block==="weak")dmg=Math.round(dmg*0.85);
-  if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.55,0.18+(B.comp.lv||1)*0.004+(B.comp.tier||0)*0.04+((B.comp.rune&&B.comp.rune.tankRed)||0)); dmg=Math.round(dmg*(1-red)); } return Math.max(0,dmg); }
+  if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.55,0.18+(B.comp.lv||1)*0.004+(B.comp.tier||0)*0.04+((B.comp.rune&&B.comp.rune.tankRed)||0)); dmg=Math.round(dmg*(1-red)); }
+  if(dmg>0 && typeof setGim==="function"){ const g=setGim(); if(g.dodge && chance(g.dodge)){ line("✨ <b>공허 세트 — 피해를 무효화했다!</b>","heal"); bigPop("무적!","#c9a9ff"); return 0; } }   // ✦ 공허 세트: 확률 피해 무효
+  return Math.max(0,dmg); }
 function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
 function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
 function chargeNeed(){ return Math.max(24, Math.round(ATK()*2.3)); }   // 3턴 안에 화력을 퍼부으면 저지 가능한 수준
