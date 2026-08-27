@@ -269,6 +269,7 @@
   /* 🗺 마을 지도(걸어다니는 프리뷰) */
   .hudstatus{margin:9px 0 0; padding:9px 0 0; border-top:1px solid var(--line); font-size:11px; color:var(--dim); line-height:1.6; display:flex; flex-wrap:wrap; gap:3px 7px; align-items:center}
   .hudstatus .hs-lab{color:var(--mp); font-weight:700; margin-right:2px}
+  .hudmats{margin:7px 0; padding:7px 0 0; border-top:1px dashed var(--line)}
   .sdrow{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line)}
   .sdrow b{color:var(--gold); font-size:15px}
   .sdsub{font-size:11px; color:var(--dim); margin:-3px 0 3px}
@@ -506,6 +507,7 @@
     </div>
     <div class="card">
       <div class="mini"><span>💰 <b id="sgold">0</b></span><span>💎 <b id="sgems">0</b></span><span>🧪 <b id="spot">3</b></span><span>동료 <b id="scomp">—</b></span><span>성향 <b id="skarma">·</b></span></div>
+      <div class="hudstatus hudmats" id="hudmats" hidden></div>
       <div class="stat">🌿 생활력 <span id="stamTxt">100/100</span></div><div class="bar"><i class="fill-stam" id="stamBar" style="width:100%"></i></div>
       <div class="invtitle">장착 장비</div>
       <div class="invgrid" id="sinv"></div>
