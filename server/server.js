@@ -11,6 +11,7 @@ const store = require("./store");
 const { db, markDirty, flushNow, CHAT_MAX } = store;
 
 const PORT = process.env.PORT || 8787;
+const BOOT_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);   // 프로세스 부팅마다 고유(재배포/재시작 감지용)
 const CLIENT_DIR = path.join(__dirname, "..");   // 게임 정적 파일(index.html·js·assets) 루트
 const tokens = new Map();   // token -> userId (인메모리; 재시작 시 재로그인)
 const chatRate = new Map();   // userId -> {ts,text,burst}  도배 방지
@@ -82,7 +83,7 @@ const server = http.createServer(async (req, res) => {
 
   try {
     /* 상태 확인 (클라가 서버 존재 감지용) */
-    if (p === "/api/ping") return json(res, 200, { ok: true, online: sseClients.size, name: "이름 없는 탑 서버" });
+    if (p === "/api/ping") return json(res, 200, { ok: true, online: sseClients.size, name: "이름 없는 탑 서버", boot: BOOT_ID });
 
     /* 회원가입 */
     if (p === "/api/register" && req.method === "POST") {

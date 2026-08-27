@@ -17,6 +17,9 @@ const NET = {
   onPresence: null,   // (n)=>{}
   onAuction: null,    // (evt)=>{}
   saveTimer: null,
+  serverBoot: null,   // 🔄 서버 부팅 ID(재배포 감지 기준)
+  updated: false,     // 서버가 재배포됨(배너 표시 여부)
+  verTimer: null,     // 버전 폴링 타이머
 };
 
 async function netFetch(path, opts) {
@@ -34,8 +37,21 @@ async function netPing() {
   try {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 60000);   // 무료 콜드스타트 대비 넉넉히
     const r = await fetch(NET.url + "/api/ping?t=" + Date.now(), { signal: ctrl.signal, cache: "no-store" }); clearTimeout(t);   // 캐시버스터
-    NET.serverUp = r.ok; return r.ok;
+    NET.serverUp = r.ok;
+    if (r.ok) { try { const d = await r.json(); checkServerBoot(d.boot); } catch (e) {} }   // 🔄 서버 재배포(부팅ID 변화) 감지
+    return r.ok;
   } catch (e) { NET.serverUp = false; return false; }
+}
+/* 🔄 서버 부팅 ID가 바뀌면(=재배포/재시작) 업데이트 배너를 띄운다 */
+function checkServerBoot(boot) {
+  if (!boot) return;
+  if (NET.serverBoot == null) { NET.serverBoot = boot; return; }   // 최초 접속 시 기준값 기록
+  if (boot !== NET.serverBoot) { NET.serverBoot = boot; NET.updated = true; if (typeof onServerUpdated === "function") onServerUpdated(); }
+}
+/* 주기적 버전 폴링 시작(온라인 로그인 후) */
+function startVersionWatch() {
+  clearInterval(NET.verTimer);
+  NET.verTimer = setInterval(() => { if (NET.online) netPing(); }, 45000);   // 45초마다 부팅ID 확인
 }
 
 /* 비밀번호 IME 통일: 한글(두벌식)을 항상 같은 영문 키스트로크로 변환 → IME 상태 무관하게 동일 비번
@@ -112,6 +128,7 @@ function netConnectSSE() {
   es.addEventListener("townpos", (e) => { try { NET.onTownPos && NET.onTownPos(JSON.parse(e.data)); } catch (x) {} });
   es.addEventListener("townleave", (e) => { try { NET.onTownLeave && NET.onTownLeave(JSON.parse(e.data)); } catch (x) {} });
   es.onerror = () => { /* EventSource가 자동 재연결 */ };
+  netPing(); startVersionWatch();   // 🔄 접속 시 부팅ID 기준값 기록 + 주기적 재배포 감지
 }
 /* 🗺 마을 위치 동기화 */
 async function netTownPos(x, y) { return netFetch("/api/town/pos", { method: "POST", body: { x, y } }); }

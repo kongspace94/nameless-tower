@@ -306,6 +306,17 @@ async function submitRecover(){ const err=$("recErr"); const setErr=(m,c)=>{ if(
   try{ await netRecover(name, code, np); toast("복구 완료 — 로그인됐어요: "+NET.name); onlineScreen(); }
   catch(e){ setErr("복구 실패 — "+e.message); }
 }
+/* 🔄 서버 재배포 감지 시 업데이트 배너 (net.js checkServerBoot → onServerUpdated) */
+function onServerUpdated(){
+  if(document.getElementById("updbanner"))return;   // 중복 방지
+  const b=document.createElement("div"); b.id="updbanner"; b.className="updbanner";
+  b.innerHTML=`<span class="updmsg">🔄 <b>새 버전이 배포됐어요.</b> 새로고침하면 최신으로 이어집니다. <span class="upddim">진행상황은 저장돼 있어요 (재로그인이 필요할 수 있어요).</span></span>`
+    +`<button type="button" class="updbtn" id="updReload">새로고침</button>`
+    +`<button type="button" class="updx" id="updX" aria-label="나중에">✕</button>`;
+  document.body.appendChild(b);
+  document.getElementById("updReload").onclick=()=>{ try{ if(P&&typeof save==="function")save(true); }catch(e){} setTimeout(()=>location.reload(),120); };
+  document.getElementById("updX").onclick=()=>{ try{ b.remove(); }catch(e){} };
+}
 async function enterOnline(){
   if(typeof chatLog!=="undefined")chatLog=[];   // 🆕 새 로그인 세션 → 광장 채팅 초기화(같은 접속 중엔 유지, 로그인마다 비움)
   let cloud=null, authErr=false, loadErr=false;
