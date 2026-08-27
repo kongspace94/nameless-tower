@@ -833,7 +833,7 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
       : `<span class="chip" style="color:var(--good);border-color:#3a5a3f">자동</span>`;
     const badge = active ? (on?' <span style="color:var(--good);font-size:11px">장착</span>':'') : ' <span style="color:var(--good);font-size:11px">적용 중</span>';
     const isCast = active && typeof CAST_SPELLS!=="undefined" && CAST_SPELLS.includes(k);
-    const chantRow = isCast ? `<div class="ge" style="color:#c9a9ff">✨ 영창: "${spellChant(k)}" <span style="color:var(--dim)">(앞 ${chantReqLen(k)}자만 쳐도 발동)</span></div>` : "";
+    const chantRow = isCast ? `<div class="ge" style="color:#c9a9ff">✨ 영창: "${spellChant(k)}" <span style="color:var(--dim)">(앞 ${chantReqLen(k)}자~전체 아무 길이나 발동)</span></div>` : "";
     const chantBtn = isCast ? `<button class="ibtn" onclick="editChant('${k}')">✏️ 영창</button>` : "";
     return `<div class="grow ${on?'eq':''}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
   const sec=(title,arr,empty,cnt)=> `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div><div class="glist">${arr.length?arr.map(skillCard).join(""):`<div class="inv-empty">${empty}</div>`}</div></div>`;

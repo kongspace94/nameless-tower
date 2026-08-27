@@ -664,7 +664,7 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
 }
 /* 주문 영창 — 커스텀 영창(한글). 숙련 레벨이 오를수록 앞부분(reqLen)만 쳐도 발동 (완벽 시 1.15배, 실패 시 소멸) */
 const CAST_SPELLS=["fireball","heal_spell","drain"];   // 타이핑 영창 주문
-const MIN_CHANT_REQ=3;   // 숙련 최고여도 최소 이만큼은 쳐야 함
+const MIN_CHANT_REQ=1;   // 숙련 만렙이면 1자까지 줄어듦
 function spellChant(k){ return (P&&P.chants&&P.chants[k])||(SKILLS[k]&&SKILLS[k].chant)||""; }
 function chantReqLen(k){ const full=spellChant(k).replace(/\s/g,"").length; const lv=(typeof skillProf==="function"?skillProf(k).lv:1)||1; return Math.min(full||1, Math.max(MIN_CHANT_REQ, full-(lv-1))); }
 function chantRatio(typed,phrase,reqLen){ const a=(typed||"").replace(/\s/g,""), b=(phrase||"").replace(/\s/g,""); if(!b)return 1;
@@ -676,7 +676,7 @@ function castSpell(k,cb){ awaiting=null; setActions([]); const phrase=spellChant
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb(1.15); return; }
   const timeMs = 2200 + reqLen*170;
   const s=$("stage"); const box=document.createElement("div"); box.className="ecdown spell";
-  box.innerHTML=`<div class="et" style="color:#c9a9ff">✨ 주문 영창! <b>강조된 앞 ${reqLen}자</b>만 정확히 쳐도 발동 · [Enter]${lv>1?` <span style="color:var(--dim)">(숙련 Lv.${lv})</span>`:""}</div>`+
+  box.innerHTML=`<div class="et" style="color:#c9a9ff">✨ 주문 영창! <b>강조된 앞 ${reqLen}자</b>부터 전체까지 아무 데서 멈춰도 발동 · [Enter]${lv>1?` <span style="color:var(--dim)">(숙련 Lv.${lv})</span>`:""}</div>`+
     `<div class="chant">${chantHighlight(phrase,reqLen)}</div><input class="chantin" id="chantin" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="여기에 입력…"><div class="ecbar"><i></i></div>`;
   s.appendChild(box); const bar=box.querySelector(".ecbar>i"); const inp=box.querySelector("#chantin");
   let closed=false,iv=null;
