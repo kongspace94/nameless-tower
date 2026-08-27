@@ -100,7 +100,9 @@ function startCombat(e,intro){ if(typeof bgm==="function"){ const _B=(typeof BGM
   if(enemy.mech===undefined)enemy.mech=MONSTER_MECH[enemy.n]||null;   // 👹 고유 기믹
   if(enemy.mech==="shield"){ enemy.shieldHp=Math.round(enemy.hpMax*0.28); enemy.shieldMax=enemy.shieldHp; }
   enemy.enraged=false; enemy.splitUsed=false;
+  const pre=(B&&B.prebuff)?B:null;   // 🧪 보스 방 앞에서 미리 건 버프 이어받기
   B={comp:buildComp(P.companion),poison:0,diceUsed:false,enemyGuard:0,block:null,parry:null,shield:false,summon:null,quickProcs:0,enemyIntent:null,turn:0,swaps:0,momentum:0};
+  if(pre){ B.atkPct=pre.atkPct||0; B.critB=pre.critB||0; B.defB=pre.defB||0; B.nextCrit=!!pre.nextCrit; }
   if(intro)line(intro,"sys"); line(`<b style="color:var(--danger)">⚔ ${enemy.n}</b> 이(가) 나타났다! ${pick(enemy.taunt)}`); if(typeof sfx==="function")sfx("encounter");
   if(B.comp){ line(`${B.comp.emoji} ${B.comp.n}이(가) 곁을 지킨다.`,"sys");
     const ru=B.comp.rune; if(ru){ if(ru.pAtk)B.atkPct=(B.atkPct||0)+ru.pAtk; if(ru.pCrit)B.critB=(B.critB||0)+ru.pCrit; if(ru.pDef)B.defB=(B.defB||0)+ru.pDef; } }   // 🔩 동료 룬: 동행 중 플레이어 패시브
@@ -696,9 +698,11 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
 }
 /* 주문 영창 — 커스텀 영창(한글). 숙련 레벨이 오를수록 앞부분(reqLen)만 쳐도 발동 (완벽 시 1.15배, 실패 시 소멸) */
 const CAST_SPELLS=["fireball","heal_spell","drain"];   // 타이핑 영창 주문
-const MIN_CHANT_REQ=1;   // 숙련 만렙이면 1자까지 줄어듦
+const MIN_CHANT_REQ=1, CHANT_LV_CAP=30;   // 숙련 Lv1→전체, Lv30→1자 (선형, 최대 30레벨 기준)
 function spellChant(k){ return (P&&P.chants&&P.chants[k])||(SKILLS[k]&&SKILLS[k].chant)||""; }
-function chantReqLen(k){ const full=spellChant(k).replace(/\s/g,"").length; const lv=(typeof skillProf==="function"?skillProf(k).lv:1)||1; return Math.min(full||1, Math.max(MIN_CHANT_REQ, full-(lv-1))); }
+function chantReqLen(k){ const full=spellChant(k).replace(/\s/g,"").length||1; const lv=Math.min(CHANT_LV_CAP,(typeof skillProf==="function"?skillProf(k).lv:1)||1);
+  const req=Math.round(full - (full-1)*(lv-1)/(CHANT_LV_CAP-1));   // Lv1→full · Lv30→1 (선형)
+  return Math.max(MIN_CHANT_REQ, Math.min(full, req)); }
 function chantRatio(typed,phrase,reqLen){ const a=(typed||"").replace(/\s/g,""), b=(phrase||"").replace(/\s/g,""); if(!b)return 1;
   const need=(reqLen&&reqLen<b.length)?b.slice(0,reqLen):b; if(!a)return 0; if(a===need)return 1.15;
   let match=0; for(let i=0;i<Math.min(a.length,need.length);i++){ if(a[i]===need[i])match++; else break; }
@@ -1082,12 +1086,32 @@ function checkpointMenu(f,firstPortal){ const c=CHECKPOINTS[f]; clearLog();
     {label:"📋 스킬 (장착 변경)",act:skillWindow},
     {label:"🌀 포탈로 마을 귀환",desc:"파밍·제작 후 이 포탈로 복귀 · 획득물 유지",act:returnToTown},
   ]); }
+/* 🧪 보스 방 앞 버프 준비 — 자기 버프를 미리 걸고 들어간다(startCombat이 이어받음) */
+const PREBUFF_SKILLS=["war_cry","iron_will","barrier","focus","battle_hymn"];
+function prebuffCast(k){ const s=SKILLS[k]; if(!s||!B||P.mp<s.mp)return; const bm=(typeof passiveEquipped==="function"&&passiveEquipped("encore"))?1.25:1;
+  if(k==="war_cry"){ B.atkPct=(B.atkPct||0)+0.35; line("🗣️ 전투 함성 — 공격 +35%","loot"); }
+  else if(k==="iron_will"){ B.defB=(B.defB||0)+6; line("🛡️ 강철 의지 — 방어 +6","heal"); }
+  else if(k==="barrier"){ B.defB=(B.defB||0)+8; line("🔮 마력 방벽 — 방어 +8","heal"); }
+  else if(k==="focus"){ B.nextCrit=true; B.critB=(B.critB||0)+0.12; line("🌀 집중 — 다음 확정 치명 · 치명↑","loot"); }
+  else if(k==="battle_hymn"){ B.atkPct=(B.atkPct||0)+0.30*bm; B.critB=(B.critB||0)+0.08*bm; line(`🎺 전투 찬가 — 공격 +${Math.round(30*bm)}% · 치명 +${Math.round(8*bm)}%`,"loot"); }
+  else return;
+  P.mp-=s.mp; if(typeof gainSkillXp==="function")gainSkillXp(k,6); if(typeof sfx==="function")sfx("heal"); render(); }
+function bossPrep(onStart){ if(!B||!B.prebuff)B={comp:null,prebuff:true,atkPct:0,critB:0,defB:0,nextCrit:false};
+  clearLog(); setScene("🧪","전투 준비 — 버프를 걸고 들어간다");
+  line("문 너머, 강대한 것이 기다린다. 미리 버프를 걸어 대비할 수 있다. (기력 소모)","sys");
+  const on=[]; if(B.atkPct)on.push(`⚔공+${Math.round(B.atkPct*100)}%`); if(B.defB)on.push(`🛡방+${B.defB}`); if(B.critB)on.push(`🎯치+${Math.round(B.critB*100)}%`); if(B.nextCrit)on.push("확정치명");
+  line(on.length?`✨ 준비된 버프: <b>${on.join(" · ")}</b>`:`아직 건 버프 없음 · 기력 ${P.mp}/${MAXMP()}`,on.length?"loot":"sys");
+  const avail=P.skills.filter(k=>PREBUFF_SKILLS.includes(k)&&(P.loadout||[]).includes(k));
+  const acts=avail.map(k=>{ const s=SKILLS[k]; return {label:`${s.emoji} ${s.n} 미리 걸기`,desc:`${s.desc} · 기력 ${s.mp}`,disabled:P.mp<s.mp,act:()=>{ prebuffCast(k); bossPrep(onStart); }}; });
+  if(!avail.length)acts.push({label:"장착한 버프 스킬이 없다",desc:"전투 함성·강철 의지·마력 방벽·집중·전투 찬가 장착 시 미리 걸 수 있음",disabled:true,act:()=>{}});
+  acts.push({label:"⚔ 문을 열고 결전!",full:true,act:()=>onStart()});
+  setActions(acts); }
 function enterFloor(){ const f=P.floor; P.flags.maxFloor=Math.max(P.flags.maxFloor||0,f); P.runPeakFloor=Math.max(P.runPeakFloor||0,f); checkQuests();
   if(CHECKPOINTS[f]){ checkpointTown(f); return; }
   clearLog(); line(`<span class="sys">— 탑 ${f}층 —</span>`);
   if(BOSSES[f]){ const b=BOSSES[f]; setScene(IX[b.ic][1],"이 층에는 거대한 것이 기다리고 있다.");
     line(bossStory(f,"approach"));   // 데이터 기반 보스 서사
-    setActions([{label:"문을 열고 들어간다",full:true,act:()=>startCombat(makeEnemy(),"")}]); return; }
+    const be=makeEnemy(); setActions([{label:"⚔ 문을 열고 들어간다",full:true,act:()=>startCombat(be,"")},{label:"🧪 버프 걸고 들어가기",desc:"보스전 전 자기 버프 준비",act:()=>bossPrep(()=>startCombat(be,""))}]); return; }
   if(f>=3 && f<=9 && !P.quests.q_tower1 && chance(0.25)){ floorQuestNPC(); return; }
   const r=Math.random();   // 전투 비중↑
   if(r<0.58)floorCombat(); else if(r<0.68)floorStory(); else if(r<0.78)floorFork(); else if(r<0.86)floorTreasure(); else if(r<0.92)floorRest(); else if(r<0.97)floorPlayerEncounter(); else floorTrap(); }
@@ -1318,7 +1342,7 @@ function expEvent(){ setScene("🏕","버려진 야영지.");
 function areaBoss(){ if(!EXP)return; const area=CONT().areas[EXP.ai]; expReturn=afterAreaClear; P.floor=expDifficulty()+2;
   clearLog(); setScene(area.ic,`${area.n} — 수호자 출현`); line(`구역의 끝. <b>${area.boss.n}</b>이(가) 길을 막는다!`,"dmg");
   const e=expBoss(area.boss,expDifficulty(),false);
-  setActions([{label:"⚔ 맞선다",full:true,act:()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`)},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
+  setActions([{label:"⚔ 맞선다",full:true,act:()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`))},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
 function afterAreaClear(){ if(!EXP)return; const c=CONT(); clearLog(); setScene("✅","구역 개척 완료"); line(`✅ <b>${c.areas[EXP.ai].n}</b> 구역을 개척했다!`,"loot");
   if(c.setKey&&chance(0.22)){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각 발견!`,"loot"); dropSetPiece(c.setKey); }   // 구역 보스: 세트 조각 확률 드랍(파밍)
   EXP.ai++; EXP.step=0; saveExpProg();
@@ -1327,7 +1351,7 @@ function afterAreaClear(){ if(!EXP)return; const c=CONT(); clearLog(); setScene(
 function contBossIntro(){ if(!EXP)return; const c=CONT(); expReturn=afterContClear; P.floor=expDifficulty()+4;
   clearLog(); setScene("👑",`${c.name} — 대륙 수호체`); line(`대륙의 심장부. <b>${c.contBoss.n}</b>이(가) 깨어난다!`,"dmg");
   const e=expBoss(c.contBoss,expDifficulty(),true); if(EXP.ci>=CONTINENTS.length-1)e.final=true;   // 🔥 마지막 대륙 보스 = 최종보스
-  setActions([{label:"⚔ 결전",full:true,act:()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
+  setActions([{label:"⚔ 결전",full:true,act:()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`))},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
 function dropSetPiece(setKey){ const pieces=Object.keys(RELICS).filter(k=>RELICS[k].set===setKey); if(!pieces.length)return;
   const unowned=pieces.filter(k=>!P.inv.some(x=>x.k===k)&&!(P.stash&&P.stash.inv||[]).some(x=>x.k===k)); addRelic(pick(unowned.length?unowned:pieces)); }
 function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINENTS.length-1);
