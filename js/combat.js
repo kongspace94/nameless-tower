@@ -95,7 +95,7 @@ function makeEnemy(){ const f=P.floor; const ng=ngMul();
   const e={...base,hp:Math.round(base.hp*s*ng),atk:Math.round(base.atk*s*ng),def:base.def+Math.floor(f/6),g:Math.round(base.g*(1+(f-1)*0.12))};
   e.hpMax=e.hp; e.groggy=0; e.groggyMax=40+f*2; e.staggered=false; e.stagUsed=false; return e; }
 
-function startCombat(e,intro){ if(typeof bgm==="function")bgm("combat"); enemy=e; if(!enemy.weak)enemy.weak=elemForName(enemy.n); enemy.ail={}; enemy._weakShown=!!(P.codexWeak&&P.codexWeak[enemy.n]);   // 속성 약점(몬스터별 고정) + 상태이상 컨테이너
+function startCombat(e,intro){ if(typeof bgm==="function")bgm((e&&e.boss&&typeof BGM!=="undefined"&&BGM.boss&&BGM.boss.src)?"boss":"combat"); enemy=e; if(!enemy.weak)enemy.weak=elemForName(enemy.n); enemy.ail={}; enemy._weakShown=!!(P.codexWeak&&P.codexWeak[enemy.n]);   // 속성 약점(몬스터별 고정) + 상태이상 컨테이너
   if(enemy.mech===undefined)enemy.mech=MONSTER_MECH[enemy.n]||null;   // 👹 고유 기믹
   if(enemy.mech==="shield"){ enemy.shieldHp=Math.round(enemy.hpMax*0.28); enemy.shieldMax=enemy.shieldHp; }
   enemy.enraged=false; enemy.splitUsed=false;
