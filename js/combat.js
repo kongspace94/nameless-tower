@@ -806,7 +806,7 @@ function afterPlayerAction(){ if(!enemy)return;
 /* ⏳ 내 편(나+동료) 행동이 끝나면 '상대의 턴' 구분선을 띄우고 잠깐 텀을 둔 뒤 적이 행동 (턴이 겹쳐 보이지 않게) */
 function toEnemyPhase(){ if(!enemy||P.hp<=0)return; setActions([]);   // 적 턴 동안 커맨드 비활성
   line(`<div class="turndiv foe">👹 상대의 턴</div>`); render(); turnBanner("ENEMY TURN","foe");   // 🎬 배너 후 잠깐 텀
-  setTimeout(()=>{ if(enemy&&P.hp>0)enemyPhase(); }, 900); }
+  setTimeout(()=>{ if(enemy&&P.hp>0)enemyPhase(); }, 600); }
 
 function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; const lv=c.lv||1, tier=c.tier||0, ru=c.rune||{}; c.energy=Math.min(c.max,c.energy+1);
   if(ru.mom&&typeof gainMomentum==="function")gainMomentum(ru.mom);   // 🌟 기세의 룬

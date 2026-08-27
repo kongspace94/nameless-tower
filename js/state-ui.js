@@ -311,7 +311,7 @@ function itemInfo(kind,key){ let emoji="❔",name=key,tag="",rows=[];
 window.closeModal=closeModal; window.itemInfo=itemInfo;
 
 /* ---------- 액션 버튼 ---------- */
-const ACT_GUARD_MS=420;   // 버튼이 새로 뜬 직후엔 클릭 무시(연타로 안 읽고 넘기는 것 방지 · 읽을 틈) — 빠르면 줄이기
+const ACT_GUARD_MS=220;   // 버튼 뜬 직후 오클릭 방지(짧게) — QTE 타이밍 방해 안 되게
 let _actTime=0;   // 마지막 setActions 시각(클릭·키보드 가드 공용)
 function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=""; const t=Date.now(); _actTime=t; let n=0;
   list.forEach((a)=>{
@@ -319,13 +319,13 @@ function setActions(list){ awaiting=list; const box=$("actions"); box.innerHTML=
     n++; const num=n; const b=document.createElement("button"); if(a.full)b.className="full";
     b.style.animationDelay=Math.min((num-1)*0.05,0.28)+"s";   // 🎬 버튼 순차 등장(띠리리리 캐스케이드)
     b.innerHTML=`<span class="k">${a.key||num}</span>${a.label}`+(a.desc?`<span class="desc">${a.desc}</span>`:"");
-    b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS)return; if(typeof sfx==="function")sfx("click"); a.act(); }; box.appendChild(b); });
+    b.disabled=!!a.disabled; b.onclick=()=>{ if(a.disabled)return; if(Date.now()-t<ACT_GUARD_MS && !document.querySelector(".ecdown"))return; if(typeof sfx==="function")sfx("click"); a.act(); }; box.appendChild(b); });   // QTE(.ecdown) 중엔 가드 면제
   if(n&&typeof uiCascade==="function")uiCascade(n); }   // 🎵 메뉴 등장 상승음
 document.addEventListener("keydown",e=>{ if(!awaiting)return;
   const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName||""))return;   // 입력칸 타이핑 중엔 메뉴 숫자키 무시(비번/이름/채팅 입력 보호)
   if(e.code==="Space"){ if(ae&&ae.tagName==="BUTTON"&&ae.blur)ae.blur(); e.preventDefault(); return; }   // Space는 QTE 전용 — 포커스된 버튼으로 새거나 스크롤되는 것 방지(가끔 안 눌리는 문제)
   const n=parseInt(e.key,10);
-  if(Date.now()-_actTime<ACT_GUARD_MS)return;   // 방금 뜬 메뉴는 잠깐 무시(연타 방지·읽을 틈)
+  if(Date.now()-_actTime<ACT_GUARD_MS && !document.querySelector(".ecdown"))return;   // 방금 뜬 메뉴는 잠깐 무시(QTE 중엔 면제)
   const acts=awaiting.filter(a=>!a.header);   // 번호는 헤더 제외하고 매김
   if(n>=1&&n<=acts.length){ const a=acts[n-1]; if(a&&!a.disabled)a.act(); } });
 
