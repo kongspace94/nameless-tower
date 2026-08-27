@@ -82,7 +82,7 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   if(document.body)document.body.classList.add("mapview");   // 상단 씬 숨기고 지도를 크게 (공간 활용)
   const contUnlocked=(P.flags.cleared||0)>0||P.flags.continentUnlocked;
   const blds=[
-    {emo:"🗼",label:"탑",x:50,y:14,w:16,spr:"tower",act:startDive,hi:"탑에 오른다…"},
+    {emo:"🗼",label:"탑",x:50,y:14,w:16,spr:null,act:startDive,hi:"탑에 오른다…"},   // 배경 동굴 입구 사용(스프라이트 없음)
     {emo:"🛡️",label:"장비상점",x:15,y:34,w:15,spr:"gearshop",act:gearShop,hi:"어서오세요, 손님!"},
     {emo:"⚒️",label:"대장간",x:33,y:28,w:17,spr:"blacksmith",act:blacksmithMenu,hi:"강화해 줄까?"},
     {emo:"🔨",label:"제작소",x:18,y:60,w:14,spr:"workshop",act:workshopMenu,hi:"뭘 만들어볼까?"},
@@ -90,16 +90,16 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
     {emo:"🏦",label:"창고",x:67,y:32,w:15,spr:"warehouse",act:warehouseMenu,hi:"맡기실 건가요?"},
     {emo:"🏛️",label:"경매장",x:82,y:52,w:14,spr:"auction",act:openAuction,hi:"좋은 매물 많아요"},
     {emo:"🛖",label:"길드",x:63,y:70,w:14,spr:"guild",act:guildHouse,hi:"의뢰 보러 왔나?"},
-    {emo:"🌲",label:"생활터전",x:88,y:26,w:13,spr:"life",act:lifeMenu,hi:"오늘도 수고!"},
+    {emo:"🌲",label:"생활터전",x:88,y:26,w:13,spr:null,act:lifeMenu,hi:"오늘도 수고!"},   // 배경 동굴 입구 사용
     {emo:"📖",label:"수련관",x:10,y:78,w:14,spr:"dojo",act:skillMenu,hi:"수련하러 왔군"},
     {emo:"🌌",label:"제단",x:44,y:82,w:13,spr:"altar",act:altarMenu,hi:"돌아왔는가…"},
   ];
-  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,w:14,spr:"farm",act:farmMenu,hi:"일꾼들이 반겨요"});
+  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,w:14,spr:null,act:farmMenu,hi:"일꾼들이 반겨요"});   // 왼쪽 배경 동굴 입구 사용
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap">
     <canvas class="tmcanvas" id="tmcanvas"></canvas>
     <img class="tmbuildings" id="tmbuildings" alt="" hidden>
-    ${blds.map((b,i)=>`<img class="tmbld3" data-i="${i}" alt="" hidden src="${TOWN_SPR_DIR}${b.spr}.png" style="left:${b.x}%;top:${b.y}%;width:${b.w||15}%;z-index:${Math.round(b.y)}">`).join("")}
+    ${blds.map((b,i)=> b.spr ? `<img class="tmbld3" data-i="${i}" alt="" hidden src="${TOWN_SPR_DIR}${b.spr}.png" style="left:${b.x}%;top:${b.y}%;width:${b.w||15}%;z-index:${Math.round(b.y)}">` : "").join("")}
     ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" aria-label="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
     ${blds.map(b=>`<div class="tmlabel" style="left:${b.x}%;top:${(b.y+9)}%">${b.emo} ${b.label}</div>`).join("")}
     <div class="tmothers" id="tmothers"></div>

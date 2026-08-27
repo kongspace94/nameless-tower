@@ -323,7 +323,7 @@
   .townmap .tmbld3{position:absolute; transform:translate(-50%,-50%); height:auto; cursor:pointer; transition:transform .12s; -webkit-tap-highlight-color:transparent; filter:drop-shadow(0 5px 5px rgba(0,0,0,.5))}
   .townmap .tmbld3:hover{filter:drop-shadow(0 0 10px rgba(255,220,120,.6)) drop-shadow(0 5px 5px rgba(0,0,0,.5))}
   .townmap.hasspr .tmbuildings{display:none}          /* 개별 스프라이트 있으면 통합 건물 이미지 숨김 */
-  .townmap.hasspr .tmhit{pointer-events:none}          /* 클릭은 스프라이트가 처리 */
+  /* 스프라이트가 있는 건물은 스프라이트(위층 z)가 클릭 처리, 스프라이트 없는 입구(탑/생활터전/부족거점)는 히트박스가 클릭 처리 */
   .townmap.hasspr .tmlabel{z-index:200}                /* 라벨은 항상 건물 위 */
   @keyframes bldbounce{0%{transform:translate(-50%,-50%) scale(1)}30%{transform:translate(-50%,-57%) scale(1.09)}58%{transform:translate(-50%,-47%) scale(.97)}100%{transform:translate(-50%,-50%) scale(1)}}
   .townmap .tmbld3.bounce{animation:bldbounce .5s ease}
