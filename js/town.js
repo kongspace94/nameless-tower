@@ -6,6 +6,7 @@ const TOWN_AB=(typeof ASSET_BASE!=="undefined"?ASSET_BASE:"assets/");
 const TOWN_BG=TOWN_AB+"ui/town-bg.png";              // 🖼 배경 레이어(지형)
 const TOWN_BUILDINGS=TOWN_AB+"ui/town-buildings.png";// 🏠 건물 레이어(투명 PNG) — 글씨는 코드로
 const TOWN_BG_LEGACY=TOWN_AB+"ui/town-map.png";      // (구) 글씨까지 박힌 단일 이미지도 지원
+const TOWN_SPR_DIR=TOWN_AB+"ui/buildings/";          // 🏠 개별 건물 스프라이트 폴더(tower.png 등, 투명 PNG)
 let townReturn=null;   // 🔙 인벤/스킬창을 어느 상점에서 열었는지 기억 → 거기로 복귀
 let invTab="gear";   // 🎒 인벤 카테고리 탭(gear/cons/mat/quest)
 function setInvTab(t){ invTab=t; inventoryMenu(); }
@@ -81,29 +82,52 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   if(document.body)document.body.classList.add("mapview");   // 상단 씬 숨기고 지도를 크게 (공간 활용)
   const contUnlocked=(P.flags.cleared||0)>0||P.flags.continentUnlocked;
   const blds=[
-    {emo:"🗼",label:"탑",x:50,y:14,act:startDive,hi:"탑에 오른다…"},
-    {emo:"🛡️",label:"장비상점",x:15,y:34,act:gearShop,hi:"어서오세요, 손님!"},
-    {emo:"⚒️",label:"대장간",x:33,y:28,act:blacksmithMenu,hi:"강화해 줄까?"},
-    {emo:"🔨",label:"제작소",x:18,y:60,act:workshopMenu,hi:"뭘 만들어볼까?"},
-    {emo:"🛒",label:"잡화점",x:40,y:56,act:generalStore,hi:"물약 필요해요?"},
-    {emo:"🏦",label:"창고",x:67,y:32,act:warehouseMenu,hi:"맡기실 건가요?"},
-    {emo:"🏛️",label:"경매장",x:82,y:52,act:openAuction,hi:"좋은 매물 많아요"},
-    {emo:"🛖",label:"길드",x:63,y:70,act:guildHouse,hi:"의뢰 보러 왔나?"},
-    {emo:"🌲",label:"생활터전",x:88,y:26,act:lifeMenu,hi:"오늘도 수고!"},
-    {emo:"📖",label:"수련관",x:10,y:78,act:skillMenu,hi:"수련하러 왔군"},
-    {emo:"🌌",label:"제단",x:44,y:82,act:altarMenu,hi:"돌아왔는가…"},
+    {emo:"🗼",label:"탑",x:50,y:14,w:16,spr:"tower",act:startDive,hi:"탑에 오른다…"},
+    {emo:"🛡️",label:"장비상점",x:15,y:34,w:15,spr:"gearshop",act:gearShop,hi:"어서오세요, 손님!"},
+    {emo:"⚒️",label:"대장간",x:33,y:28,w:17,spr:"blacksmith",act:blacksmithMenu,hi:"강화해 줄까?"},
+    {emo:"🔨",label:"제작소",x:18,y:60,w:14,spr:"workshop",act:workshopMenu,hi:"뭘 만들어볼까?"},
+    {emo:"🛒",label:"잡화점",x:40,y:56,w:20,spr:"store",act:generalStore,hi:"물약 필요해요?"},
+    {emo:"🏦",label:"창고",x:67,y:32,w:15,spr:"warehouse",act:warehouseMenu,hi:"맡기실 건가요?"},
+    {emo:"🏛️",label:"경매장",x:82,y:52,w:14,spr:"auction",act:openAuction,hi:"좋은 매물 많아요"},
+    {emo:"🛖",label:"길드",x:63,y:70,w:14,spr:"guild",act:guildHouse,hi:"의뢰 보러 왔나?"},
+    {emo:"🌲",label:"생활터전",x:88,y:26,w:13,spr:"life",act:lifeMenu,hi:"오늘도 수고!"},
+    {emo:"📖",label:"수련관",x:10,y:78,w:14,spr:"dojo",act:skillMenu,hi:"수련하러 왔군"},
+    {emo:"🌌",label:"제단",x:44,y:82,w:13,spr:"altar",act:altarMenu,hi:"돌아왔는가…"},
   ];
-  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,act:farmMenu,hi:"일꾼들이 반겨요"});
+  if(contUnlocked)blds.push({emo:"⛺",label:"부족거점",x:72,y:80,w:14,spr:"farm",act:farmMenu,hi:"일꾼들이 반겨요"});
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap">
     <canvas class="tmcanvas" id="tmcanvas"></canvas>
     <img class="tmbuildings" id="tmbuildings" alt="" hidden>
+    ${blds.map((b,i)=>`<img class="tmbld3" data-i="${i}" alt="" hidden src="${TOWN_SPR_DIR}${b.spr}.png" style="left:${b.x}%;top:${b.y}%;width:${b.w||15}%;z-index:${Math.round(b.y)}">`).join("")}
     ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" aria-label="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
     ${blds.map(b=>`<div class="tmlabel" style="left:${b.x}%;top:${(b.y+9)}%">${b.emo} ${b.label}</div>`).join("")}
     <div class="tmothers" id="tmothers"></div>
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
   const map=$("townmap"), pl=$("tmplayer"), cv=$("tmcanvas"); let walking=false;
+  pl.style.zIndex=Math.round(parseFloat(pl.style.top)||70);   // 캐릭터 초기 깊이(y 기준)
+  // 🏠 개별 건물 스프라이트 로드(있으면 표시·클릭·바운스). 하나라도 뜨면 통합 이미지 대신 개별 사용
+  map.querySelectorAll(".tmbld3").forEach(im=>{ im.onload=()=>{ im.hidden=false; map.classList.add("hasspr"); }; im.onerror=()=>{ im.hidden=true; };
+    im.onclick=(e)=>{ e.stopPropagation(); goTo(blds[+im.dataset.i], im); }; });
+  // 🚶 건물로 걸어가서 이용 (히트박스·스프라이트 공용) + 클릭한 건물 바운스 + 깊이(뒤로 가림)
+  function goTo(b, srcEl){ if(walking||!pl||!b)return;
+    if(srcEl){ srcEl.classList.remove("bounce"); void srcEl.offsetWidth; srcEl.classList.add("bounce"); if(typeof sfx==="function")sfx("click"); }
+    const px=parseFloat(pl.style.left)||47, py=parseFloat(pl.style.top)||70, tx=b.x, ty=b.y+9;   // 문 앞까지
+    const dist=Math.hypot(tx-px,ty-py), dur=Math.max(260,Math.round(dist*24)); walking=true;
+    pl.classList.toggle("faceleft", tx<px-0.5);   // 🔄 걷는 방향 좌우 뒤집기
+    pl.style.transition=`left ${dur}ms ease-in-out, top ${dur}ms ease-in-out`; pl.classList.add("walking");
+    pl.style.left=tx+"%"; pl.style.top=ty+"%";
+    const depth=()=>{ pl.style.zIndex=Math.round(parseFloat(pl.style.top)||ty); };   // 캐릭터 깊이(y) → 위 건물 뒤로 가림
+    let df=0; const dloop=()=>{ depth(); if(df++<40&&walking)requestAnimationFrame(dloop); }; if(typeof requestAnimationFrame==="function")dloop(); else depth();
+    if(P._online&&typeof netTownPos==="function")netTownPos(tx,ty).catch(()=>{});   // 👥 내 이동을 다른 유저에게 브로드캐스트
+    const stepT=setInterval(()=>{ if(typeof sfx==="function")sfx("step"); }, 260);   // 🚶 발소리
+    setTimeout(()=>{ clearInterval(stepT); pl.classList.remove("walking"); walking=false; depth();
+      const bub=document.createElement("div"); bub.className="tmbubble"; bub.textContent=b.hi||(b.label+" 도착!"); bub.style.left=tx+"%"; bub.style.top=(ty-7)+"%"; map.appendChild(bub);   // 💬 도착 인사말
+      setTimeout(()=>{ try{ bub.remove(); }catch(e){} }, 900);
+      window.__fromMap = (b.act!==startDive);   // 상점류는 나갈 때 지도로 복귀(탑 등반은 예외)
+      if(typeof stopTownPresence==="function")stopTownPresence();
+      if(typeof sfx==="function")sfx("click"); setTimeout(()=>b.act(), 260); }, dur+60); }
   // 🖼 배경 레이어(town-bg.png, 없으면 구 town-map.png) → 성공 시 캔버스 대신 이미지 사용
   try{ const bg=new Image(); bg.onload=()=>{ if(!map)return; map.classList.add("hasbg"); map.style.backgroundImage=`url("${bg.src}")`; if(bg.naturalWidth&&bg.naturalHeight)map.style.aspectRatio=bg.naturalWidth+" / "+bg.naturalHeight; };
     bg.onerror=()=>{ const bg2=new Image(); bg2.onload=()=>{ if(!map)return; map.classList.add("hasbg","baked"); map.style.backgroundImage=`url("${bg2.src}")`; if(bg2.naturalWidth&&bg2.naturalHeight)map.style.aspectRatio=bg2.naturalWidth+" / "+bg2.naturalHeight; }; bg2.src=TOWN_BG_LEGACY; };   // 폴백: 글씨 박힌 단일 이미지
@@ -115,20 +139,7 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   if(typeof ResizeObserver==="function"){ try{ const ro=new ResizeObserver(()=>drawIt()); ro.observe(cv); }catch(e){} }   // 🔧 크기 바뀔 때마다 재그리기(히트박스와 항상 정렬)
   if(typeof startTownPresence==="function")startTownPresence(map, blds);   // 👥 다른 온라인 유저 표시(온라인일 때)
   map.querySelectorAll(".tmhit").forEach(btn=>{ btn.onmousedown=(e)=>e.preventDefault();   // 포커스 훔쳐 페이지 스크롤되는 것 방지
-    btn.onclick=(e)=>{ e.stopPropagation(); if(walking||!pl)return; const b=blds[+btn.dataset.i];
-    const px=parseFloat(pl.style.left)||47, py=parseFloat(pl.style.top)||70, tx=b.x, ty=b.y+9;   // 문 앞까지
-    const dist=Math.hypot(tx-px,ty-py), dur=Math.max(260,Math.round(dist*24)); walking=true;
-    pl.classList.toggle("faceleft", tx<px-0.5);   // 🔄 걷는 방향 좌우 뒤집기
-    pl.style.transition=`left ${dur}ms ease-in-out, top ${dur}ms ease-in-out`; pl.classList.add("walking");
-    pl.style.left=tx+"%"; pl.style.top=ty+"%";
-    if(P._online&&typeof netTownPos==="function")netTownPos(tx,ty).catch(()=>{});   // 👥 내 이동을 다른 유저에게 브로드캐스트
-    const stepT=setInterval(()=>{ if(typeof sfx==="function")sfx("step"); }, 260);   // 🚶 발소리
-    setTimeout(()=>{ clearInterval(stepT); pl.classList.remove("walking"); walking=false;
-      const bub=document.createElement("div"); bub.className="tmbubble"; bub.textContent=b.hi||(b.label+" 도착!"); bub.style.left=tx+"%"; bub.style.top=(ty-7)+"%"; map.appendChild(bub);   // 💬 도착 인사말
-      setTimeout(()=>{ try{ bub.remove(); }catch(e){} }, 900);
-      window.__fromMap = (b.act!==startDive);   // 상점류는 나갈 때 지도로 복귀(탑 등반은 예외)
-      if(typeof stopTownPresence==="function")stopTownPresence();
-      if(typeof sfx==="function")sfx("click"); setTimeout(()=>b.act(), 260); }, dur+60); }; });
+    btn.onclick=(e)=>{ e.stopPropagation(); goTo(blds[+btn.dataset.i], null); }; });   // 스프라이트 없을 때(캔버스 폴백)용 히트박스
   setActions([{label:"📋 메뉴(목록)로 보기",full:true,act:()=>{ window.__fromMap=false; if(typeof stopTownPresence==="function")stopTownPresence(); townMenu(); }},{label:"🗼 탑 등반",full:true,act:startDive}]); }
 /* 👥 마을 지도 실시간 접속자 표시(온라인) — 내 위치 브로드캐스트 + 다른 유저를 걸어다니게 렌더 */
 let townPresenceTimer=null, townOthers={};
