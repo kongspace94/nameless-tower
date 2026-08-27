@@ -127,7 +127,7 @@ function startPlayerTurn(){ if(!enemy)return; B.turn=(B.turn||0)+1; if(hasSkill(
   if(B.summon && B.summon.turns>0 && enemy){ summonTick(); if(!enemy)return; }   // 소환수 자동 공격(특성 적용)
   B.quickProcs = 0;   // 턴 쪼개기: 이번 턴 속공 발동 횟수 리셋
   line(`<div class="turndiv me">🗡 내 턴</div>`);   // 🗡 턴 구분: 내 턴 시작
-  playerPhase(); }
+  playerPhase(); turnBanner("MY TURN","me"); }   // 🎬 배너(playerPhase render 뒤에 띄워 유지)
 function playerPhase(){ if(!enemy)return; render(); setSceneFoe();
   const heavy=B.enemyIntent&&(B.enemyIntent.type==="heavy"||B.enemyIntent.type==="special");
   const hasActive=P.skills.some(k=>SKILLS[k]&&SKILLS[k].type==="active");
@@ -748,8 +748,8 @@ function afterPlayerAction(){ if(!enemy)return;
   companionPhase(()=>{ if(enemy&&P.hp>0)toEnemyPhase(); }); }
 /* ⏳ 내 편(나+동료) 행동이 끝나면 '상대의 턴' 구분선을 띄우고 잠깐 텀을 둔 뒤 적이 행동 (턴이 겹쳐 보이지 않게) */
 function toEnemyPhase(){ if(!enemy||P.hp<=0)return; setActions([]);   // 적 턴 동안 커맨드 비활성
-  line(`<div class="turndiv foe">👹 상대의 턴</div>`); render();
-  setTimeout(()=>{ if(enemy&&P.hp>0)enemyPhase(); }, 620); }
+  line(`<div class="turndiv foe">👹 상대의 턴</div>`); render(); turnBanner("ENEMY TURN","foe");   // 🎬 배너 후 잠깐 텀
+  setTimeout(()=>{ if(enemy&&P.hp>0)enemyPhase(); }, 900); }
 
 function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; const lv=c.lv||1, tier=c.tier||0, ru=c.rune||{}; c.energy=Math.min(c.max,c.energy+1);
   if(ru.mom&&typeof gainMomentum==="function")gainMomentum(ru.mom);   // 🌟 기세의 룬
@@ -920,6 +920,11 @@ function reactiveParry(mult,it){ awaiting=null;
   raf=requestAnimationFrame(step); }
 /* 큰 팝업 (패링 성공 등 타격감) */
 function bigPop(text,color){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="bigpop"; d.textContent=text; if(color)d.style.color=color; s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },780); }
+/* 🎬 턴 배너 — 화면에 MY TURN / ENEMY TURN 을 슬라이드 애니로 표시 */
+function turnBanner(text,cls){ const s=$("stage"); if(!s)return; const old=s.querySelector(".turnbanner"); if(old)old.remove();
+  const d=document.createElement("div"); d.className="turnbanner "+(cls||""); d.innerHTML=`<span>${text}</span>`; s.appendChild(d);
+  if(typeof sfx==="function")sfx(cls==="foe"?"encounter":"click");
+  setTimeout(()=>{ if(d.parentNode)d.remove(); },1050); }
 /* 운명의 주사위 — 턴 소모 없는 자유행동(전투당 1회) · 2d6+행운 */
 const DICE_FACE=["⚀","⚁","⚂","⚃","⚄","⚅"];
 function rollDiceAnim(cb){ const d1=1+rnd(6), d2=1+rnd(6);
