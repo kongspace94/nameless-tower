@@ -92,7 +92,7 @@ function townMap(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode
   const glyph=(P.avatar&&typeof isImgAvatar==="function"&&isImgAvatar(P.avatar))?`<img src="${P.avatar}" alt="">`:(P.avatar||"🧝");
   $("log").innerHTML=`<div class="townmap" id="townmap">
     <canvas class="tmcanvas" id="tmcanvas"></canvas>
-    ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" title="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
+    ${blds.map((b,i)=>`<button type="button" class="tmhit" data-i="${i}" tabindex="-1" aria-label="${b.label}" style="left:${b.x}%;top:${b.y}%"></button>`).join("")}
     <div class="tmothers" id="tmothers"></div>
     <div class="tmplayer" id="tmplayer" style="left:47%;top:70%">${glyph}</div>
     <div class="tmhint">🖱 건물을 누르면 걸어가서 이용해요</div></div>`;
