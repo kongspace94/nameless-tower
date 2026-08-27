@@ -541,24 +541,29 @@ function addGroggy(n){ if(!enemy||enemy.staggered||(B&&B.charge))return; enemy.g
 function updateGroggyBar(){ if(!enemy)return; const b=$("ebar-g"); if(b){ b.style.width=clamp(enemy.groggy/enemy.groggyMax*100,0,100)+"%"; b.parentElement.classList.toggle("stag",!!enemy.staggered); } }
 /* 연속 공격 (콤보) */
 function comboAttack(){ B.combo=0; comboStep(); }
-function comboStep(){ const mul=1+B.combo*0.16, cnt=B.combo+1;
+function comboStep(){ const mul=1+B.combo*0.2, cnt=B.combo+1;
   startGauge("attack",q=>{
     if(q==="weak"){ line(`콤보 ${B.combo}연타에서 끊겼다.`,"sys"); playerComboHit("weak"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
-    B.combo++; const killed=playerComboHit(q);
+    B.combo++;
+    const dir=(B.combo%2===0)?1:-1; if(typeof fxSlash==="function")fxSlash(dir); if(typeof sfx==="function")sfx("combohit");   // 🗡 좌우 번갈아 베기(종횡무진)
+    if(B.combo===3)bigPop("연격!","#ffd36a"); else if(B.combo===5)bigPop("난도질!","#ff8f3c"); else if(B.combo===7){ bigPop("종횡무진!","#ff5a5a"); if(typeof fxShakeHard==="function")fxShakeHard(); }
+    const killed=playerComboHit(q);
     if(killed||!enemy)return;
-    if(B.combo>=8){ line("🔥 최대 콤보!","loot"); afterPlayerAction(); return; }
+    if(B.combo>=8){ line("🔥 <b>종횡무진 — 최대 콤보!</b>","loot"); if(typeof fxShakeHard==="function")fxShakeHard(); if(typeof sfx==="function")sfx("crit"); afterPlayerAction(); return; }
     comboStep();
   }, mul, `연속 공격! ${cnt}타 · 속도 ${gaugeTier()}`); }
-function playerComboHit(q){ const qm=q==="perfect"?1.5:q==="good"?1.0:0.5;
-  let dmg=Math.max(1,Math.round((ATK()+rnd(3))*0.7*qm)-enemy.def);
-  addGroggy(q==="weak"?4:14+rnd(6));
+function playerComboHit(q){ const qm=q==="perfect"?1.7:q==="good"?1.1:0.5;
+  let dmg=Math.max(1,Math.round((ATK()+rnd(3))*0.78*qm*(1+(B.combo||0)*0.07))-enemy.def);   // 콤보가 쌓일수록 가속(썰어버리는 쾌감)
+  addGroggy(q==="weak"?4:14+rnd(6)); if(q!=="weak"&&typeof fxHit==="function")fxHit();
   return hitEnemy(dmg, q==="perfect"?"⚡ 콤보 정타":q==="good"?"콤보 타격":"콤보 빗맞음", q==="perfect"?"#ffd36a":"#ffb060"); }
-/* 강한 일격 */
+/* 강한 일격 — 뒤질 정도로 묵직한 한 방(뽕맛) */
 function heavyHit(){ startGauge("attack",q=>{
-    const crit=q!=="weak"; let m=q==="perfect"?2.5:q==="good"?1.7:0.8;
-    let dmg=Math.round((ATK()+rnd(4))*m); if(crit&&q!=="perfect")dmg=Math.round(dmg*1.3);
-    dmg=Math.max(1,dmg-enemy.def); addGroggy(8); if(crit)fxShake();
-    const killed=hitEnemy(dmg, q==="perfect"?"💥 <b>필살 치명!</b>":q==="good"?"🗡 강한 일격":"🗡 빗맞은 일격", crit?"#ffd36a":"#ff8a8a");
+    const crit=q!=="weak"; let m=q==="perfect"?3.4:q==="good"?2.1:0.8;   // perfect 2.5→3.4 대폭↑
+    let dmg=Math.round((ATK()+rnd(4))*m); if(crit&&q!=="perfect")dmg=Math.round(dmg*1.35);
+    dmg=Math.max(1,dmg-enemy.def); addGroggy(12);
+    if(q==="perfect"){ if(typeof fxShakeHard==="function")fxShakeHard(); if(typeof fxBigHit==="function")fxBigHit(); if(typeof fxSlash==="function"){ fxSlash(-1); fxSlash(1); } if(typeof sfx==="function"){ sfx("heavy"); sfx("crit"); } bigPop("일격 필살!","#ff5a5a"); }
+    else if(crit){ fxShake(); if(typeof fxSlash==="function")fxSlash(-1); if(typeof sfx==="function")sfx("slash"); }
+    const killed=hitEnemy(dmg, q==="perfect"?"💥 <b>필살의 일격 — 대격돌!</b>":q==="good"?"🗡 강한 일격":"🗡 빗맞은 일격", crit?"#ffd36a":"#ff8a8a");
     if(!killed&&enemy&&enemy.hp>0)afterPlayerAction();
   }, 1.15); }
 
@@ -644,9 +649,9 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
   if(k==="summon"){ beginSummon(); return; }   // 소환: 메뉴→영창 후 확정 시 기력 차감
   P.mp-=s.mp; const m=skillMul(k); gainSkillXp(k,10); render();
   skillChainStep(k); if(!enemy)return;   // ✨ 콤보 판정(연계 폭발이 적을 처치하면 스킬 본체는 생략)
-  if(k==="heavy_strike") startGauge("attack",q=>{ playerHit(q,2.1*m,q==="perfect"?"💥 완벽 강타!":"💥 강타!"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
+  if(k==="heavy_strike") startGauge("attack",q=>{ if(q==="perfect"){ if(typeof fxShakeHard==="function")fxShakeHard(); if(typeof fxBigHit==="function")fxBigHit(); if(typeof fxSlash==="function"){fxSlash(-1);fxSlash(1);} if(typeof sfx==="function"){sfx("heavy");sfx("crit");} bigPop("완벽 강타!","#ff5a5a"); } else if(typeof fxSlash==="function"){ fxSlash(-1); if(typeof sfx==="function")sfx("slash"); } playerHit(q,(q==="perfect"?2.9:2.1)*m,q==="perfect"?"💥 완벽 강타!":"💥 강타!"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="power_shot") startGauge("attack",q=>{ playerHit(q,1.4*m,"🎯 급소 찌르기",true); if(enemy&&enemy.hp>0)afterPlayerAction(); });
-  else if(k==="double_slash") startGauge("attack",q=>{ playerHit(q,1.05*m,"⚔️ 연속 1타"); if(enemy&&enemy.hp>0){ playerHit(q,1.05*m,"⚔️ 연속 2타"); } if(enemy&&enemy.hp>0)afterPlayerAction(); });
+  else if(k==="double_slash") startGauge("attack",q=>{ if(typeof fxSlash==="function")fxSlash(-1); if(typeof sfx==="function")sfx("combohit"); playerHit(q,1.05*m,"⚔️ 연속 1타"); if(enemy&&enemy.hp>0){ if(typeof fxSlash==="function")fxSlash(1); if(typeof sfx==="function")sfx("combohit"); playerHit(q,1.05*m,"⚔️ 연속 2타"); } if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="execute") startGauge("attack",q=>{ const low=enemy.hp/enemy.hpMax<0.3; playerHit(q,(low?4.5:1.5)*m,low?"☠️ 처형!":"☠️ 처형"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="fireball"){ castSpell(k,(ratio,power)=>{ if(!enemy)return;
       if(ratio<0.3){ line("🌫 영창 실패! 파이어볼이 흩어졌다. (기력 소모)","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }

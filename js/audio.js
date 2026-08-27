@@ -30,6 +30,9 @@ const SFX = {
   victory:   { synth: "arp",   notes: [523, 659, 784, 1046], step: 0.12, type: "triangle", gain: 0.34 },
   defeat:    { synth: "sweep", from: 400, to: 70, dur: 0.7, type: "sine", gain: 0.34 },
   step:      { synth: "noise", dur: 0.05, cut: 700, gain: 0.05 },   // 🚶 지도에서 걷는 발소리(부드럽게)
+  slash:     { synth: "sweep", from: 1500, to: 420, dur: 0.10, type: "sawtooth", gain: 0.30 },   // ⚔️ 베기 휘두름
+  heavy:     { synth: "sweep", from: 300,  to: 52,  dur: 0.34, type: "square",   gain: 0.5 },    // 💥 강타 임팩트(묵직)
+  combohit:  { synth: "blip",  freq: 560,  dur: 0.05, type: "square",  gain: 0.22 },              // ⚔️ 콤보 각 타
   // 예) 파일 교체:  click: { src:"sounds/click.mp3", gain:0.5 }
 };
 const BGM = {   // 배경음악 (src 없으면 무음 대기). vol=트랙별 기본 볼륨(0~1), 최종=vol×설정마스터

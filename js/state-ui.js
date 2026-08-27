@@ -229,6 +229,9 @@ function spawnFloat(text,color,side){ const s=$("stage"); const f=document.creat
   s.appendChild(f); setTimeout(()=>{ f.remove(); _floatActive[key]=Math.max(0,_floatActive[key]-1); },1000); }
 function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
 function fxShake(){ const s=$("stage"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
+function fxShakeHard(){ const s=$("stage"); if(!s)return; s.classList.remove("shake-hard"); void s.offsetWidth; s.classList.add("shake-hard"); }
+function fxSlash(dir){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="slashfx"; d.style.setProperty("--sl",((dir<0?-1:1)*(28+rnd(12)))+"deg"); s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },320); }
+function fxBigHit(){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="hitflash"; s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },440); if(typeof fxHit==="function")fxHit(); }
 function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } if(typeof sfx==="function")sfx("hurt"); }
 
 /* ---------- HUD ---------- */
