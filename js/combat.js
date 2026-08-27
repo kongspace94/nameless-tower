@@ -700,7 +700,37 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
       const dmg=Math.max(1,Math.round((magicPow()*1.7*m+rnd(5))*power)-Math.floor(enemy.def/2)); const hp0=enemy.hp;
       const killed=hitEnemy(dmg,"🧛 생명 흡수","#c96ad6"); const dealt=Math.min(dmg,hp0); heal(Math.round(dealt*0.5)); fxShake();
       if(!killed&&enemy&&enemy.hp>0)afterPlayerAction(); }); }
+  else if(s.fx){ runRareSkill(k,s); }   // 🌟 데이터 기반 스킬(도적/희귀 스킬 공용 실행기)
 }
+/* 🌟 데이터 기반 스킬 실행기 — SKILLS[k].fx 스펙으로 즉발 처리 (도적·보스/파밍 희귀 스킬 공용) */
+function runRareSkill(k,s){ if(!enemy){ return; } const m=skillMul(k), fx=s.fx||{};
+  if(fx.msg)line(`${s.emoji} <b>${s.n}</b> — ${fx.msg}`,"loot");
+  // 자기 HP 소모(양날)
+  if(fx.selfHpCost){ const c=Math.max(1,Math.round(P.hp*fx.selfHpCost)); P.hp-=c; if(typeof fxPlayerHurt==="function")fxPlayerHurt(); spawnFloat("-"+c,"#ff8a8a","me"); if(P.hp<=0){ render(); die(); return; } }
+  // 버프(수치형 키만)
+  if(fx.buff)for(const key in fx.buff){ B[key]=(B[key]||0)+fx.buff[key]; }
+  if(fx.nextCrit)B.nextCrit=true;
+  if(fx.enemyWeak)B.enemyWeak=Math.min(0.75,(B.enemyWeak||0)+fx.enemyWeak);
+  if(fx.enemyVuln)B.enemyVuln=(B.enemyVuln||0)+fx.enemyVuln;
+  if(fx.enemyDef&&enemy)enemy.def=Math.max(0,enemy.def-fx.enemyDef);
+  if(fx.groggy)addGroggy(fx.groggy);
+  if(fx.dot&&enemy){ const dd=Math.max(3,Math.round(ATK()*(fx.dot.atk||0.35)*m)); B.enemyDot={dmg:dd,turns:fx.dot.turns||4}; line(`🩸 ${enemy.n}이(가) 지속 피해 상태! (${B.enemyDot.turns}턴·턴당 ${dd})`,"loot"); }
+  if(fx.stun&&enemy){ const ch=enemy.boss?(fx.stunBoss||0.3):fx.stun; if(chance(ch)){ B.enemyStun=true; line(`💫 ${enemy.n}이(가) 무력화됐다 — 다음 턴 행동 불가!`,"loot"); bigPop("STUN","#8fd0ff"); } else line(`${enemy.n}은(는) 버텼다.`,"sys"); }
+  if(fx.healFrac)heal(Math.round(MAXHP()*fx.healFrac*m));
+  if(fx.mpRestore)P.mp=clamp(P.mp+fx.mpRestore,0,MAXMP());
+  if(fx.popup)bigPop(fx.popup,fx.popColor||"#ffd36a");
+  if(fx.shake&&typeof fxShakeHard==="function")fxShakeHard(); else if(fx.shake)fxShake();
+  let killed=false, hp0=enemy?enemy.hp:0;
+  const dmgOnce=(base,label,color,elem)=>{ let dmg=Math.round(base); dmg = fx.defIgnore? dmg : Math.max(1, dmg-(fx.defHalf?Math.floor(enemy.def/2):enemy.def));
+    if(fx.crit&&chance(fx.crit)){ dmg=Math.round(dmg*1.7); line("🎯 <b>치명!</b>","loot"); } return hitEnemy(Math.max(1,dmg), label, color, elem); };
+  if(fx.goldThrow){ const spend=Math.min(P.gold, fx.goldThrow); P.gold-=spend; const base=(ATK()*m)+spend*0.5; line(`💰 금화 ${spend}을(를) 흩뿌린다!`,"loot"); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#ffd36a"); }
+  else if(fx.randMult){ const mn=fx.randMult[0], mx=fx.randMult[1]; const r=mn+Math.random()*(mx-mn); const base=(ATK()+rnd(4))*r*m; if(r>=mx*0.8)bigPop("대박!","#ff5a5a"); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#ffcf6a",fx.elem); }
+  else if(fx.execMult){ const low=enemy.hp/enemy.hpMax < (fx.execThresh||0.3); const mult=low?fx.execMult:(fx.mult||1); const base=(ATK()+rnd(4))*mult*m; if(low)bigPop("처형!","#ff5a5a"); killed=dmgOnce(base,`${s.emoji} ${s.n}${low?"!":""}`,fx.color||"#ff5a5a"); }
+  else if(fx.magic){ const base=(magicPow()*(fx.mult||2)*m+rnd(6)); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#c9a9ff",fx.elem); }
+  else if(fx.hits){ for(let i=0;i<fx.hits;i++){ if(!enemy||enemy.hp<=0)break; if(i>0&&typeof fxSlash==="function")fxSlash(i%2?1:-1); const base=(ATK()+rnd(4))*(fx.mult||1)*m; killed=dmgOnce(base,`${s.emoji} ${s.n}${fx.hits>1?` ${i+1}`:""}`,fx.color||"#ff8f3c",fx.elem); } }
+  if(fx.vamp && enemy){ const dealt=Math.min(hp0-(enemy?enemy.hp:0), hp0); if(dealt>0){ heal(Math.round(dealt*fx.vamp)); line(`🧛 피해의 ${Math.round(fx.vamp*100)}%를 흡수했다.`,"heal"); } }
+  render();
+  if(!killed && enemy && enemy.hp>0)afterPlayerAction(); }
 /* 주문 영창 — 커스텀 영창(한글). 숙련 레벨이 오를수록 앞부분(reqLen)만 쳐도 발동 (완벽 시 1.15배, 실패 시 소멸) */
 const CAST_SPELLS=["fireball","heal_spell","drain"];   // 타이핑 영창 주문
 const MIN_CHANT_REQ=1, CHANT_LV_CAP=30;   // 숙련 Lv1→전체, Lv30→1자 (선형, 최대 30레벨 기준)
@@ -834,6 +864,15 @@ function gainCompBond(n){ if(!P||!P.companion||n<=0)return; const rec=compRec(P.
     line(`🌟 <b>각성!</b> 동료가 <b>${d.emoji} ${d.n}</b>(으)로 진화했다!`,"loot"); if(typeof toast==="function")toast("동료 각성: "+d.n); if(typeof spawnFloat==="function")spawnFloat("🌟각성!","#ffd36a","me"); if(B&&B.comp&&B.comp.key===P.companion){ const nc=buildComp(P.companion); if(nc){ nc.energy=B.comp.energy; B.comp=nc; } } }
   else if(leveled){ const d=compDisp(P.companion,rec.lv); line(`✦ ${d.emoji} ${d.n} 유대 Lv.${rec.lv}`,"sys"); if(B&&B.comp&&B.comp.key===P.companion)B.comp.lv=rec.lv; } }
 /* ✨ 보스 처치 시 낮은 확률로 희귀 동료 영입 */
+/* 🌟 희귀 스킬 습득/드랍 — 보스 처치 or 몬스터 파밍(낮은 확률)으로만 획득 */
+function learnRareSkill(k){ if(!SKILLS[k]||P.skills.includes(k))return false; P.skills.push(k);
+  if(SKILLS[k].type==="active"){ if(typeof skillProf==="function")skillProf(k); if(Array.isArray(P.loadout)&&P.loadout.length<activeCap())P.loadout.push(k); } return true; }
+function dropRareSkill(fromBoss){ if(typeof RARE_SKILLS==="undefined")return;
+  const pool=RARE_SKILLS.filter(k=>!P.skills.includes(k) && (fromBoss || SKILLS[k].src==="farm"));
+  if(!pool.length)return; const ch=fromBoss?0.12:0.006*(1+((typeof metaEff==="function"?metaEff().drop:0)||0));
+  if(!chance(ch))return; const k=pick(pool);
+  if(learnRareSkill(k)){ const s=SKILLS[k]; line(`🌟 <b>희귀 스킬 습득 — ${s.emoji} ${s.n}!</b> ${s.desc}`,"loot"); toast("희귀 스킬: "+s.n); if(typeof sfx==="function")sfx("loot");
+    if(Array.isArray(P.loadout)&&P.loadout.indexOf(k)<0)line("　(슬롯이 가득 — 스킬창에서 장착하세요)","sys"); } }
 function maybeDropCompanion(floor){ if(typeof RARE_COMPS==="undefined")return; let pool=RARE_COMPS.filter(k=>!compOwned(k));
   if(typeof EXP!=="undefined" && EXP && typeof PION_COMPS!=="undefined")pool=pool.concat(PION_COMPS.filter(k=>!compOwned(k)));   // 🧭 개척 중엔 개척지 동료도 발견
   if(!pool.length)return;
@@ -1062,6 +1101,7 @@ function winCombat(){
   dropSignature(enemy, wasBoss);   // ✨ 몬스터 고유(시그니처) 드랍 + 몬스터 도감 처치 기록
   if(P.companion&&typeof gainCompBond==="function")gainCompBond(wasBoss?Math.round(15+floor*0.8):Math.round(3+floor*0.25));   // 🐾 동료 유대 획득(전투)
   if(wasBoss&&typeof maybeDropCompanion==="function")maybeDropCompanion(floor);   // ✨ 보스: 희귀 동료 영입 기회
+  if(typeof dropRareSkill==="function")dropRareSkill(wasBoss);   // 🌟 희귀 스킬 드랍(보스 높음/파밍 낮음)
   checkTitleUnlocks(); checkQuests();
   enemy=null; B=null; save(true);
   if(expReturn){ const r=expReturn; expReturn=null; render(); setScene("🏆","전투에서 승리했다!"); setTimeout(r,180); return; }   // 개척 중이면 개척 흐름으로 복귀

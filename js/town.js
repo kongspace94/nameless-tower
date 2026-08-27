@@ -988,9 +988,10 @@ function editChant(k){ if(!SKILLS[k]){ return; }
   if(!P.chants)P.chants={}; P.chants[k]=t; toast("영창 저장: "+SKILLS[k].n); if(typeof sfx==="function")sfx("loot"); save(true); skillWindow(); }
 window.editChant=editChant;
 /* 🏷 스킬→클래스 매핑 (수련관 교관 기준) · 스킬창 클래스별 정리에 사용 */
-function skillClassOf(k){ if(typeof INSTRUCTORS!=="undefined"){ for(const c in INSTRUCTORS){ if((INSTRUCTORS[c].skills||[]).includes(k))return c; } } return "etc"; }
-const SKILL_CLASS_LABEL={warrior:"⚔️ 전사",hunter:"🏹 사냥꾼",mage:"🔮 마법",tamer:"🐺 조련",gambler:"🎲 도박",bard:"🎵 음유",etc:"✨ 기타"};
-const SKILL_CLASS_ORDER=["warrior","hunter","mage","tamer","gambler","bard","etc"];
+function skillClassOf(k){ if(typeof SKILLS!=="undefined"&&SKILLS[k]&&SKILLS[k].rare)return "rare";
+  if(typeof INSTRUCTORS!=="undefined"){ for(const c in INSTRUCTORS){ if((INSTRUCTORS[c].skills||[]).includes(k))return c; } } return "etc"; }
+const SKILL_CLASS_LABEL={warrior:"⚔️ 전사",hunter:"🏹 사냥꾼",rogue:"🗡️ 도적",mage:"🔮 마법",tamer:"🐺 조련",gambler:"🎲 도박",bard:"🎵 음유",rare:"🌟 희귀",etc:"✨ 기타"};
+const SKILL_CLASS_ORDER=["warrior","hunter","rogue","mage","tamer","gambler","bard","rare","etc"];
 /* 📋 스킬 창 (인벤 옆 버튼) — 상단 장착요약 + 클래스별 정리 + 생활 스킬 */
 function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; }
   regenStamina(); render(); clearLog(); setScene("📋", inDive?"스킬 — 계단에서 장착 변경":"스킬 — 전투 스킬과 생활 스킬");
