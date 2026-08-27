@@ -337,7 +337,7 @@ function avatarCropModal(img, onDone){
     <div class="cropstage" style="width:${PREVIEW}px;height:${PREVIEW}px"><canvas class="cropcanvas" width="${PREVIEW}" height="${PREVIEW}"></canvas><div class="cropring"></div></div>
     <div class="croprow"><span>🔍</span><input type="range" class="cropzoom" min="1" max="3" step="0.01" value="1"></div>
     <div class="crophint">드래그해 위치 이동 · 원 안이 프로필로 들어가요</div>
-    <div class="cropbtns"><button type="button" class="cropbtn cropcancel">취소</button><button type="button" class="cropbtn cropok">✅ 적용</button></div>
+    <div class="cropbtns"><button type="button" class="cropbtn cropcancel">취소</button><button type="button" class="cropbtn cropok">적용</button></div>
   </div>`;
   document.body.appendChild(ov);
   const cv=ov.querySelector(".cropcanvas"), ctx=cv.getContext("2d"), zoomEl=ov.querySelector(".cropzoom"), stage=ov.querySelector(".cropstage");
@@ -660,7 +660,7 @@ function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; }
   const acts=[];
   for(const sk in SETS){ acts.push({header:true,label:`✦ ${SETS[sk].n}`});
     Object.keys(RELICS).filter(k=>RELICS[k].set===sk).forEach(k=>{ const cost=craftGearCost(k); const owned=P.inv.some(x=>x.k===k)||((P.stash&&P.stash.inv)||[]).some(x=>x.k===k);
-      acts.push({label:`${owned?"✅ ":""}${k}`,desc:`${RELICS[k].note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftGear(k)}); }); }
+      acts.push({label:k,desc:`${RELICS[k].note} · ${craftCostText(cost)}${owned?" · 보유 중":""}`,disabled:!canAfford(cost),act:()=>craftGear(k)}); }); }
   acts.push({header:true,label:"🧪 지역 내성 아이템"});
   Object.keys(CONS).filter(k=>CONS[k].use==="resist").forEach(k=>{ const cost=craftConsCost(k);
     acts.push({label:`${CONS[k].emoji} ${CONS[k].n}`,desc:`${CONS[k].note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftCons(k)}); });

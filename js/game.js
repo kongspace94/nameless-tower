@@ -283,7 +283,7 @@ function recoveryCodeScreen(code, afterRegister){ clearLog(); setScene("🔑","�
   setActions([
     {label:"📋 코드 복사",full:true,act:()=>{ const t=code; const done=()=>{ const m=$("recCopyMsg"); if(m){ m.textContent="복사됐어요 ✓"; m.style.color="var(--good)"; } toast("복사됨"); };
         try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done)); } else fallbackCopy(t,done); }catch(e){ fallbackCopy(t,done); } }},
-    {label:afterRegister?"✅ 저장했어요 — 시작하기":"✅ 저장했어요 — 뒤로",full:true,act:()=> afterRegister?onlineScreen():profileMenu()},
+    {label:afterRegister?"저장했어요 — 시작하기":"저장했어요 — 뒤로",full:true,act:()=> afterRegister?onlineScreen():profileMenu()},
   ]);
 }
 function fallbackCopy(t, done){ try{ const ta=document.createElement("textarea"); ta.value=t; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done&&done(); }catch(e){ toast("코드를 길게 눌러 복사하세요"); } }
