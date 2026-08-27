@@ -414,8 +414,7 @@ function blacksmithMenu(){ if(enemy)return; stopAuctionTimer(); auction=null; mo
   const tabBar=`<div class="invtabs">`+[["wpn","🗡 무기"],["arm","🛡 방어구"],["acc","💍 악세"]].map(([t,lab])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setBsTab('${t}')">${lab}${byCat[t].length?` <i>${byCat[t].length}</i>`:''}</button>`).join("")+`</div>`;
   const mkRow=({it,loc})=>{ const g=RELICS[it.k], up=it.up||0, maxed=up>=UP_MAX; const eq=isEquippedItem(it);
     const where=eq?'<span style="color:var(--good)">착용중</span>':loc==="stash"?'🏦 창고':'🎒 가방';
-    const ch=Math.round(upChance(up)*100);
-    const right=maxed?`<b style="color:var(--gold)">최대 +${UP_MAX}</b>`:`<button class="ibtn on" onclick="upgradePreview(${it.id})">강화 ${ch}%</button>`;
+    const right=maxed?`<b style="color:var(--gold)">최대 +${UP_MAX}</b>`:`<button class="ibtn on" onclick="upgradePreview(${it.id})">강화</button>`;
     return `<div class="grow ${maxed?'':'eq'}"><span onclick="itemInfo('gear','${it.k}')" style="cursor:pointer">${ico(relicIco(it.k),34)}</span>`+
       `<div class="gmeta"><div class="gn">${it.k} <span style="color:var(--gold)">+${up}</span></div>`+
       `<div class="ge"><span class="gtype">${gearTypeLabel(g)}</span> · ${where}${maxed?'':` · ${upStatText(it)}`}</div></div>`+
@@ -541,18 +540,27 @@ const CASH_CHARM_GEMS=6, CASH_POTPACK_GEMS=4, CASH_MPPACK_GEMS=4, CASH_FEED_GEMS
 function cashShop(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; render(); clearLog();
   setScene("📦","통신판매 — 캐쉬샵 배송함.");
   line('안내원: <span class="quote">"통신판매는 💎다이아로 결제돼요. 신규 모험가님껜 웰컴 스타터팩을 무료로 배송해 드립니다!"</span>');
-  line(`보유 💎 다이아 <b>${P.gems||0}</b> — 다이아는 보스 처치로 모을 수 있어요.`,"sys");
+  line(`보유 💎 다이아 <b>${P.gems||0}</b> — 모든 상품은 다이아로 결제해요. (다이아는 보스 처치로도 획득)`,"sys");
   const claimed=!!P.flags.welcomeClaimed, gems=P.gems||0;
   const acts=[
     {label:`🎁 웰컴 스타터팩 ${claimed?"(수령 완료)":"— 무료"}`,desc:"입문자 장검·갑옷·반지 + 💎10 (난이도 완화)",disabled:claimed,act:claimWelcome},
+    {header:true,label:"🛍  다이아 상점"},
     {label:`⚜️ 강화의 축복 (💎${CASH_CHARM_GEMS})`,desc:`강화 성공↑·파괴 방지 · 보유 ${(P.consumables&&P.consumables.enhance_charm)||0}`,disabled:gems<CASH_CHARM_GEMS,act:()=>buyCash("charm")},
     {label:`🧪 물약 꾸러미 ×10 (💎${CASH_POTPACK_GEMS})`,desc:"HP 물약 10개 즉시 배송",disabled:gems<CASH_POTPACK_GEMS,act:()=>buyCash("potpack")},
     {label:`🫙 기력 물약 꾸러미 ×5 (💎${CASH_MPPACK_GEMS})`,desc:"고급 기력 물약 5개 (MP 60씩)",disabled:gems<CASH_MPPACK_GEMS,act:()=>buyCash("mppack")},
     {label:`🥫 공용 사료 ×12 (💎${CASH_FEED_GEMS})`,desc:`아무 동료나 먹는 먹이 · 보유 ${(P.food&&P.food.food_any)||0}`,disabled:gems<CASH_FEED_GEMS,act:()=>buyCash("feed")},
-    {label:`📬 우편함 열기${mailUnread()>0?` (${mailUnread()} NEW)`:""}`,desc:"운영자·이벤트 보상 수령",act:mailboxMenu},
-    {label:"🏘 마을로",full:true,act:townMenu},
+    {header:true,label:"💎  다이아 충전  (100다이아 = 1,000원)"},
   ];
+  DIA_PACKS.forEach(p=>acts.push({label:`💎 ${p.amt.toLocaleString()} 다이아 — ₩${p.won.toLocaleString()}${p.bonus?` (+${p.bonus}% 보너스)`:""}`,desc:"결제 연동 준비 중 — 곧 충전 가능해요",act:()=>diaChargeInfo(p)}));
+  acts.push({label:"🏘 마을로",full:true,act:townMenu});
   setActions(acts); }
+/* 💎 다이아 충전 패키지 — 기준 100다이아=1,000원 (실제 결제 연동은 추후) */
+const DIA_PACKS=[
+  {amt:100, won:1000, bonus:0}, {amt:300, won:3000, bonus:0},
+  {amt:550, won:5000, bonus:10}, {amt:1200, won:10000, bonus:20}, {amt:2600, won:20000, bonus:30},
+];
+function diaChargeInfo(p){ toast("결제 연동 준비 중입니다"); line(`💳 <b>${p.amt.toLocaleString()} 다이아</b> 충전은 <b>₩${p.won.toLocaleString()}</b> — 결제 연동을 준비 중이에요. (기준: 100다이아 = 1,000원)`,"sys"); }
+window.diaChargeInfo=diaChargeInfo;
 function buyCash(kind){ const price={charm:CASH_CHARM_GEMS,potpack:CASH_POTPACK_GEMS,mppack:CASH_MPPACK_GEMS,feed:CASH_FEED_GEMS}[kind]; if((P.gems||0)<price){ toast("다이아 부족"); return; }
   P.gems-=price;
   if(kind==="charm"){ gainCons("enhance_charm"); line("⚜️ <b>강화의 축복</b>을 구매했다. (대장간 강화 시 성공↑·파괴 방지)","loot"); }

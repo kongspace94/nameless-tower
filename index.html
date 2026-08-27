@@ -495,8 +495,16 @@
   .chatdock.collapsed .cdtoggle{transform:rotate(180deg)}
   body.combat .chatdock, body.title .chatdock{display:none !important}
   @media (max-width:640px){
-    .chatdock{width:200px; right:8px; bottom:6px} .chatdock .cdbody{max-height:120px}
-    .chatdock.collapsed{width:auto} .chatdock.collapsed .cdhead{padding:7px 12px; border-bottom:0}
+    /* 📱 광장 채팅: 패널 1.5배 확대 + 접었을 땐 이모지만(💬) */
+    .chatdock{width:300px; right:8px; bottom:8px} .chatdock .cdbody{max-height:190px; padding:11px 12px}
+    .chatdock .cmsg .ctx{font-size:13.5px} .chatdock .cmsg .cnm{min-width:62px; font-size:12px}
+    .chatdock .cdinput{font-size:14px; padding:10px 12px} .chatdock .cdsendbtn{width:38px; height:38px; font-size:16px}
+    .chatdock .cdhead{padding:10px 13px; font-size:13.5px}
+    /* 접힘 = 큼직한 이모지 버튼만 */
+    .chatdock.collapsed{width:auto}
+    .chatdock.collapsed .cdhead{padding:11px 14px; border-bottom:0}
+    .chatdock.collapsed .cdlabel, .chatdock.collapsed #cdonline, .chatdock.collapsed .cddot, .chatdock.collapsed .cdtoggle{display:none}
+    .chatdock.collapsed .cdemo{font-size:24px}
     .chatdock .cddot{width:6px;height:6px}
   }
   .lotbtns{display:flex; gap:8px; margin-top:8px}
@@ -645,7 +653,7 @@
   </p>
 </div>
 <div class="chatdock" id="chatdock" hidden>
-  <div class="cdhead" id="cdhead"><span>💬 광장 채팅 <span class="cddot"></span> <span id="cdonline" style="color:var(--dim);font-size:10.5px"></span></span><span class="cdtoggle" id="cdtoggle">▾</span></div>
+  <div class="cdhead" id="cdhead"><span class="cdtitle"><span class="cdemo">💬</span> <span class="cdlabel">광장 채팅</span> <span class="cddot"></span> <span id="cdonline" style="color:var(--dim);font-size:10.5px"></span></span><span class="cdtoggle" id="cdtoggle">▾</span></div>
   <div class="cdbody"><div class="chatbox" id="chatmsgs"></div></div>
   <div class="cdfoot"><input id="cdinput" class="cdinput" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="메시지 입력…"><button class="cdsendbtn" id="cdsend" title="보내기">➤</button></div>
 </div>
