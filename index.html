@@ -288,8 +288,11 @@
     background:radial-gradient(120% 90% at 50% 0%, #6fb85a 0%, #58a047 42%, #47883b 100%);
     box-shadow:inset 0 -40px 60px -30px rgba(10,30,10,.6), inset 0 20px 40px -20px rgba(255,255,255,.12)}
   .townmap .tmcanvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-  .tmhit{position:absolute; transform:translate(-50%,-50%); width:58px; height:56px; background:transparent; border:0; cursor:pointer}
-  .tmhit:active{transform:translate(-50%,-50%) scale(.92)}   /* 누를 때 살짝 눌리는 느낌만 */
+  .tmhit{position:absolute; transform:translate(-50%,-50%); width:58px; height:56px; background:transparent; border:0; padding:0; margin:0; cursor:pointer;
+    -webkit-appearance:none; appearance:none; outline:none; color:inherit; font:inherit;
+    -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none}
+  .tmhit:focus,.tmhit:focus-visible{outline:none; background:transparent}   /* 포커스 박스 제거 */
+  .tmhit:active{transform:translate(-50%,-50%) scale(.92); background:transparent}   /* 누를 때 살짝 눌리는 느낌만(하이라이트 없음) */
   .tmother{position:absolute; transform:translate(-50%,-50%); z-index:15; display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; transition:left .5s linear, top .5s linear}
   .tmother .tmoav{font-size:22px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
   .tmother .tmoav img{width:22px; height:22px; object-fit:cover; border-radius:50%}
