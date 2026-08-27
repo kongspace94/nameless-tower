@@ -40,6 +40,7 @@ function normalizeP(){ if(!P)return;
   if(!Array.isArray(P.loadout))P.loadout=[]; if(!Array.isArray(P.passives))P.passives=[]; if(!Array.isArray(P.titles))P.titles=[];
   if(!Array.isArray(P.portals)||!P.portals.length)P.portals=[1];
   if(!P.quests||typeof P.quests!=="object")P.quests={}; if(!P.flags)P.flags={}; if(P.flags.maxFloor==null)P.flags.maxFloor=P.floor||0;
+  if(!P.flags.storySeen||typeof P.flags.storySeen!=="object")P.flags.storySeen={};   // 📖 본 스토리 비트(체크포인트 1회 재생용)
   if(!P.codex||typeof P.codex!=="object")P.codex={};   // 도감: 발견한 장비 기록
   if(!P.codexWeak||typeof P.codexWeak!=="object")P.codexWeak={};   // 🔥 발견한 몬스터 약점 속성
   if(!P.bestiary||typeof P.bestiary!=="object")P.bestiary={};   // 📖 몬스터 도감

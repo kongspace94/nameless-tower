@@ -77,6 +77,47 @@ function vnScene(steps, onDone){
   ov.addEventListener("click",next); document.addEventListener("keydown",key,true);
   next();
 }
+/* 📖 오프닝 — 새 게임 시작(동료 선택 직후). 기억 잃은 방랑자 + 동료 합류 */
+const STORY_OPENING=[
+  {who:"narr", text:"눈을 떴을 때, 당신은 이름 없는 탑의 발치에 쓰러져 있었다. 왜 이곳에 왔는지, 당신이 누구인지 — 아무것도 기억나지 않는다."},
+  {who:"narr", text:"머리 위로, 하늘을 찌르는 검은 탑이 끝없이 솟아 있다."},
+  {who:"comp", text:"…어? 정신 차렸네요? 다행이다, 죽은 줄 알았어요."},
+  {who:"me",   text:"넌… 누구지."},
+  {who:"comp", text:"글쎄요, 저도 잘 몰라요. 눈 떠보니 당신 곁에 있었거든요. 왠지 당신을 도와야 할 것 같아서요."},
+  {who:"comp", text:"이 탑… 오르면 뭔가 알 수 있을지도 몰라요. 잃어버린 기억도, 당신이 누군지도."},
+  {who:"me",   text:"…오른다. 다른 길도 없으니."},
+  {who:"comp", text:"좋아요. 그럼 저랑 같이 가요. 끝까지."},
+];
+/* 🧭 포탈(체크포인트)마다 스토리 비트 — 첫 도착 1회. 6층=파밍 루프 안내 */
+const CHECKPOINT_STORY={
+  6:[ {who:"narr", text:"돌계단을 오르자, 허공에 푸른 포탈이 열린다."},
+      {who:"comp", text:"포탈이에요! 이런 거점에 닿으면 열려요. 여기서 마을로 돌아갔다가, 다시 이 자리로 곧장 올 수 있어요."},
+      {who:"comp", text:"무리해서 계속 오르지 말고 — 마을에서 재료 모으고, 장비 맞추고, 준비되면 여기로 돌아와요. 그게 오래 사는 비결이에요."},
+      {who:"me",   text:"…쉬어갈 곳이 생겼군."} ],
+  11:[ {who:"narr", text:"층이 깊어질수록 공기가 무거워진다."},
+      {who:"comp", text:"여기서부턴 진짜예요. 방심하면 순식간에 당해요. 조심해요, 우리."} ],
+  16:[ {who:"narr", text:"어둠의 미궁이 끝나고, 눈부신 빛이 쏟아진다. 부서진 천상 — 천공의 성역이 열린다."},
+      {who:"comp", text:"여긴… 천상이에요. 타락한 천사들이 잠든 곳. 아래와는 차원이 달라요."},
+      {who:"me",   text:"탑 하나에 이렇게 다른 세계가."},
+      {who:"comp", text:"탑은 그냥 돌무더기가 아니에요. 오를수록, 당신이 잊은 무언가에 가까워지는 것 같아요."} ],
+  21:[ {who:"comp", text:"빛이 너무 눈부셔서… 오히려 무서워요. 여긴 뭔가 잘못됐어요."} ],
+  26:[ {who:"comp", text:"정상이 가까워요. 저 위에서 뭔가가… 우릴 기다리는 게 느껴져요."} ],
+  31:[ {who:"narr", text:"천공마저 발아래로 멀어진다. 별과 어둠이 뒤섞인 균열 — 시공의 균열이 입을 벌린다."},
+      {who:"comp", text:"여긴… 시간도 공간도 뒤틀려 있어요. 인간이 있을 곳이 아니에요."},
+      {who:"me",   text:"그런데도, 이상하게 낯익어."},
+      {who:"comp", text:"…당신, 정말 여기 처음 온 거 맞아요? 어쩐지 이 탑이 당신을 아는 것 같은데."} ],
+  36:[ {who:"comp", text:"기억이… 조금씩 떠오르는 것 같지 않아요? 아니면 제 착각일까요."} ],
+  41:[ {who:"me",   text:"이 위에 있는 게 뭔지, 이제 알 것 같아."},
+      {who:"comp", text:"…말하지 않아도 돼요. 끝까지 함께 갈게요."} ],
+  46:[ {who:"narr", text:"정상이 코앞이다. 마지막 문 너머, 압도적인 존재감이 당신을 응시한다."},
+      {who:"comp", text:"저 문 너머예요. 준비됐어요? …아니, 준비 안 됐어도 가야겠죠."} ],
+};
+/* 체크포인트 첫 도착 시 스토리 비트 재생(1회) → done 콜백 */
+function checkpointStory(f, done){ if(!P)return done&&done();
+  if(!P.flags)P.flags={}; if(!P.flags.storySeen)P.flags.storySeen={};
+  const steps=CHECKPOINT_STORY[f];
+  if(steps && !P.flags.storySeen[f]){ P.flags.storySeen[f]=true; if(typeof save==="function")save(true); vnScene(steps, done); return; }
+  if(done)done(); }
 /* 탑 정상 → 대륙 개척 전환 대화 (방랑자 + 동료 요정) */
 function vnTowerToContinent(){ const me=P.name||"방랑자";
   return [
@@ -137,7 +178,7 @@ function chooseCompanion(){ clearLog(); setScene("🧚","작은 정령 셋이 �
   line(`<b>${P.name}</b>. 함께 탑을 오를 <b>서포트 동료</b>를 고르자. 전투마다 자동으로 돕는다.`);
   const starters=Object.entries(COMPANIONS).filter(([k,c])=>!c.rare);
   starters.forEach(([k,c])=>line(`${c.emoji} <b>${c.n}</b> — ${c.note}`,"sys"));
-  setActions(starters.map(([k,c])=>({ label:`${c.emoji} ${c.n}`, desc:c.note, act:()=>{ P.companion=k; ensureComp(k); render(); tutorial(); } }))); }
+  setActions(starters.map(([k,c])=>({ label:`${c.emoji} ${c.n}`, desc:c.note, act:()=>{ P.companion=k; ensureComp(k); render(); vnScene(STORY_OPENING, tutorial); } }))); }
 function tutorial(){ clearLog(); setScene("🏘️","거점 마을에 도착했다.");
   line("좋다. 이제 <b>거점 마을</b>에서 시작한다.","sys");
   line("• <b>생활 활동</b>으로 스탯을 단련하고 재료를 모아라 (예: 벌목→힘).","sys");

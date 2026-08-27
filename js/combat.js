@@ -1026,17 +1026,21 @@ function showClimb(){ setActions([
 ]); }
 function backToClimb(){ if(EXP&&!enemy){ expeditionHub(); return; } clearLog(); setScene("🪜",`${P.floor}층 계단 앞 — 위로 오를까?`); line("계단 앞으로 돌아왔다.","sys"); showClimb(); }
 function nextFloor(){ P.floor=Math.min((P.floor||1)+1,50); P.mp=clamp(P.mp+2,0,MAXMP()); render(); save(true); enterFloor(); }   // 탑은 50층까지(정상). 그 위는 대륙 개척으로.
-function checkpointTown(f){ const c=CHECKPOINTS[f]; clearLog();
-  if(!P.portals.includes(f)){ P.portals.push(f); line(`🌀 <b>${c.zone} 거점 '${c.n}'</b> 도착! 포탈이 열렸다 — 다음 다이브부터 여기서 시작할 수 있다.`,"loot"); toast("포탈 해금: "+c.n); }
-  save(true); setScene(f>=31?"🌌":f>=16?"⛅":"🏘️",`${c.zone} · ${c.n}`); line(`탑 ${f}층 <b>${c.n}</b>. 탑 속 작은 거점, 잠시 숨 돌릴 안전지대다.`,"sys");
-  if(f===16)line("공기가 달라졌다 — 어둠의 미궁이 끝나고 눈부신 <b>천공의 성역</b>이 열린다. 여기서부터는 전혀 다른 존재들이 기다린다…","loot");
-  if(f===31)line("천공마저 발아래로 멀어진다 — 별과 어둠이 뒤섞인 <b>시공의 균열</b>. 이곳의 존재들은 인간의 이해를 벗어난다…","loot");
+function checkpointTown(f){ const c=CHECKPOINTS[f]; const firstPortal=!P.portals.includes(f);
+  if(firstPortal){ P.portals.push(f); if(typeof toast==="function")toast("포탈 해금: "+c.n); }
+  save(true);
+  if(typeof checkpointStory==="function"){ checkpointStory(f, ()=>checkpointMenu(f,firstPortal)); return; }   // 🎭 첫 도착 스토리 비트 → 메뉴
+  checkpointMenu(f,firstPortal); }
+function checkpointMenu(f,firstPortal){ const c=CHECKPOINTS[f]; clearLog();
+  setScene(f>=31?"🌌":f>=16?"⛅":"🏘️",`${c.zone} · ${c.n}`);
+  if(firstPortal)line(`🌀 <b>${c.zone} 거점 '${c.n}'</b> 도착! 포탈이 열렸다 — 다음 다이브부터 여기서 시작할 수 있다.`,"loot");
+  line(`탑 ${f}층 <b>${c.n}</b>. 잠시 숨 돌릴 안전지대. 마을로 갔다가 이 포탈로 곧장 돌아올 수 있다.`,"sys");
   setActions([
     {label:`계단을 올라 ${f+1}층으로`,full:true,act:nextFloor},
-    {label:"🔥 휴식 (HP·기력 회복)",act:()=>{ heal(Math.round(MAXHP()*0.6)); P.mp=MAXMP(); line("거점에서 충분히 쉬었다.","heal"); render(); checkpointTown(f); }},
+    {label:"🔥 휴식 (HP·기력 회복)",act:()=>{ heal(Math.round(MAXHP()*0.6)); P.mp=MAXMP(); line("거점에서 충분히 쉬었다.","heal"); render(); checkpointMenu(f,false); }},
     {label:"🎒 소지품 (장비 착용)",act:inventoryMenu},
     {label:"📋 스킬 (장착 변경)",act:skillWindow},
-    {label:"🌀 포탈로 마을 귀환",desc:"다이브 종료 · 획득물 유지",act:returnToTown},
+    {label:"🌀 포탈로 마을 귀환",desc:"파밍·제작 후 이 포탈로 복귀 · 획득물 유지",act:returnToTown},
   ]); }
 function enterFloor(){ const f=P.floor; P.flags.maxFloor=Math.max(P.flags.maxFloor||0,f); P.runPeakFloor=Math.max(P.runPeakFloor||0,f); checkQuests();
   if(CHECKPOINTS[f]){ checkpointTown(f); return; }
