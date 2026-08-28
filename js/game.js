@@ -217,6 +217,7 @@ $("btnSave").onclick=()=>{ if(P)save(); };
 $("btnReset").onclick=()=>{ if(enemy){ toast("전투 중엔 나갈 수 없어요"); return; }   // 🚪 메인화면(타이틀)로 — 저장 후 나가기 (캐릭터 삭제 아님. 새로 시작은 타이틀의 '새로 시작')
   if(P&&!confirm("메인화면으로 나갈까요? (진행은 자동 저장돼요)"))return; if(P)save(true); titleScreen(); };
 { const bs=$("btnSettings"); if(bs)bs.onclick=()=>openSettings(); }
+{ const bn=$("btnNotice"); if(bn)bn.onclick=()=>{ if(typeof showNotice==="function")showNotice(); }; }   // 📢 언제든 공지 다시 보기
 /* ⚙ 사운드 설정 모달 — 배경음악·효과음·환경음 각각 on/off + 음량 바 */
 function openSettings(){ if(document.querySelector(".setmodal"))return; if(typeof sfx==="function")sfx("click");
   const A=(typeof AUDIO!=="undefined")?AUDIO:null;
