@@ -129,6 +129,8 @@
   .bfoe{top:18px; right:14px; flex-direction:row-reverse}
   .bme{bottom:12px; left:14px}
   .bunit .bart{position:relative; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+  /* 🖼 전투 스프라이트는 아이콘 박스(어두운 배경·모서리·그림자) 벗기고 필드에 얹은 느낌으로 — 전체가 보이게 contain */
+  .bunit .bart img{ background:transparent !important; box-shadow:none !important; border-radius:0 !important; object-fit:contain !important }
   /* 🟢 포켓몬식 발판 — 스프라이트 밑 타원 그림자(공중에 뜬 느낌 제거) */
   .bunit .bart::after{content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); width:92%; height:20px; border-radius:50%;
     background:radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 55%, transparent 72%); z-index:-1; pointer-events:none}
