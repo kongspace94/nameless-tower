@@ -35,17 +35,18 @@ const ENEMIES=[
   {n:"탑지기 거미",ic:"spider",hp:24,atk:8,def:1,g:14,tier:2,taunt:["여덟 눈이 번득인다.","거미줄이 발목을 조인다."]},
   {n:"저주받은 기사",ic:"knight",hp:38,atk:10,def:4,g:22,tier:2,taunt:['"돌아가라…"',"냉기가 흐른다."]},
   {n:"굶주린 구울",ic:"ghoul",hp:34,atk:11,def:2,g:18,tier:2,taunt:["살점 냄새에 달려든다.","혀를 늘어뜨린다."]},
+  {n:"동굴 박쥐떼",ic:"bat",hp:22,atk:9,def:1,g:16,tier:2,fly:true,taunt:["날갯짓 소리가 어둠을 채운다.","박쥐들이 얼굴로 달려든다."]},
   {n:"화염 정령",ic:"fire",hp:30,atk:13,def:1,g:26,tier:3,taunt:["공기가 타오른다.",'"재가 되어라."']},
   {n:"석화의 고르곤",ic:"gorgon",hp:46,atk:12,def:5,g:30,tier:3,taunt:["뱀 머리가 쉭쉭거린다.","시선을 피해야 한다…"]},
 ];
 /* 제2컨셉존(16~30층) — 천공의 성역: 타락한 천상의 존재들 */
 const ENEMIES2=[
-  {n:"천공 하피",ic:"harpy",hp:64,atk:17,def:4,g:44,tier:4,taunt:["날카로운 비명이 귀를 찢는다.","깃털이 칼날처럼 쏟아진다."]},
+  {n:"천공 하피",ic:"harpy",hp:64,atk:17,def:4,g:44,tier:4,fly:true,taunt:["날카로운 비명이 귀를 찢는다.","깃털이 칼날처럼 쏟아진다."]},
   {n:"수정 골렘",ic:"crystal",hp:104,atk:15,def:10,g:52,tier:4,taunt:["수정 몸체가 빛을 굴절시킨다.","쩌적— 균열이 번뜩인다."]},
   {n:"빛의 망령",ic:"wraith",hp:78,atk:21,def:5,g:56,tier:5,taunt:["형체가 빛으로 일렁인다.","속삭임이 머릿속을 울린다."]},
-  {n:"폭풍 와이번",ic:"wyvern",hp:118,atk:23,def:7,g:70,tier:5,taunt:["번개가 비늘을 타고 흐른다.","날개가 폭풍을 부른다."]},
-  {n:"타락한 세라핌",ic:"seraph",hp:98,atk:25,def:8,g:78,tier:6,taunt:['"타락한 낙원에 온 걸 환영한다."',"여섯 날개가 펼쳐진다."]},
-  {n:"천둥새",ic:"thunderbird",hp:88,atk:27,def:4,g:66,tier:6,taunt:["대기가 찌릿하게 곤두선다.","방전이 시작된다."]},
+  {n:"폭풍 와이번",ic:"wyvern",hp:118,atk:23,def:7,g:70,tier:5,fly:true,taunt:["번개가 비늘을 타고 흐른다.","날개가 폭풍을 부른다."]},
+  {n:"타락한 세라핌",ic:"seraph",hp:98,atk:25,def:8,g:78,tier:6,fly:true,taunt:['"타락한 낙원에 온 걸 환영한다."',"여섯 날개가 펼쳐진다."]},
+  {n:"천둥새",ic:"thunderbird",hp:88,atk:27,def:4,g:66,tier:6,fly:true,taunt:["대기가 찌릿하게 곤두선다.","방전이 시작된다."]},
 ];
 /* 제3컨셉존(31~50층) — 시공의 균열: 인간의 이해를 벗어난 우주적 존재들 */
 const ENEMIES3=[
@@ -114,6 +115,7 @@ function startCombat(e,intro){ if(typeof bgm==="function"){ const _B=(typeof BGM
   B={comp:buildComp(P.companion),poison:0,diceUsed:false,enemyGuard:0,block:null,parry:null,shield:false,summon:null,quickProcs:0,enemyIntent:null,turn:0,swaps:0,momentum:0};
   if(pre){ B.atkPct=pre.atkPct||0; B.critB=pre.critB||0; B.defB=pre.defB||0; B.nextCrit=!!pre.nextCrit; }
   if(intro)line(intro,"sys"); line(`<b style="color:var(--danger)">⚔ ${enemy.n}</b> 이(가) 나타났다! ${pick(enemy.taunt)}`); if(typeof sfx==="function")sfx("encounter");
+  if(enemy.fly)line(`🦅 <b>비행 몬스터</b> — 근접 무기(검·단검)는 <b>빗나갈 수 있다</b>. <b>활·마법</b>은 명중한다!`,"sys");   // 🦅 비행 안내
   if(B.comp){ line(`${B.comp.emoji} ${B.comp.n}이(가) 곁을 지킨다.`,"sys");
     const ru=B.comp.rune; if(ru){ if(ru.pAtk)B.atkPct=(B.atkPct||0)+ru.pAtk; if(ru.pCrit)B.critB=(B.critB||0)+ru.pCrit; if(ru.pDef)B.defB=(B.defB||0)+ru.pDef; } }   // 🔩 동료 룬: 동행 중 플레이어 패시브
   if(EXP)applyRegionDebuff();   // 개척: 지역 디버프 적용
@@ -821,7 +823,11 @@ function castSpell(k,cb){ awaiting=null; setActions([]); const phrase=spellChant
   const evalNow=()=>finish(chantEval(inp?inp.value:"",phrase,reqLen));
   if(inp){ inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); evalNow(); } }); setTimeout(()=>{ try{ inp.focus(); }catch(e){} },30); }
   let t=timeMs; const total=t; iv=setInterval(()=>{ t-=50; if(bar)bar.style.width=Math.max(0,t/total*100)+"%"; if(t<=0)evalNow(); },50); }
-function playerHit(quality,mult,label,forceCrit,opts){ opts=opts||{}; const qm=quality==="perfect"?1.7:quality==="good"?1.0:0.55;
+const FLY_MISS_CHANCE=0.4;   // 🦅 비행 몬스터: 근접 무기 공격 빗나갈 확률 (활·마법은 명중)
+function playerHit(quality,mult,label,forceCrit,opts){ opts=opts||{};
+  if(enemy && enemy.fly && (typeof weaponType!=="function"||weaponType()!=="bow") && !opts._setbonus && chance(FLY_MISS_CHANCE)){   // 🦅 비행 회피 — 근접은 빗나감
+    line(`💨 <b>MISS!</b> ${enemy.n}이(가) 날아올라 근접 공격을 피했다! <span style="color:var(--dim)">(활·마법은 명중)</span>`,"sys"); bigPop("MISS","#8fd0ff"); if(typeof spawnFloat==="function")spawnFloat("MISS","#8fd0ff","foe"); return; }
+  const qm=quality==="perfect"?1.7:quality==="good"?1.0:0.55;
   if(B&&B.nextCrit){ forceCrit=true; B.nextCrit=false; }   // 집중: 다음 공격 확정 치명
   let dmg=Math.round((ATK()+rnd(4))*mult*qm); let crit=(quality==="perfect")||forceCrit||chance(critChance()+(opts.critBonus||0));
   if(crit&&quality!=="perfect")dmg=Math.round(dmg*1.4);

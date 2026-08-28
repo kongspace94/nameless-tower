@@ -195,9 +195,10 @@ function setSceneFoe(){ if(!enemy)return;
   const weakHtml = (enemy._weakShown&&enemy.weak) ? `<span class="weakb" style="color:${ELEMENTS[enemy.weak].col}">약점 ${ELEMENTS[enemy.weak].ic}</span>` : "";
   const mech = enemy.mech&&typeof MECH_INFO!=="undefined"&&MECH_INFO[enemy.mech] ? MECH_INFO[enemy.mech] : null;
   const mechHtml = mech ? `<span class="mechb${enemy.enraged?' hot':''}">${mech.ic}${mech.n}</span>` : "";
+  const flyHtml = enemy.fly ? `<span class="flyb" title="비행 — 근접 공격이 빗나갈 수 있다 (활·마법은 명중)">🦅 비행</span>` : "";
   const shieldRow = (enemy.shieldHp>0) ? `<div class="hprow"><span class="tag" style="color:#8fd0ff">보호막</span><div class="hpbar2 shd"><i style="width:${clamp(enemy.shieldHp/(enemy.shieldMax||enemy.shieldHp)*100,0,100)}%"></i></div><span class="hpnum">${enemy.shieldHp}</span></div>` : "";
   const foe = `<div class="bunit bfoe"><div class="bart${chg?' charging':''}" id="foeArt">${ico(enemy.ic,96)}</div>`+
-    `<div class="ubox"><div class="un">${enemy.n}${chg?` <span style="color:#8fd0ff">🔮충전 ${B.charge.left}</span>`:(enemy.staggered?' <span style="color:#ffd36a">💫</span>':'')}${weakHtml}${mechHtml}</div>`+
+    `<div class="ubox"><div class="un">${enemy.n}${chg?` <span style="color:#8fd0ff">🔮충전 ${B.charge.left}</span>`:(enemy.staggered?' <span style="color:#ffd36a">💫</span>':'')}${weakHtml}${flyHtml}${mechHtml}</div>`+
     (ailHtml?`<div class="ailrow">${ailHtml}</div>`:"")+
     `<div class="hprow"><span class="tag">HP</span><div class="hpbar2 hp"><i id="ebar" style="width:${ew}%"></i></div><span class="hpnum" id="ehpnum">${Math.max(0,enemy.hp)}/${enemy.hpMax}</span></div>`+
     shieldRow+gRow+`</div></div>`;
