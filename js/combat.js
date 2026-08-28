@@ -525,6 +525,15 @@ function skillProf(k){ if(!P.skillProf)P.skillProf={}; if(!P.skillProf[k])P.skil
 function skillMul(k){ return 1 + (skillProf(k).lv-1)*0.08; }
 function gainSkillXp(k,n){ const p=skillProf(k); p.xp+=n; let up=false; while(p.xp>=p.lv*30){ p.xp-=p.lv*30; p.lv++; up=true; }
   if(up)line(`📈 <b>${SKILLS[k].n}</b> 숙련도 상승! Lv.${p.lv} (효과 +${Math.round((skillMul(k)-1)*100)}%)`,"loot"); }
+/* 🎯 스킬용 무기별 타이밍 — 장착 무기의 미니게임으로 성공도(quality)를 판정 (가운데 타이밍만이 아니라 다양하게) */
+function weaponSkillTiming(cb){ const w=WEAPONS[weaponType()]||WEAPONS.sword;
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb("good"); return; }
+  if(w.mg==="charge"){ runCharge(cb); return; }                          // 🏹 활: 시위 당기기
+  if(w.mg==="twinbar"){ runDaggerBar(cb); return; }                      // 🗡 단검: 2영역 급소
+  if(w.mg==="saber"){ runSaber((q)=>cb(q)); return; }                    // 🌙 세이버: 강격 차지
+  if(w.mg==="dice"){ rollDice3Anim((a,b,c)=>{ const s=a+b+c; cb(s>=14?"perfect":s<=6?"weak":"good"); }); return; }   // 🎲 주사위
+  if(w.mg==="slash"){ startGauge("attack",cb,(w.gauge||1)*0.85,"⚔ 베기 타이밍!"); return; }   // ⚔ 검: 빠른 단일 베기
+  startGauge("attack",cb,w.gauge||1,"🎯 타이밍!"); }                       // 기본(맨손·카드 등)
 function skillCombatMenu(){ const actives=(P.loadout||[]).filter(k=>SKILLS[k]&&SKILLS[k].type==="active");
   const acts=actives.map(k=>{ const s=SKILLS[k]; const wepOk=(typeof weaponOkForSkill==="function")?weaponOkForSkill(k):true;
     return {label:`${s.emoji} ${s.n} Lv.${skillProf(k).lv}${!wepOk?" 🚫":""}`,desc:`기력 ${s.mp}${s.wep?` · ${wepReqLabel(k)}`:""}${!wepOk?" · ⚠무기 교체 필요":""} · ${s.desc}`,disabled:P.mp<s.mp||!wepOk,act:()=>useSkill(k)}; });
@@ -692,10 +701,10 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
   if(k==="summon"){ beginSummon(); return; }   // 소환: 메뉴→영창 후 확정 시 기력 차감
   P.mp-=s.mp; const m=skillMul(k); gainSkillXp(k,10); render();
   skillChainStep(k); if(!enemy)return;   // ✨ 콤보 판정(연계 폭발이 적을 처치하면 스킬 본체는 생략)
-  if(k==="heavy_strike") startGauge("attack",q=>{ if(q==="perfect"){ if(typeof fxShakeHard==="function")fxShakeHard(); if(typeof fxBigHit==="function")fxBigHit(); if(typeof fxSlash==="function"){fxSlash(-1);fxSlash(1);} if(typeof sfx==="function"){sfx("heavy");sfx("crit");} bigPop("완벽 강타!","#ff5a5a"); } else if(typeof fxSlash==="function"){ fxSlash(-1); if(typeof sfx==="function")sfx("slash"); } playerHit(q,(q==="perfect"?2.9:2.1)*m,q==="perfect"?"💥 완벽 강타!":"💥 강타!"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
-  else if(k==="power_shot") startGauge("attack",q=>{ playerHit(q,1.4*m,"🎯 급소 찌르기",true); if(enemy&&enemy.hp>0)afterPlayerAction(); });
-  else if(k==="double_slash") startGauge("attack",q=>{ if(typeof fxSlash==="function")fxSlash(-1); if(typeof sfx==="function")sfx("combohit"); playerHit(q,1.05*m,"⚔️ 연속 1타"); if(enemy&&enemy.hp>0){ if(typeof fxSlash==="function")fxSlash(1); if(typeof sfx==="function")sfx("combohit"); playerHit(q,1.05*m,"⚔️ 연속 2타"); } if(enemy&&enemy.hp>0)afterPlayerAction(); });
-  else if(k==="execute") startGauge("attack",q=>{ const low=enemy.hp/enemy.hpMax<0.3; playerHit(q,(low?4.5:1.5)*m,low?"☠️ 처형!":"☠️ 처형"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
+  if(k==="heavy_strike") weaponSkillTiming(q=>{ if(q==="perfect"){ if(typeof fxShakeHard==="function")fxShakeHard(); if(typeof fxBigHit==="function")fxBigHit(); if(typeof fxSlash==="function"){fxSlash(-1);fxSlash(1);} if(typeof sfx==="function"){sfx("heavy");sfx("crit");} bigPop("완벽 강타!","#ff5a5a"); } else if(typeof fxSlash==="function"){ fxSlash(-1); if(typeof sfx==="function")sfx("slash"); } playerHit(q,(q==="perfect"?2.9:2.1)*m,q==="perfect"?"💥 완벽 강타!":"💥 강타!"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
+  else if(k==="power_shot") weaponSkillTiming(q=>{ playerHit(q,1.4*m,"🎯 급소 찌르기",true); if(enemy&&enemy.hp>0)afterPlayerAction(); });
+  else if(k==="double_slash") weaponSkillTiming(q=>{ if(typeof fxSlash==="function")fxSlash(-1); if(typeof sfx==="function")sfx("combohit"); playerHit(q,1.05*m,"⚔️ 연속 1타"); if(enemy&&enemy.hp>0){ if(typeof fxSlash==="function")fxSlash(1); if(typeof sfx==="function")sfx("combohit"); playerHit(q,1.05*m,"⚔️ 연속 2타"); } if(enemy&&enemy.hp>0)afterPlayerAction(); });
+  else if(k==="execute") weaponSkillTiming(q=>{ const low=enemy.hp/enemy.hpMax<0.3; playerHit(q,(low?4.5:1.5)*m,low?"☠️ 처형!":"☠️ 처형"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="fireball"){ castSpell(k,(ratio,power)=>{ if(!enemy)return;
       if(ratio<0.3){ line("🌫 영창 실패! 파이어볼이 흩어졌다. (기력 소모)","dmg"); if(enemy&&enemy.hp>0)afterPlayerAction(); return; }
       line(power>=1.5?"🔥 <b>긴 영창이 완성됐다 — 대폭발!</b>":"🔥 파이어볼을 시전한다!","loot");
@@ -774,8 +783,8 @@ function runRareSkill(k,s){ if(!enemy){ return; } const m=skillMul(k), fx=s.fx||
     else if(fx.hits){ for(let i=0;i<fx.hits;i++){ if(!enemy||enemy.hp<=0)break; if(i>0&&typeof fxSlash==="function")fxSlash(i%2?1:-1); const base=(ATK()+rnd(4))*(fx.mult||1)*m; killed=dmgOnce(base,`${s.emoji} ${s.n}${fx.hits>1?` ${i+1}`:""}`,fx.color||"#ff8f3c",fx.elem); } }
     if(fx.vamp && enemy){ const dealt=Math.min(hp0-(enemy?enemy.hp:0), hp0); if(dealt>0){ heal(Math.round(dealt*fx.vamp)); line(`🧛 피해의 ${Math.round(fx.vamp*100)}%를 흡수했다.`,"heal"); } }
     render(); if(!killed && enemy && enemy.hp>0)afterPlayerAction(); };
-  if(hasDamage && fx.timing){   // 🎯 상호작용: 타이밍 성공도가 위력에 반영
-    render(); startGauge("attack", q=>{ if(!enemy)return; const tq=q==="perfect"?1.4:q==="good"?1.0:0.6;
+  if(hasDamage && fx.timing){   // 🎯 상호작용: 무기별 미니게임 성공도가 위력에 반영
+    render(); weaponSkillTiming(q=>{ if(!enemy)return; const tq=q==="perfect"?1.4:q==="good"?1.0:0.6;
       if(q==="perfect")line("🎯 <b>완벽한 일격 — 위력 최대!</b>","loot"); else if(q==="weak")line("빗맞아 위력이 줄었다…","sys");
       doDamage(tq); });
   } else { render(); if(hasDamage)doDamage(1); else if(enemy&&enemy.hp>0)afterPlayerAction(); } }
