@@ -37,6 +37,7 @@ const SFX = {
 };
 const BGM = {   // 배경음악 (src 없으면 무음 대기). vol=트랙별 기본 볼륨(0~1), 최종=vol×설정마스터
   town:   { src: "sounds/bgm-town.mp3", vol: 0.6, loop: true },   // 🎵 사용자 제작 마을 BGM
+  tower:  { src: "", vol: 0.55, loop: true },   // 🪜 탑 탐험(전투 사이) 앰비언트 — src 비워 합성 루프. 파일 넣으려면 "sounds/bgm-tower.mp3"
   combat: { src: "", vol: 0.7, loop: true },
   boss:   { src: "sounds/bgm-boss.mp3", vol: 0.75, loop: true },  // 👑 보스 전투 BGM (파일 넣으면 보스전에서 자동 재생)
   finalboss: { src: "sounds/bgm-finalboss.mp3", vol: 0.8, loop: true },  // 🔥 최종보스(50층 창조주 · 마지막 대륙 보스)
@@ -61,6 +62,8 @@ const BGM_SYNTH = {
     lead:   [440,523.25,659.25,523.25, 440,523.25,698.46,523.25, 392,493.88,587.33,493.88, 415.30,493.88,659.25,493.88],
   },
 };
+// 🪜 탑 탐험 앰비언트 — 마을 진행을 살짝 빠르게(긴장감), 보스/전투 테마와 확실히 구분되는 잔잔한 루프
+BGM_SYNTH.tower = { stepMs: 2000, chords: BGM_SYNTH.town.chords, melody: BGM_SYNTH.town.melody, harmony: BGM_SYNTH.town.harmony };
 
 /* ── 엔진 (아래는 손댈 필요 없음) ── */
 function audioSupported() { return typeof window !== "undefined" && (typeof AudioContext !== "undefined" || typeof webkitAudioContext !== "undefined"); }

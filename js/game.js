@@ -4,10 +4,12 @@
    ============================================================ */
 function die(){ if(P&&P._duel){ if(typeof pvpLoss==="function")return pvpLoss(P._duel); P._duel=null; }   // ⚔ PvP 결투 패배는 완전 사망이 아니라 손실만
   stopAuctionTimer();
-  let lastLog=[]; try{ const lg=$("log"); if(lg){ lastLog=(lg.innerText||"").trim().split("\n").map(s=>s.trim()).filter(Boolean).slice(-4); } }catch(e){}   // 죽기 직전 로그(맥락) 보존
+  let lastLog=[]; try{ const lg=$("log"); if(lg){ lastLog=[...lg.querySelectorAll("p")].slice(-4).map(p=>(p.textContent||"").trim()).filter(Boolean); } }catch(e){}   // 죽기 직전 로그(맥락) 보존 — 전투 중 #log는 display:none이라 innerText가 줄바꿈을 잃음 → <p>별 textContent로 안전하게
   const cause=(typeof deathCause==="string"&&deathCause)?deathCause:"";
-  enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); clearLog(); setScene("💀","");
-  line(`<b style="color:var(--danger)">탑 ${P.floor}층에서 정신을 잃었다…</b>`);
+  enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); if(typeof bgm==="function")bgm("town"); clearLog(); setScene("💀","");   // 🎵 패배 즉시 전투/보스 BGM 종료 → 마을 테마(마을로 귀환하므로)
+  let place=`탑 ${P.floor}층`;   // 🧭 개척(대륙) 중 사망이면 '탑 N층'이 아니라 대륙·구역명으로
+  try{ if(typeof EXP!=="undefined" && EXP && typeof CONT==="function"){ const c=CONT(); if(c){ const a=c.areas&&c.areas[EXP.ai]; place=`${c.name}${a?` · ${a.n}`:(c.contBoss?` · ${c.contBoss.n}`:"")}`; } } }catch(e){}
+  line(`<b style="color:var(--danger)">${place}에서 정신을 잃었다…</b>`);
   if(cause)line(`<b>사인:</b> ${cause}`,"dmg");   // 💀 무엇에 쓰러졌는지 명확히
   if(lastLog.length)line(`<div style="font-size:11.5px;color:var(--dim);margin-top:2px">— 마지막 순간 —<br>${lastLog.map(s=>s.replace(/</g,"&lt;")).join("<br>")}</div>`,"quote");
   line("눈을 떠보니 마을 어귀였다. 누군가 당신을 옮겨준 모양이다.","quote");
@@ -460,6 +462,13 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v1.8 · 8/28", title:"전투 UI·BGM 수정", items:[
+      "🎮 <b>타이밍 게이지·미니게임이 메시지 박스에 가려지던 문제 수정</b> — 이제 위로 올라와 온전히 보임(검·둔기·창·활·단검·세이버·주사위 전부 확인)",
+      "🎵 <b>승리/패배 시 BGM 전환</b> — 이기면 탐험 앰비언트로, 지면 마을 테마로 즉시 바뀜",
+      "🎵 <b>보스 BGM이 전투 후에도 계속 흐르던 문제 수정</b> — 격파하면 바로 탐험 음악으로",
+      "💀 <b>사망 화면 '마지막 순간' 로그가 뭉개져 도배되던 버그 수정</b> — 마지막 4줄만 깔끔하게",
+      "🧭 개척(대륙)에서 죽으면 '탑 N층' 대신 <b>대륙·구역명</b> 표시",
+    ]},
   { ver:"v1.7 · 8/28", title:"처치 연출 강화", items:[
       "💥 <b>마지막 일격 표시</b> — 어떤 공격으로 몇 피해에 쓰러졌는지 전리품 전에 보여줌",
       "🎁 처치 시 <b>상자/장비 드랍 연출</b> — 보스는 큰 선물상자+반짝이, 일반 몬스터는 나무상자 (클릭/스페이스로 전리품 확인)",
@@ -508,7 +517,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-28d",
+  id:"2026-08-28e",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

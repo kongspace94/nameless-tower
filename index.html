@@ -211,6 +211,7 @@
   .float{position:absolute; font-family:var(--mono); font-weight:700; font-size:22px; z-index:5; pointer-events:none; animation:floatUp 1s ease-out forwards; text-shadow:0 2px 4px rgba(0,0,0,.7)}
   @keyframes floatUp{0%{opacity:0; transform:translateY(0) scale(.7)}20%{opacity:1; transform:translateY(-6px) scale(1.1)}100%{opacity:0; transform:translateY(-46px) scale(1)}}
   .gauge{position:absolute; bottom:12px; left:50%; transform:translateX(-50%); width:78%; max-width:440px; z-index:6}
+  body.combat .gauge{ bottom:126px; z-index:12 }   /* ⚔ 전투 중: 타이밍 게이지를 메시지 박스(#battlemsg) 위로 올림(가려짐 방지) */
   .gauge .track{position:relative; height:22px; border-radius:11px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(90deg,#3a2130 0 20%,#243a24 20% 38%,#e8c56a 44% 56%,#243a24 62% 80%,#3a2130 80% 100%)}
   .gauge .mk{position:absolute; top:-2px; width:4px; height:26px; background:#fff; border-radius:2px; box-shadow:0 0 8px #fff; left:0%}
   /* 단검 2영역 게이지 */
@@ -219,7 +220,7 @@
   .ecdown.twinbar .tzone.on{background:linear-gradient(180deg,#ffd36a,#c99a30); opacity:.9}
   .ecdown.twinbar .tmk{position:absolute; top:-2px; width:4px; height:30px; background:#fff; border-radius:2px; box-shadow:0 0 8px #fff; left:0%}
   .gauge .lab{text-align:center; font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:5px}
-  .ecdown{position:absolute; inset:0; background:rgba(8,10,16,.86); z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding:16px}
+  .ecdown{position:absolute; inset:0; background:rgba(8,10,16,.86); z-index:12; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding:16px}   /* z-index 12: 메시지 박스(#battlemsg z-11) 위를 덮어 미니게임이 온전히 보이게 */
   .ecdown .et{color:#ffb3b3; font-size:16px; font-weight:600}
   .ecbar{width:70%; height:8px; border-radius:5px; background:#2a3143; overflow:hidden} .ecbar>i{display:block; height:100%; background:var(--danger); width:100%}
   .ecbtns{display:flex; gap:8px; flex-wrap:wrap; justify-content:center} .ecbtns button{background:#1d2432}
@@ -258,7 +259,7 @@
   .ecdown .chantin{width:88%; max-width:340px; padding:9px 12px; font-size:17px; border-radius:9px; border:1px solid var(--line); background:#0e1018; color:var(--ink); text-align:center; outline:none; font-family:var(--mono)}
   .ecdown .chantin:focus{border-color:#a98bff; box-shadow:0 0 0 2px rgba(169,139,255,.25)}
   .ecdown.spell .ecbar>i{background:linear-gradient(90deg,#8c6eff,#c9a9ff)}
-  .diceov{position:absolute; inset:0; background:rgba(8,10,16,.88); z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px}
+  .diceov{position:absolute; inset:0; background:rgba(8,10,16,.88); z-index:12; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px}
   .dicewrap{display:flex; gap:18px}
   .dice{font-size:60px; line-height:1; filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)); animation:diceroll .28s ease-in-out infinite}
   .diceov.done .dice{animation:dicepop .4s ease; color:var(--gold)}
@@ -691,6 +692,7 @@
     button .desc{ font-size:12.5px }
     .log{ max-height:52vh; font-size:16px }
     body.combat .stage{ height:296px } body.combat .bme{ bottom:118px }
+    body.combat .gauge{ bottom:116px }   /* 모바일: 메시지 박스 위로 */
     body.combat .bfoe .bart img{ max-width:96px !important; max-height:96px !important }   /* 모바일: 적 스프라이트 상한(겹침 방지) */
     body.combat .bme .bart img{ max-width:80px !important; max-height:80px !important }
     body.combat .log{ margin:0; height:120px; max-height:120px; font-size:15px; line-height:1.55 }

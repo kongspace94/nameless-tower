@@ -1191,6 +1191,7 @@ function winCombat(){
     toast("약탈 +"+g+"G"); if(typeof sfx==="function")sfx("victory"); if(typeof bumpFeat==="function")bumpFeat("pvpWin"); enemy=null; B=null; save(true); setScene("🏆","결투에서 승리했다!"); showClimb(); return; }
   P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor, foeName=enemy.n;
   if(typeof sfx==="function")sfx("victory");
+  if(typeof bgm==="function" && !(wasBoss&&floor>=TOP))bgm("tower");   // 🎵 승리 즉시 전투/보스 BGM 종료 → 탐험 앰비언트로(최종보스 승리는 엔딩용으로 유지)
   line(`<b style="color:var(--good)">🏆 ${foeName}을(를) 쓰러뜨렸다!</b>`);   // 전투 마무리(위 박스에 표시)
   { const kb=_killBlow; _killBlow=null;   // 💥 마지막 일격 — 어떤 공격으로 몇 데미지에 죽었는지
     const how=kb&&kb.label?String(kb.label).replace(/\s*—.*$/,"").trim():"마지막 일격";
@@ -1301,6 +1302,7 @@ function bossPrep(onStart){ if(!B||!B.prebuff)B={comp:null,prebuff:true,atkPct:0
   acts.push({label:"⚔ 문을 열고 결전!",full:true,act:()=>onStart()});
   setActions(acts); }
 function enterFloor(){ const f=P.floor; P.flags.maxFloor=Math.max(P.flags.maxFloor||0,f); P.runPeakFloor=Math.max(P.runPeakFloor||0,f); checkQuests();
+  if(typeof bgm==="function")bgm("tower");   // 🪜 층 탐험 앰비언트(전투 시작 시 startCombat이 전투/보스 BGM으로 전환)
   if(CHECKPOINTS[f]){ checkpointTown(f); return; }
   clearLog(); line(`<span class="sys">— 탑 ${f}층 —</span>`);
   if(BOSSES[f]){ const b=BOSSES[f]; setScene(IX[b.ic][1],"이 층에는 거대한 것이 기다리고 있다.");
