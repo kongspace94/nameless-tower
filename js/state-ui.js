@@ -174,7 +174,7 @@ function stamEta(){ if(P.stamina>=STAM_MAX)return "가득"; const per=stamRegenM
 function gainStamina(n){ if(P.stamina==null)P.stamina=0; const b=Math.min(n,STAM_MAX-P.stamina); if(b>0){ P.stamina+=b; return b; } return 0; }
 
 /* ---------- 로그 / 무대 / 이펙트 ---------- */
-let _bmLines=[]; const BM_MAX=4;   // 💬 전투 메시지 박스에 쌓이는 최근 줄 수(최대 4)
+let _bmLines=[]; const BM_MAX=3;   // 💬 전투 메시지 박스에 쌓이는 최근 줄 수(3줄 · 짤림 방지)
 let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
 function renderBattleMsg(){ const bm=$("battlemsg"); if(!bm)return;
   bm.innerHTML=_bmLines.map((l,i)=>`<div class="bm-txt ${l.c}${i===_bmLines.length-1?' cur':''}">${l.h}</div>`).join(""); }
