@@ -374,6 +374,11 @@ function basicAttack(){ const w=WEAPONS[weaponType()]||WEAPONS.sword; const lbl=
   if(w.mg==="saber"){ runSaber((q,pm)=>{ if(!enemy)return;   // 🌙 세이버: 강격 차지 (강격존=강격+큰 그로기, 과충전=빗나감)
       playerHit(q, w.mult*pm, `🌙 ${w.n}${q==="perfect"?" 강격":""}`, false, {critBonus:(w.crit||0)+(q==="perfect"?0.12:0)});
       if(enemy&&enemy.hp>0){ addGroggy(Math.round((w.groggy||18)*(q==="perfect"?2.2:1))); afterPlayerAction(); } }); return; }
+  if(w.mg==="slash"){ runSwordCombo((q,i,combo)=>{ if(!enemy||enemy.hp<=0)return;   // ⚔ 검: 연속 베기 콤보(3연타 리듬)
+      const cm=1+Math.max(0,combo-1)*0.2;   // 연속 정타 콤보 가속
+      if(combo>=2&&typeof fxSlash==="function")fxSlash(i%2?1:-1);
+      playerHit(q, w.mult*0.42*cm, `⚔ 베기 ${i+1}${q==="perfect"?" 정타":""}${combo>=2?` ${combo}콤보`:""}`, false, {critBonus:w.crit,groggy:Math.round((w.groggy||10)*0.5)});
+    }, ()=>{ if(enemy&&enemy.hp>0)afterPlayerAction(); }); return; }
   if(w.mg==="charge"){ runCharge(q=>{ playerHit(q,w.mult,weaponLabel(w,q),q==="perfect",{critBonus:w.crit,groggy:w.groggy}); if(enemy&&enemy.hp>0)afterPlayerAction(); }); return; } // 활: 활시위 당기기(가득=치명)
   if(w.mg==="aim"){ aimSeq(w,0); return; }                  // (예비) 접근원 조준
   if(w.hits>1){ weaponMultiHit(w,0,lbl); return; }
@@ -448,6 +453,32 @@ function runSaber(cb){ awaiting=null; setActions([]);
   const step=()=>{ if(done)return; v+=spd; if(v>=100){ v=100; tap(); return; } if(fill)fill.style.width=v+"%"; raf=requestAnimationFrame(step); };
   raf=requestAnimationFrame(step); }
 /* 활시위 당기기 (활): 시위를 당길수록 게이지가 차오름 → 가득 당긴 파워존에서 발사 · 과도하게 당기면 놓침 */
+/* ⚔ 검 = 연속 베기 콤보: 짧은 왕복 라운드 3회 · 노란 존에서 [탭] · 연속 정타로 콤보 가속(존이 좁아짐) */
+function runSwordCombo(hitCb, doneCb){ awaiting=null;
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ for(let i=0;i<3;i++)hitCb("good",i,i+1); if(doneCb)doneCb(); return; }
+  const ROUNDS=3; let round=0, combo=0, pos=0, dir=1, raf=null, tapped=false, ended=false, zl=0, zw=0;
+  const s=$("stage"); const box=document.createElement("div"); box.className="ecdown swordcombo";
+  box.innerHTML=`<div class="et" id="scmsg" style="color:#ffb060">⚔ <b>연속 베기 1/${ROUNDS}</b> — 마커가 <b style="color:#ffd36a">노란 존</b>에 올 때 [클릭/스페이스]! 연속 정타로 <b>콤보 가속</b></div>`+
+    `<div class="tbar"><div class="tzone sc" id="sczone"></div><div class="tmk" id="scmk"></div></div>`+
+    `<div class="et" id="scres" style="min-height:22px;font-size:16px"></div>`;
+  s.appendChild(box);
+  const mk=box.querySelector("#scmk"), zone=box.querySelector("#sczone"), res=box.querySelector("#scres"), msg=box.querySelector("#scmsg");
+  const speed=()=>2.3*clamp(0.9+(enemy?enemy.atk:6)*0.008,0.9,1.4)+combo*0.5;
+  const finish=()=>{ if(ended)return; ended=true; cancelAnimationFrame(raf); document.removeEventListener("keydown",key); box.onclick=null; setTimeout(()=>{ box.remove(); if(doneCb)doneCb(); }, 240); };
+  const startRound=()=>{ if(ended)return; tapped=false; pos=0; dir=1; zw=Math.max(13, 20-combo*2); zl=12+rnd(58); if(zl+zw>92)zl=92-zw;
+    if(zone){ zone.style.left=zl+"%"; zone.style.width=zw+"%"; }
+    if(msg)msg.innerHTML=`⚔ <b>연속 베기 ${round+1}/${ROUNDS}</b>${combo>=1?` · <span style="color:#ffd36a">${combo+1}콤보 노림!</span>`:""}`;
+    setActions([{label:`⚔ 베기 (${round+1}/${ROUNDS})`,full:true,act:tap}]);
+    raf=requestAnimationFrame(step); };
+  const judge=(q)=>{ if(ended)return; if(q!=="weak")combo++; else combo=0; hitCb(q, round, combo);
+    if(res)res.innerHTML = q==="perfect"?`<span style="color:#ffd36a">정타!${combo>=2?` ${combo}콤보`:""}</span>`:q==="good"?`<span style="color:#7fd6c0">명중</span>`:`<span style="color:#8a3b3b">빗나감 · 콤보 끊김</span>`;
+    round++; if(round>=ROUNDS){ finish(); return; } setTimeout(startRound,210); };
+  const tap=()=>{ if(ended||tapped)return; tapped=true; cancelAnimationFrame(raf);
+    const c=zl+zw/2; const q=(pos>=zl&&pos<=zl+zw)?"perfect":(Math.abs(pos-c)<=zw?"good":"weak"); judge(q); };
+  const key=(e)=>{ if(e.code==="Space"||e.key===" "){ e.preventDefault(); tap(); } };
+  document.addEventListener("keydown",key); box.onclick=tap;
+  const step=()=>{ if(ended||tapped)return; pos+=dir*speed(); if(pos>=100){ pos=100; dir=-1; } else if(pos<=0&&dir<0){ pos=0; if(!tapped){ tapped=true; cancelAnimationFrame(raf); judge("weak"); return; } } if(mk)mk.style.left=pos+"%"; raf=requestAnimationFrame(step); };
+  startRound(); }
 function runCharge(cb){ awaiting=null;
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ cb("good"); return; }
   const s=$("stage"); const box=document.createElement("div"); box.className="ecdown chg";

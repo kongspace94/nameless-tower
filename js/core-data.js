@@ -309,13 +309,13 @@ const relicIco = name => RELICS[name] ? RELICS[name].ic : "gold";
 const WEAPONS={
   fist:  {n:"맨손",  hits:1, mult:0.70, crit:0.00, groggy:6,  gauge:1.00, ic:"👊", mg:"gauge"},    // 타이밍 게이지
   dagger:{n:"단검",  hits:1, mult:0.8,  crit:0.18, groggy:7,  gauge:0.90, ic:"🗡", mg:"twinbar"},  // 2영역 게이지: 두 영역 다 맞추면 완벽(큰 데미지) · 치명 특화
-  sword: {n:"검",    hits:1, mult:1.00, crit:0.00, groggy:10, gauge:1.00, ic:"⚔", mg:"gauge"},    // 타이밍 게이지 · 균형
+  sword: {n:"검",    hits:1, mult:1.00, crit:0.00, groggy:10, gauge:1.00, ic:"⚔", mg:"slash"},    // 연속 베기 콤보 — 3연타 리듬, 연속 정타로 콤보 가속(플로우)
   saber: {n:"세이버",hits:1, mult:1.18, crit:0.03, groggy:18, gauge:1.10, ic:"🌙", mg:"saber"},   // 강격 차지 — 강격존서 릴리즈=강격+그로기, 과충전=빗나감
   bow:   {n:"활",    hits:1, mult:1.10, crit:0.12, groggy:8,  gauge:1.00, ic:"🏹", mg:"charge"},  // 활시위 당기기(차지) · 가득 당겨 발사 · 치명 특화
   dice:  {n:"주사위",hits:1, mult:0.85, crit:0.05, groggy:8,  gauge:1.00, ic:"🎲", mg:"dice"},    // 주사위 2개 · 합이 높을수록 대박(도박형)
   card:  {n:"카드",  hits:1, mult:0.90, crit:0.05, groggy:6,  gauge:1.00, ic:"🃏", mg:"card"},    // 랜덤 3장 뽑아 1장으로 공격/버프
 };
-const MG_NAME={gauge:"타이밍 게이지",figure:"급소 주사위(도박)",charge:"활시위 당기기",aim:"접근원 조준",twinbar:"2영역 급소 연격",dice:"주사위 굴리기",card:"카드 뽑기"};
+const MG_NAME={gauge:"타이밍 게이지",slash:"연속 베기 콤보",figure:"급소 주사위(도박)",charge:"활시위 당기기",aim:"접근원 조준",twinbar:"2영역 급소 연격",dice:"주사위 굴리기",card:"카드 뽑기"};
 
 /* ============================================================
    스토리 레이어 (데이터 기반) — 어느 모드에서든 보스에 서사를 입힌다
