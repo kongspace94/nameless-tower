@@ -57,7 +57,8 @@ function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuc
       : {label:"🔒 부족 거점",desc:"대륙 개척을 열면 세울 수 있다 (일꾼 자동 채집)",disabled:true,act:()=>{}},
     {label:`🌌 회귀의 제단`,desc:`메아리 ✦${(P.meta&&P.meta.echoes)||0} · 회귀 ${(P.meta&&P.meta.runs)||0}회 · 영구 강화`,act:altarMenu},
   ]);
-  startTownChat(); }   // 상시 광장 채팅 독
+  startTownChat();   // 상시 광장 채팅 독
+  if(typeof maybeShowNotice==="function")maybeShowNotice(); }   // 📢 접속 후 첫 마을 진입 시 공지 팝업(1회)
 /* 🎨 캔버스 타일 마을 렌더러 — 잔디 타일·광장·연못·나무·모닥불·집 스프라이트를 그린다 */
 function drawTownCanvas(cv, blds){
   const w=cv.clientWidth||600, h=cv.clientHeight||340, dpr=Math.min(2,window.devicePixelRatio||1);

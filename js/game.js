@@ -436,6 +436,45 @@ function onServerUpdated(){
   document.getElementById("updReload").onclick=()=>{ try{ if(P&&typeof saveNow==="function")saveNow(); else if(P&&typeof save==="function")save(true); }catch(e){} setTimeout(()=>location.reload(),350); };   // 즉시 클라우드 플러시 후 리로드(진행·우편 유실 방지)
   document.getElementById("updX").onclick=()=>{ try{ b.remove(); }catch(e){} };
 }
+/* ===================== 📢 공지사항 팝업 ===================== */
+/* ⚙️ 운영자: 아래 NOTICE만 고치면 됨. 내용 바꿀 땐 id도 함께 바꿔야 '오늘 안 보기' 눌렀던 사람에게도 새로 뜬다. */
+const NOTICE={
+  id:"2026-08-30",
+  title:"📢 공지 · 업데이트 안내",
+  html:`
+    <p class="ntc-lead">이름 없는 탑에 오신 걸 환영합니다! 최근 대규모 업데이트가 적용됐어요.</p>
+    <div class="ntc-sec"><b>🆕 이번 패치</b>
+      <ul>
+        <li>🗡️ <b>도적 교관</b> + 단검 스킬, 🌟 <b>희귀 스킬 20종</b>(보스·파밍 드랍) 추가</li>
+        <li>🐾 <b>동료 먹이 시스템</b> 개편 + 동료 10마리로 확장</li>
+        <li>🗼 대륙 정복 시 <b>탑 포탈</b> 해금 · 개척 진행 버그 수정</li>
+        <li>💥 강타·연속공격 <b>타격감 강화</b> · 전투 텍스트 가독성 개선</li>
+        <li>🧳 인벤/창고/대장간/잡화점 <b>UI 개편</b> · 📬 우편함 신설</li>
+      </ul>
+    </div>
+    <div class="ntc-sec"><b>🎁 이벤트</b>
+      <ul>
+        <li>📬 <b>우편함</b>에서 개편 기념 보상을 잊지 말고 받아가세요!</li>
+        <li>💎 통신판매 다이아 상점 오픈 (100다이아 = 1,000원 기준)</li>
+      </ul>
+    </div>
+    <p class="ntc-foot">즐거운 등반 되세요 — 버그·건의는 언제든 환영입니다. 🗼</p>`
+};
+let _noticeSeen=false;
+function noticeHiddenToday(){ try{ return localStorage.getItem("nt_notice_hide")===new Date().toDateString()+"|"+NOTICE.id; }catch(e){ return false; } }
+function hideNoticeToday(){ try{ localStorage.setItem("nt_notice_hide", new Date().toDateString()+"|"+NOTICE.id); }catch(e){} closeNotice(); }
+function closeNotice(){ const o=document.getElementById("noticeoverlay"); if(o)o.remove(); }
+function showNotice(){ if(document.getElementById("noticeoverlay"))return;
+  const o=document.createElement("div"); o.id="noticeoverlay"; o.className="noticeoverlay";
+  o.innerHTML=`<div class="noticebox" role="dialog" aria-modal="true">
+    <div class="noticehd"><span>${NOTICE.title}</span><button class="noticex" onclick="closeNotice()" aria-label="닫기">✕</button></div>
+    <div class="noticebody">${NOTICE.html}</div>
+    <div class="noticeft"><button class="noticebtn dim" onclick="hideNoticeToday()">오늘은 보지 않기</button><button class="noticebtn" onclick="closeNotice()">닫기</button></div>
+  </div>`;
+  o.addEventListener("click",e=>{ if(e.target===o)closeNotice(); });   // 바깥 어두운 곳 클릭 시 닫기
+  document.body.appendChild(o); if(typeof sfx==="function")sfx("click"); }
+function maybeShowNotice(){ if(_noticeSeen)return; _noticeSeen=true; if(noticeHiddenToday())return; setTimeout(showNotice,450); }
+window.closeNotice=closeNotice; window.hideNoticeToday=hideNoticeToday; window.showNotice=showNotice;
 async function enterOnline(){
   if(typeof chatLog!=="undefined")chatLog=[];   // 🆕 새 로그인 세션 → 광장 채팅 초기화(같은 접속 중엔 유지, 로그인마다 비움)
   let cloud=null, authErr=false, loadErr=false;
