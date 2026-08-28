@@ -242,12 +242,19 @@ function spawnFloat(text,color,side){ const s=$("stage"); const f=document.creat
   s.appendChild(f); setTimeout(()=>{ f.remove(); _floatActive[key]=Math.max(0,_floatActive[key]-1); },1000); }
 function fxLunge(el,cls){ if(!el)return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(()=>{ if(el)el.classList.remove(cls); },300); }
 function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } fxLunge($("meArt"),"lungeMe"); }   // 🗡 내가 때리면 나도 앞으로 치고 나감
-/* 🎁 처치 시 상자/장비 드랍 연출 — 보스는 큰 선물상자+반짝이, 일반은 나무상자 */
+/* 🎁 처치 시 상자/장비 드랍 연출 — 쓰러진 몬스터(적 스프라이트) 자리에 떨어뜨림. 보스는 큰 선물상자+반짝이, 일반은 나무상자 */
+function chestSpot(boss){ const s=$("stage"), foe=$("foeArt");   // 적 스프라이트 실제 위치 계산(없으면 % 폴백)
+  if(s&&foe&&foe.getBoundingClientRect){ const fr=foe.getBoundingClientRect(), sr=s.getBoundingClientRect();
+    if(fr.width>0){ return {px:true, x:fr.left-sr.left+fr.width/2, y:fr.top-sr.top+fr.height*0.62}; } }
+  return {px:false, x:boss?57:62, y:boss?36:42}; }   // 폴백 %(적은 우상단)
 function dropChestFx(boss){ const s=$("stage"); if(!s||typeof document==="undefined")return;
-  const d=document.createElement("div"); d.className="chestfx"+(boss?" boss":""); d.textContent=boss?"🎁":"📦"; s.appendChild(d);
-  setTimeout(()=>{ if(d.parentNode)d.remove(); }, 2600);
-  if(boss){ const base={l:57,t:36}; for(let i=0;i<6;i++){ setTimeout(()=>{ if(!s.isConnected)return; const sp=document.createElement("div"); sp.className="chestspark"; sp.textContent=pick(["✨","⭐","💫"]);
-    sp.style.left=base.l+"%"; sp.style.top=base.t+"%"; sp.style.setProperty("--sx",(rnd(80)-40)+"px"); sp.style.setProperty("--sy",(-30-rnd(40))+"px"); s.appendChild(sp); setTimeout(()=>{ if(sp.parentNode)sp.remove(); },900); }, 720+i*90); } } }
+  const spot=chestSpot(boss); const off=boss?29:20;
+  const d=document.createElement("div"); d.className="chestfx"+(boss?" boss":""); d.textContent=boss?"🎁":"📦";
+  if(spot.px){ d.style.left=(spot.x-off)+"px"; d.style.top=(spot.y-off)+"px"; } else { d.style.left=spot.x+"%"; d.style.top=spot.y+"%"; }
+  s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); }, 2600);
+  if(boss){ for(let i=0;i<6;i++){ setTimeout(()=>{ if(!s.isConnected)return; const sp=document.createElement("div"); sp.className="chestspark"; sp.textContent=pick(["✨","⭐","💫"]);
+    if(spot.px){ sp.style.left=spot.x+"px"; sp.style.top=(spot.y-14)+"px"; } else { sp.style.left=spot.x+"%"; sp.style.top=spot.y+"%"; }
+    sp.style.setProperty("--sx",(rnd(80)-40)+"px"); sp.style.setProperty("--sy",(-30-rnd(40))+"px"); s.appendChild(sp); setTimeout(()=>{ if(sp.parentNode)sp.remove(); },900); }, 720+i*90); } } }
 function fxShake(){ const s=$("stage"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
 function fxShakeHard(){ const s=$("stage"); if(!s)return; s.classList.remove("shake-hard"); void s.offsetWidth; s.classList.add("shake-hard"); }
 function fxSlash(dir){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="slashfx"; d.style.setProperty("--sl",((dir<0?-1:1)*(28+rnd(12)))+"deg"); s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },320); }

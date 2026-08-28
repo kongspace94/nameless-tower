@@ -49,8 +49,9 @@ function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene
     line("왜 올랐는지 끝내 기억해내지 못한 채 — 오른 자만이 아는 침묵을 안고, 다시 아래로.","quote");
     line("★ <b>방랑자</b> 엔딩 — 답을 얻지 못한 자의, 조용한 결말.","loot");
   }
-  line("정상의 보물을 쓸어담아 마을로 돌아왔다.","sys"); P.gold+=300; Object.keys(MATS).forEach(m=>addMat(m,5)); gainStamina(STAM_MAX); line("💰 금화 +300, 재료 대량 획득! 생활력도 가득 찼다.","loot");
-  const firstClear = !(P.flags.cleared>0);
+  const firstClear = !(P.flags.cleared>0); const rmul = firstClear?1:0.8;   // 🔁 2회차부터 보상 80%(무한 파밍 방지)
+  line("정상의 보물을 쓸어담아 마을로 돌아왔다.","sys"); const vg=Math.round(300*rmul); P.gold+=vg; const vm=Math.max(1,Math.round(5*rmul)); Object.keys(MATS).forEach(m=>addMat(m,vm)); gainStamina(STAM_MAX);
+  line(`💰 금화 +${vg}, 재료 +${vm}씩 획득!${firstClear?" 생활력도 가득 찼다.":' <span style="color:var(--dim)">(재정복 보상 80%)</span>'}`,"loot");
   P.flags.cleared=(P.flags.cleared||0)+1; checkTitleUnlocks();
   if(firstClear){ P.flags.continentUnlocked=true;   // 정상 도달 → 대륙 개척 해금
     render();
@@ -462,6 +463,10 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v1.9 · 8/28", title:"드랍 위치·파밍 밸런스", items:[
+      "🎁 <b>전리품 상자가 쓰러진 몬스터 자리에 떨어지게</b> 수정 (보스 선물상자·반짝이도 그 위치에)",
+      "🔁 <b>이미 정복한 탑 재도전 시 2회차부터 보상 80%</b> — 무한 파밍 방지 (대륙 개척·탑 정상 모두)",
+    ]},
   { ver:"v1.8 · 8/28", title:"전투 UI·BGM 수정", items:[
       "🎮 <b>타이밍 게이지·미니게임이 메시지 박스에 가려지던 문제 수정</b> — 이제 위로 올라와 온전히 보임(검·둔기·창·활·단검·세이버·주사위 전부 확인)",
       "🎵 <b>승리/패배 시 BGM 전환</b> — 이기면 탐험 앰비언트로, 지면 마을 테마로 즉시 바뀜",
@@ -517,7 +522,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-28e",
+  id:"2026-08-28f",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

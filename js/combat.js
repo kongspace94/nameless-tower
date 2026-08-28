@@ -1605,12 +1605,16 @@ function contBossIntro(){ if(!EXP)return; const c=CONT(); expReturn=afterContCle
 function dropSetPiece(setKey){ const pieces=Object.keys(RELICS).filter(k=>RELICS[k].set===setKey); if(!pieces.length)return;
   const unowned=pieces.filter(k=>!P.inv.some(x=>x.k===k)&&!(P.stash&&P.stash.inv||[]).some(x=>x.k===k)); addRelic(pick(unowned.length?unowned:pieces)); }
 function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINENTS.length-1);
+  if(!P.flags.contClearCount)P.flags.contClearCount={};   // 🔁 대륙별 정복 횟수(재정복 보상 감산용)
+  const prevClears=P.flags.contClearCount[ci]||0, repeat=prevClears>=1, mul=repeat?0.8:1;   // 2회차부터 80%(무한 파밍 방지)
+  P.flags.contClearCount[ci]=prevClears+1;
   P.runContClears=(P.runContClears||0)+1;   // 🌌 회귀 메아리 계산용
   clearLog(); setScene("🏆",`${c.name} 개척 완료!`);
   line(`🎉 <b>${c.name}</b>을(를) 완전히 개척했다!`,"loot");
-  const gold=300+ci*200; P.gold+=gold; Object.keys(MATS).forEach(m=>addMat(m,4+ci)); line(`💰 금화 +${gold}, 재료 대량 획득!`,"loot");
-  if(c.setKey){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각을 획득했다!`,"loot"); dropSetPiece(c.setKey); }
-  if(chance(0.5))dropRelic();
+  if(repeat)line(`♻ <b>재정복 보상 80%</b> — 이미 정복한 탑이라 보상이 줄어듭니다.`,"sys");
+  const gold=Math.round((300+ci*200)*mul); P.gold+=gold; const matAmt=Math.max(1,Math.round((4+ci)*mul)); Object.keys(MATS).forEach(m=>addMat(m,matAmt)); line(`💰 금화 +${gold}, 재료 +${matAmt}씩 획득!`,"loot");
+  if(c.setKey && (!repeat || chance(0.8))){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각을 획득했다!`,"loot"); dropSetPiece(c.setKey); }
+  if(chance(0.5*mul))dropRelic();
   if((P.flags.contCleared||0)<ci+1)P.flags.contCleared=ci+1;   // 다음 대륙 해금
   if(P.expProg)delete P.expProg[ci];   // 🧭 완전 개척 → 진행 기록 정리(재도전은 처음부터)
   if(typeof unlockAnnounce==="function")unlockAnnounce("🗼",`${c.name}의 탑`,"마을 탑 등반 목록에서 이 탑의 포탈을 이용할 수 있어요!");
