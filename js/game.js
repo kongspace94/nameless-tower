@@ -463,6 +463,12 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.8 · 8/29", title:"전투 밸런스·버그 정리", items:[
+      "🎯 <b>돌발 회피가 전부 95%이던 문제</b> 수정 — 행운 비중↓·상한 85%·대륙 탑은 더 어렵게(편차 생김)",
+      "⚡ <b>파훼 게이지 상향</b>(ATK×2.3→4.0) — 한 방에 저지되던 것 → 집중 화력 2~3방 필요(아슬아슬)",
+      "🪨 <b>보스 그로기 저항</b>(55%) — 퍼그로기로 못 움직이던 것 완화, 보스가 반격함",
+      "🧹 전투 화면 <b>상자·전리품·전투 잔상 정리</b> 보강(겹침 방지)",
+    ]},
   { ver:"v2.7 · 8/29", title:"버프 표시·상태패널·패링", items:[
       "✨ <b>전투 중 획득 버프도 칩으로 표시</b> — 이번 전투 공격 +%·치명+%·방어+·적취약+% 등(예전엔 전투 전 버프만 떴음)",
       "📏 <b>상태패널 2배 길게</b>(넓은 화면) — HP바가 시원하게, 포켓몬식",
@@ -569,7 +575,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29h",
+  id:"2026-08-29i",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

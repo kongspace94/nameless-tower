@@ -191,7 +191,8 @@ function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); 
   const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
   if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); _bmLog.push({h:html,c:cls||""}); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift(); renderBattleMsg(); } }   // 💬 전투 중: 위 박스에 최근 줄 누적
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
-function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big"); } }
+function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big"); }
+  const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark").forEach(n=>n.remove()); }   // 🧹 남은 상자/반짝이 연출 정리(잔상 방지)
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";
