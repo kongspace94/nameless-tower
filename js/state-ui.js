@@ -192,7 +192,7 @@ function setSceneFoe(){ if(!enemy)return;
     ? `<div class="hprow"><span class="tag" style="color:#8fd0ff">파훼</span><div class="hpbar2 brk"><i id="ebar-g" style="width:${gw}%"></i></div></div>`
     : `<div class="hprow"><span class="tag">그로기</span><div class="hpbar2 grog${enemy.staggered?' stag':''}"><i id="ebar-g" style="width:${gw}%"></i></div></div>`;
   let ailHtml=""; if(enemy.ail){ for(const k of ["fire","venom","frost","shock"]){ const a=enemy.ail[k]; if(a&&a.t>0){ const el=ELEMENTS[k]; ailHtml+=`<span class="ailb" style="color:${el.col}">${el.ic}${a.t}</span>`; } } }
-  const weakHtml = (enemy._weakShown&&enemy.weak) ? `<span class="weakb" style="color:${ELEMENTS[enemy.weak].col}">약점 ${ELEMENTS[enemy.weak].ic}</span>` : "";
+  const weakHtml = "";   // 🚫 약점은 전투 중 위에 띄우지 않음 — 도감에 처치수만큼 공개됨
   const mech = enemy.mech&&typeof MECH_INFO!=="undefined"&&MECH_INFO[enemy.mech] ? MECH_INFO[enemy.mech] : null;
   const mechHtml = mech ? `<span class="mechb${enemy.enraged?' hot':''}">${mech.ic}${mech.n}</span>` : "";
   const flyHtml = enemy.fly ? `<span class="flyb" title="비행 — 근접 공격이 빗나갈 수 있다 (활·마법은 명중)">🦅 비행</span>` : "";

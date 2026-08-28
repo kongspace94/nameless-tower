@@ -756,6 +756,7 @@ window.setDexTab=setDexTab;
 /* 도감 통계(장비/몬스터 수집률) */
 function dexGearStat(){ const all=Object.keys(RELICS).filter(k=>RELICS[k].slot); const got=all.filter(k=>!!(P.codex&&P.codex[k])).length; return {got,all:all.length}; }
 function dexMonList(){ return [].concat(ENEMIES,ENEMIES2,ENEMIES3,Object.values(BOSSES)); }
+const DEX_WEAK_KILLS=3, DEX_MECH_KILLS=6, DEX_DROP_KILLS=10;   // 🔓 도감 정보 공개 처치수(약점/기믹/드랍)
 function dexMonStat(){ const list=dexMonList(); const got=list.filter(e=>{ const b=P.bestiary&&P.bestiary[e.n]; return b&&b.kills>0; }).length; return {got,all:list.length}; }
 function codexMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; } render(); clearLog();
   setScene("📖", dexTab==="mon"?"도감 — 몬스터":"도감 — 수집한 장비");
@@ -797,13 +798,17 @@ function dexMonsterHtml(){
     html+=`<div class="dexgrp" style="color:#c9b48a">${z.t} <span>${seenN}/${z.list.length}</span></div><div class="dexlist">`;
     z.list.forEach(e=>{ const b=P.bestiary&&P.bestiary[e.n]; const seen=b&&b.kills>0;
       if(!seen){ html+=`<div class="dexrow lock"><span class="dxic">🔒</span><div class="dxm"><div class="dxn">??? <span class="dxslot">미발견</span></div><div class="dxd">쓰러뜨리면 기록된다</div></div></div>`; return; }
-      const wk=P.codexWeak&&P.codexWeak[e.n];
-      const weakHtml = wk&&ELEMENTS[wk]
-        ? `<span style="color:${ELEMENTS[wk].col}">${ELEMENTS[wk].ic} ${ELEMENTS[wk].n} 약점</span>`
-        : `<span style="color:var(--dim)">약점 ❓</span>`;
-      const mk=MONSTER_MECH[e.n]; const mechHtml = mk&&MECH_INFO[mk] ? ` · <span style="color:#e0b0ff">${MECH_INFO[mk].ic} ${MECH_INFO[mk].n}</span>` : "";
+      const kills=b.kills||0;
+      // 🔓 처치수에 따라 정보 공개: 약점(3) · 기믹(6) · 드랍(10)
+      const weakHtml = kills>=DEX_WEAK_KILLS
+        ? (b.weak&&ELEMENTS[b.weak] ? `<span style="color:${ELEMENTS[b.weak].col}">${ELEMENTS[b.weak].ic} ${ELEMENTS[b.weak].n} 약점</span>` : `<span style="color:var(--dim)">약점 없음</span>`)
+        : `<span style="color:var(--dim)">약점 🔒 <span style="font-size:10px">(${DEX_WEAK_KILLS}처치)</span></span>`;
+      const mk=MONSTER_MECH[e.n];
+      const mechHtml = mk&&MECH_INFO[mk] ? (kills>=DEX_MECH_KILLS ? ` · <span style="color:#e0b0ff">${MECH_INFO[mk].ic} ${MECH_INFO[mk].n}</span>` : ` · <span style="color:var(--dim)">기믹 🔒 <span style="font-size:10px">(${DEX_MECH_KILLS})</span></span>`) : "";
       const sig=MONSTER_SIG[e.n]||[];
-      const dropHtml = sig.length ? `<div class="dxsrc">🎁 ${sig.map(it=> (b.drops&&b.drops[it])?`<b style="color:var(--good)">✔ ${it}</b>`:`<span style="color:var(--dim)">${it}</span>`).join(" · ")}</div>` : "";
+      const dropHtml = sig.length ? (kills>=DEX_DROP_KILLS
+        ? `<div class="dxsrc">🎁 ${sig.map(it=> (b.drops&&b.drops[it])?`<b style="color:var(--good)">✔ ${it}</b>`:`<span style="color:var(--dim)">${it}</span>`).join(" · ")}</div>`
+        : `<div class="dxsrc" style="color:var(--dim)">🎁 고유 드랍 🔒 (${DEX_DROP_KILLS}마리 처치 시 공개)</div>`) : "";
       html+=`<div class="dexrow"><span class="dxic">${ico(e.ic,26)}</span><div class="dxm"><div class="dxn">${e.n} <span class="dxslot">⚔ ${b.kills}</span></div><div class="dxd">${weakHtml}${mechHtml}</div>${dropHtml}</div></div>`;
     }); html+=`</div>`; });
   return html; }
