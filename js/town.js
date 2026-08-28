@@ -997,7 +997,10 @@ function skillClassOf(k){ if(typeof SKILLS!=="undefined"&&SKILLS[k]&&SKILLS[k].r
   if(typeof INSTRUCTORS!=="undefined"){ for(const c in INSTRUCTORS){ if((INSTRUCTORS[c].skills||[]).includes(k))return c; } } return "etc"; }
 const SKILL_CLASS_LABEL={warrior:"⚔️ 전사",hunter:"🏹 사냥꾼",rogue:"🗡️ 도적",mage:"🔮 마법",tamer:"🐺 조련",gambler:"🎲 도박",bard:"🎵 음유",rare:"🌟 희귀",etc:"✨ 기타"};
 const SKILL_CLASS_ORDER=["warrior","hunter","rogue","mage","tamer","gambler","bard","rare","etc"];
-/* 📋 스킬 창 (인벤 옆 버튼) — 상단 장착요약 + 클래스별 정리 + 생활 스킬 */
+let skillTab="equip";   // 📋 스킬창 탭(equip/active/passive/life)
+function setSkillTab(t){ skillTab=t; skillWindow(); }
+window.setSkillTab=setSkillTab;
+/* 📋 스킬 창 (인벤 옆 버튼) — 상단 장착요약(툴팁) + 카테고리 탭 */
 function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return; } const inDive=(mode==="dive"); if(!inDive){ stopAuctionTimer(); auction=null; mode="town"; }
   regenStamina(); render(); clearLog(); setScene("📋", inDive?"스킬 — 계단에서 장착 변경":"스킬 — 전투 스킬과 생활 스킬");
   const actives=P.skills.filter(k=>SKILLS[k]&&SKILLS[k].type==="active");
@@ -1029,14 +1032,25 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
   const lifeRows=Object.entries(LIFE).map(([key,a])=>{ const ls=P.life[key]; const need=ls.lv*20; const pct=Math.round(ls.xp/need*100); const got=(P.lifeStat&&P.lifeStat[a.stat])||0;
     return `<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">${a.emoji}</span><div class="gmeta"><div class="gn">${a.n} <span style="color:var(--dim);font-size:11px">Lv.${ls.lv}</span>${got?` <span style="color:var(--good);font-size:11px">${STAT_NAME[a.stat]} +${got}</span>`:""}</div><div class="ge">Lv↑마다 ${STAT_NAME[a.stat]}+1 · ${MATS[a.mat][1]} · 숙련 ${ls.xp}/${need}</div><div class="hpbar2 mp" style="height:6px;margin-top:3px"><i style="width:${pct}%"></i></div></div></div>`; }).join("");
   const cap=activeCap(); const lifeSum=["str","int","dex","vit","luk"].map(s=>{ const v=(P.lifeStat&&P.lifeStat[s])||0; return v?`${STAT_NAME[s]}+${v}`:null; }).filter(Boolean).join(" · ");
-  const eqChips=P.loadout.filter(k=>SKILLS[k]).map(k=>`<span class="buffchip">${SKILLS[k].emoji} ${SKILLS[k].n}</span>`).join("");
-  const eqBar=`<div class="ih"><span>🎯 지금 장착한 스킬</span><span class="cnt">${P.loadout.length}/${cap}</span></div><div class="ecbuffrow" style="margin:3px 0 9px">${eqChips||'<span style="color:var(--dim);font-size:12px">장착한 액티브 스킬이 없다 — 아래에서 장착하세요</span>'}</div>`;
+  // 🎯 장착 스킬 칩 — 마우스 오버 시 정보 툴팁(무기처럼)
+  const chipTip=(k)=>{ const s=SKILLS[k]; const pv=skillProf(k); return `${s.n} — ${(s.desc||'').replace(/"/g,'')} · Lv.${pv.lv} · 효과 +${Math.round((skillMul(k)-1)*100)}% · 기력 ${s.mp}`; };
+  const eqChips=P.loadout.filter(k=>SKILLS[k]).map(k=>`<span class="buffchip skchip" title="${chipTip(k)}" onclick="itemInfo('skill','${k}')">${SKILLS[k].emoji} ${SKILLS[k].n} <span style="opacity:.6;font-size:10px">ⓘ</span></span>`).join("");
+  const eqBar=`<div class="ih"><span>🎯 지금 장착한 스킬 <span style="color:var(--dim);font-size:11px;font-weight:400">(칩에 마우스 올리면 정보)</span></span><span class="cnt">${P.loadout.length}/${cap}</span></div><div class="ecbuffrow" style="margin:3px 0 9px">${eqChips||'<span style="color:var(--dim);font-size:12px">장착한 액티브 스킬이 없다 — 아래 탭에서 장착하세요</span>'}</div>`;
+  // 클래스별 그룹(탭 본문용)
+  const classGroups=(arr,empty)=>{ if(!arr.length)return `<div class="inv-empty">${empty}</div>`; const g=groupByClass(arr);
+    return SKILL_CLASS_ORDER.filter(c=>g[c]&&g[c].length).map(c=>{ const list=g[c].slice().sort((a,b)=>(P.loadout.includes(b)?1:0)-(P.loadout.includes(a)?1:0));
+      return `<div class="skclass"><div class="skclabel">${SKILL_CLASS_LABEL[c]||"✨"} <i>${g[c].length}</i></div><div class="glist">${list.map(skillCard).join("")}</div></div>`; }).join(""); };
+  const st=["equip","active","passive","life"].includes(skillTab)?skillTab:"equip";
+  const tabBar=`<div class="invtabs">`+[["equip","🎯 장착",P.loadout.length],["active","⚔️ 액티브",actives.length],["passive","🛡 패시브",passives.length],["life","🌲 생활",Object.keys(LIFE).length]]
+    .map(([t,lab,n])=>`<button type="button" class="invtab ${st===t?'on':''}" onclick="setSkillTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`).join("")+`</div>`;
+  const body = st==="equip" ? (P.loadout.filter(k=>SKILLS[k]).length?`<div class="glist">${P.loadout.filter(k=>SKILLS[k]).map(skillCard).join("")}</div>`:`<div class="inv-empty">장착한 액티브 스킬이 없다 — '⚔️ 액티브' 탭에서 장착하세요</div>`)
+    : st==="active" ? `<div class="ge" style="color:var(--dim);margin-bottom:4px">액티브 슬롯 ${P.loadout.length}/${cap}${cap<SLOT_MAX?` · 🔵 마나 오브로 최대 ${SLOT_MAX}`:" (최대)"}</div>${classGroups(actives,"배운 액티브 스킬이 없다. 수련관·스킬북에서 배운다.")}`
+    : st==="passive" ? `<div class="ge" style="color:var(--dim);margin-bottom:4px">패시브는 배우면 자동 적용 (슬롯 불필요)</div>${classGroups(passives,"배운 패시브 스킬이 없다.")}`
+    : `<div class="ge" style="color:var(--dim);margin-bottom:4px">${lifeSum?"생활 누적 "+lifeSum:"채집할수록 Lv↑ · 정해진 스탯 상승"}</div><div class="glist">${lifeRows}</div>`;
   $("log").innerHTML=`<div class="invv">
     ${eqBar}
-    <div style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:2px">액티브만 슬롯에 장착해 사용 · 패시브는 <b>배우면 자동 적용</b>(슬롯 불필요) · 액티브 ${P.loadout.length}/${cap}${cap<SLOT_MAX?` <span style="color:var(--mp)">🔵 마나 오브로 최대 ${SLOT_MAX}까지 확장</span>`:" (최대)"}</div>
-    ${sec("⚔️ 액티브 스킬 (클래스별)",actives,"배운 액티브 스킬이 없다. 수련관·스킬북에서 배운다.",`장착 ${P.loadout.length}/${cap}`)}
-    ${sec("🛡 패시브 스킬",passives,"배운 패시브 스킬이 없다.",`배우면 자동 적용 · ${passives.length}개`)}
-    <div><div class="ih"><span>🌲 생활 스킬</span><span class="cnt">${lifeSum?"생활 누적 "+lifeSum:"채집할수록 Lv↑"}</span></div><div class="glist">${lifeRows}</div></div>
+    ${tabBar}
+    <div class="invtabbody">${body}</div>
   </div>`;
   setActions(inDive
     ? [{label:"← 탑으로 돌아가기",full:true,act:backToClimb}]
