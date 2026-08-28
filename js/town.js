@@ -867,7 +867,15 @@ function inventoryMenu(){ if(enemy){ toast("전투 중엔 볼 수 없다"); retu
     : tab==="mat" ? `<div class="mgrid">${mats}</div>`
     : tab==="quest" ? `<div class="statchips">${quest}</div>`
     : (gearByCat[tab].length?`<div class="glist">${gearByCat[tab].map(mkGearRow).join("")}</div>`:`<div class="inv-empty">${gearCatEmpty[tab]}</div>`);
+  // 📊 상세 스탯 — 강화·장비·버프가 반영된 실제 파생 스탯
+  const _sp=(()=>{ const atk=ATK(),def=DEF(),hp=MAXHP(),mp=MAXMP(),luk=LUKv();
+    const wep=equippedItem("weapon"); const wUp=wep?upBonus(wep).atk:0;
+    const cell=(ic,lab,val,sub)=>`<div class="scell"><div class="scv">${ic} <b>${val}</b></div><div class="scl">${lab}${sub?`<br><span style="color:var(--gold)">${sub}</span>`:""}</div></div>`;
+    return `<div><div class="ih"><span>📊 상세 스탯</span><span class="cnt">강화·장비 반영</span></div><div class="statgrid">`+
+      cell("⚔","공격력",atk, wUp?`무기강화 +${wUp}`:"")+cell("🛡","방어",def,"")+cell("❤","최대 HP",hp,"")+cell("🔵","최대 기력",mp,"")+cell("🍀","행운",luk,"")+
+      `</div></div>`; })();
   $("log").innerHTML = `<div class="invv">
+    ${_sp}
     <div><div class="ih"><span>착용 중</span><span class="cnt">⚔+${b.atk} 🛡+${b.def} 🍀+${b.luck}${b.vamp?' 🩸':''}</span></div><div class="glist">${slotRow}</div></div>
     ${setHtml?`<div><div class="ih"><span>✦ 세트 효과</span></div><div class="glist">${setHtml}</div></div>`:""}
     ${tabBar}

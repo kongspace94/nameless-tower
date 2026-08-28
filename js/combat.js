@@ -914,11 +914,11 @@ function gainCompBond(n){ if(!P||!P.companion||n<=0)return; const rec=compRec(P.
 function learnRareSkill(k){ if(!SKILLS[k]||P.skills.includes(k))return false; P.skills.push(k);
   if(SKILLS[k].type==="active"){ if(typeof skillProf==="function")skillProf(k); if(Array.isArray(P.loadout)&&P.loadout.length<activeCap())P.loadout.push(k); } return true; }
 function dropRareSkill(fromBoss){ if(typeof RARE_SKILLS==="undefined")return;
-  const pool=RARE_SKILLS.filter(k=>!P.skills.includes(k) && (fromBoss || SKILLS[k].src==="farm"));
+  const pool=RARE_SKILLS.filter(k=>!P.skills.includes(k) && (fromBoss || SKILLS[k].src==="farm"));   // 이미 배운 스킬은 제외
   if(!pool.length)return; const ch=fromBoss?0.12:0.006*(1+((typeof metaEff==="function"?metaEff().drop:0)||0));
-  if(!chance(ch))return; const k=pick(pool);
-  if(learnRareSkill(k)){ const s=SKILLS[k]; line(`🌟 <b>희귀 스킬 습득 — ${s.emoji} ${s.n}!</b> ${s.desc}`,"loot"); toast("희귀 스킬: "+s.n); if(typeof sfx==="function")sfx("loot");
-    if(Array.isArray(P.loadout)&&P.loadout.indexOf(k)<0)line("　(슬롯이 가득 — 스킬창에서 장착하세요)","sys"); } }
+  if(!chance(ch))return; const k=pick(pool); const bk="rbook_"+k;
+  if(typeof CONS!=="undefined"&&CONS[bk]){ gainCons(bk); const s=SKILLS[k];   // 🌟 스킬을 직접 주지 않고 '비급(스킬북)'을 드랍 → 가방에서 사용해 습득
+    line(`📜 <b>희귀 스킬북 드랍 — ${s.n} 비급!</b> 가방에서 사용하면 <b>${s.n}</b>을(를) 배운다.`,"loot"); toast("희귀 스킬북: "+s.n); if(typeof sfx==="function")sfx("loot"); } }
 function maybeDropCompanion(floor){ if(typeof RARE_COMPS==="undefined")return; let pool=RARE_COMPS.filter(k=>!compOwned(k));
   if(typeof EXP!=="undefined" && EXP && typeof PION_COMPS!=="undefined")pool=pool.concat(PION_COMPS.filter(k=>!compOwned(k)));   // 🧭 개척 중엔 개척지 동료도 발견
   if(!pool.length)return;
@@ -1161,14 +1161,14 @@ function dropRelic(){ const f=P.floor; const early=["녹슨 단검","가죽 갑�
   else if(f>=5) pool=[...early,...mid];
   else pool=early;
   addRelic(pick(pool)); }
-function dropBook(){ const books=Object.keys(CONS).filter(k=>CONS[k].use==="learn"); const bk=pick(books); gainCons(bk); line(`${CONS[bk].emoji} <b>${CONS[bk].n}</b>을(를) 발견했다! (가방에서 사용해 스킬 습득)`,"loot"); }
+function dropBook(){ const books=Object.keys(CONS).filter(k=>CONS[k].use==="learn"&&!CONS[k].rare); const bk=pick(books); gainCons(bk); line(`${CONS[bk].emoji} <b>${CONS[bk].n}</b>을(를) 발견했다! (가방에서 사용해 스킬 습득)`,"loot"); }   // 희귀 비급은 제외(전용 드랍만)
 function dropManaOrb(){ if((P.skillSlots||SLOT_BASE)>=SLOT_MAX)return; gainCons("mana_orb"); line(`🔵 <b>마나 오브</b> 드랍! 가방에서 쓰면 액티브 스킬 슬롯 +1 (현재 ${P.skillSlots}/${SLOT_MAX}).`,"loot"); toast("마나 오브 획득!"); }
 function bossReward(){ const f=P.floor; line("보스가 무너지며 재료 무더기를 떨군다…","sys"); Object.keys(MATS).forEach(m=>{ const a=2+rnd(3); addMat(m,a); });
   line("각종 재료를 대량 획득!","loot"); if(f===15)addRelic("이름 없는 열쇠"); P.potions+=2; line("🧪 물약 +2","loot");
   if(f>=45){ const g=pick(GEAR_TIERS.myth); addRelic(g); line(`✦ <b>신화 장비</b> — ${g}을(를) 손에 넣었다!`,"loot"); toast("신화 장비 획득!"); }   // 정점 보스: 신화 티어 확정 드랍
   else if(f>=31){ addRelic(pick(GEAR_TIERS.rift)); }
   else if(f>=16){ addRelic(pick(GEAR_TIERS.sky)); }
-  const ck=pick(Object.keys(CONS)); gainCons(ck); line(`${CONS[ck].emoji} ${CONS[ck].n}을(를) 얻었다!`,"loot"); }
+  const ck=pick(Object.keys(CONS).filter(k=>!CONS[k].rare&&CONS[k].use!=="learn")); if(ck){ gainCons(ck); line(`${CONS[ck].emoji} ${CONS[ck].n}을(를) 얻었다!`,"loot"); } }   // 희귀 비급·스킬북은 무작위 지급 제외
 function showClimb(){ setActions([
   {label:`계단을 올라 ${P.floor+1}층으로`,full:true,act:nextFloor},
   {label:"🎒 소지품 (장비 착용)",desc:"드랍 장비 착용·정리",act:inventoryMenu},

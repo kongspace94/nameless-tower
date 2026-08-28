@@ -429,6 +429,8 @@ const CONS={
   book_fireball:{n:"불의 마도서",emoji:"📘",use:"learn",skill:"fireball",val:130,note:"파이어볼 습득 (스킬북)"},
   book_crit:{n:"급소 해부서",emoji:"📙",use:"learn",skill:"crit_focus",val:110,note:"급소 간파 습득 (패시브)"},
 };
+/* 🌟 희귀 스킬 비급(스킬북) — 보스 처치/파밍으로 드랍. 가방에서 써야 희귀 스킬 습득 (상점 판매 X) */
+if(typeof RARE_SKILLS!=="undefined")for(const rk of RARE_SKILLS){ if(!SKILLS[rk])continue; CONS["rbook_"+rk]={n:SKILLS[rk].n+" 비급",emoji:"📜",use:"learn",skill:rk,rare:true,val:0,note:`희귀 스킬 습득 — ${SKILLS[rk].desc}`}; }
 /* 칭호(구 직업). 조건을 만족하면 획득 → 하나 장착 시 mods가 파생 스탯에 반영. */
 const SLOT_BASE=2, SLOT_MAX=5, MAX_PASSIVE=2;   // 액티브 스킬 슬롯: 기본 2, 마나 오브로 최대 5까지 확장
 function activeCap(){ return clamp(((P&&P.skillSlots)||SLOT_BASE)+metaEff().loadout, SLOT_BASE, SLOT_MAX+metaEff().loadout); }

@@ -248,7 +248,7 @@ function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); i
   { const cd=$("chatdock"); if(cd && (mode!=="town"||enemy)){ cd.hidden=true; if(typeof stopChatTimer==="function")stopChatTimer(); } }   // 마을 밖에선 채팅 독 숨김
   const stg=$("stage"); if(stg){ const f=P.floor||0, dv=(mode==="dive"); stg.classList.toggle("zoneSky", dv&&f>=16&&f<=30); stg.classList.toggle("zoneVoid", dv&&f>=31); }   // 존별 배경
   $("por").innerHTML=playerIco(56); $("pname").textContent=P.name;
-  $("ptitle").textContent = `${jobEmoji()} ${jobName()} · ${mode==="dive"?`탑 ${P.floor}층`:"마을"}`;
+  $("ptitle").textContent = `${jobEmoji()} ${jobName()} · ${(typeof EXP!=="undefined"&&EXP)?"🧭 개척":(mode==="dive"?`탑 ${P.floor}층`:"마을")}`;   // 🧭 개척 중엔 '탑' 대신 '개척' 표기
   const mhp=MAXHP(),mmp=MAXMP();
   $("hpTxt").textContent=`${Math.max(0,P.hp)}/${mhp}`; $("hpBar").style.width=clamp(P.hp/mhp*100,0,100)+"%";
   $("mpTxt").textContent=`${P.mp}/${mmp}`; $("mpBar").style.width=clamp(P.mp/mmp*100,0,100)+"%";
