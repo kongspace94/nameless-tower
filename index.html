@@ -307,7 +307,14 @@
   .battlemsg .bm-txt.cur{opacity:1; font-size:15.5px}             /* 최신 줄 또렷하게 */
   .battlemsg .bm-txt.dmg{color:#ff9d9d} .battlemsg .bm-txt.heal{color:#96f0bf} .battlemsg .bm-txt.loot{color:#ffe08a} .battlemsg .bm-txt.sys{color:#c7d0e0} .battlemsg .bm-txt.quote{color:#dbe2f0; font-style:italic}
   .battlemsg.await::after{content:"▼"; position:absolute; right:12px; bottom:8px; font-size:12px; color:#8fa0c8; animation:dlgblink 1s steps(1) infinite}
-  @media (max-width:640px){ .battlemsg{font-size:13.5px; padding:10px 13px 12px; max-height:104px} .battlemsg .bm-txt.cur{font-size:14.5px} }
+  /* ⤢ 메시지 박스 확대 토글 버튼 + 확대(전체 로그 스크롤) 상태 */
+  .battlemsg .bmexp{position:absolute; top:5px; right:8px; z-index:3; padding:2px 7px; font-size:12px; font-weight:700; line-height:1.4;
+    background:#26314a; color:#b9c6e4; border:1px solid #3a4560; border-radius:7px; cursor:pointer}
+  .battlemsg .bmexp:hover{background:#334063; color:#fff}
+  .battlemsg.big{max-height:58vh; overflow-y:auto; justify-content:flex-start; padding-top:34px}
+  .battlemsg.big .bm-txt{opacity:1}   /* 확대 시 전체 또렷하게 */
+  .battlemsg.big.await::after{display:none}
+  @media (max-width:640px){ .battlemsg{font-size:13.5px; padding:10px 13px 12px; max-height:104px} .battlemsg .bm-txt.cur{font-size:14.5px} .battlemsg.big{max-height:62vh; padding-top:32px} }
   /* 🎁 전리품 패널 (승리 후 획득물 정리 — 스테이지 자리에 크게) */
   body.lootview .stage, body.lootview .qtrack{ display:none !important }   /* 승리 화면: 스테이지·퀘스트바 숨기고 전리품에 공간 양보 */
   .lootpanel{background:linear-gradient(180deg,#171c2a,#0f131d); border:1px solid #37425f; border-radius:12px; overflow:hidden}

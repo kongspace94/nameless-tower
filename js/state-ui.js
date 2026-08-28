@@ -11,6 +11,7 @@ function freshPlayer(){ return {
   shopDay:"", shopBought:{},
   meta:{echoes:0,spent:{},runs:0,bestFloor:0,bestCont:0}, runPeakFloor:0, runContClears:0, runKills:0,   // 🌌 회귀 메타성장 + 이번 런 추적
   expProg:{},   // 🧭 대륙 개척 구역 진행 저장(대륙별 {ai,step}) — 마을 갔다 와도 이어짐
+  towerProg:{},   // 🗼 대륙 탑(80층) 최고 도달 층 저장(대륙별 {floor}) — 관문 재시작용
   feats:{},     // 🎖 칭호용 특수 업적 카운터(oneShot·perfectParry·fled·pvpWin·destroyed 등)
   bestiary:{},   // 📖 몬스터 도감(처치수·약점·시그니처 드랍 기록)
   farm:{unlocked:false,slots:[],lastTs:Date.now()},   // ⛺ 자동 파밍(부족 거점)
@@ -55,6 +56,7 @@ function normalizeP(){ if(!P)return;
   if(!P.meta.spent||typeof P.meta.spent!=="object")P.meta.spent={}; if(P.meta.echoes==null)P.meta.echoes=0;
   if(P.runPeakFloor==null)P.runPeakFloor=P.floor||0; if(P.runContClears==null)P.runContClears=0; if(P.runKills==null)P.runKills=0;
   if(!P.expProg||typeof P.expProg!=="object")P.expProg={};   // 🧭 개척 구역 진행 저장
+  if(!P.towerProg||typeof P.towerProg!=="object")P.towerProg={};   // 🗼 대륙 탑 층 진행 저장
   if(!P.food||typeof P.food!=="object")P.food={};   // 🍖 동료 먹이 보유량(food_heal/dps/tank/any)
   if(!Array.isArray(P.mail))P.mail=[]; if(!P.mailInit||typeof P.mailInit!=="object")P.mailInit={};   // 📬 우편함 · 지급 완료 시드 추적
   if(typeof seedMail==="function")seedMail();   // 운영자 우편(신규 시드) 지급함에 넣기
@@ -175,18 +177,28 @@ function gainStamina(n){ if(P.stamina==null)P.stamina=0; const b=Math.min(n,STAM
 
 /* ---------- 로그 / 무대 / 이펙트 ---------- */
 let _bmLines=[]; const BM_MAX=3;   // 💬 전투 메시지 박스에 쌓이는 최근 줄 수(3줄 · 짤림 방지)
+let _bmLog=[]; const BM_LOG_MAX=40;   // 📜 확대 보기용 전체 전투 로그(최근 40줄)
+let _bmExpanded=false;   // ⤢ 메시지 박스 확대 상태
 let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
 function renderBattleMsg(){ const bm=$("battlemsg"); if(!bm)return;
-  bm.innerHTML=_bmLines.map((l,i)=>`<div class="bm-txt ${l.c}${i===_bmLines.length-1?' cur':''}">${l.h}</div>`).join(""); }
+  bm.classList.toggle("big",_bmExpanded);
+  const src=_bmExpanded?_bmLog:_bmLines;
+  const rows=src.map((l,i)=>`<div class="bm-txt ${l.c}${(!_bmExpanded&&i===src.length-1)?' cur':''}">${l.h}</div>`).join("");
+  bm.innerHTML=`<button class="bmexp" onmousedown="event.stopPropagation()" onclick="toggleBM(event)" title="${_bmExpanded?'접기':'전투 로그 넓게 보기'}">${_bmExpanded?'⤡ 접기':'⤢'}</button>${rows}`;
+  if(_bmExpanded)bm.scrollTop=bm.scrollHeight; }
+function toggleBM(e){ if(e){ e.stopPropagation(); e.preventDefault(); } _bmExpanded=!_bmExpanded; renderBattleMsg(); }
 function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); return; }   // 🎁 전리품은 버퍼에 모아 승리 패널에서 한 번에
   const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
-  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } }   // 💬 전투 중: 위 박스에 최근 줄 누적
+  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); _bmLog.push({h:html,c:cls||""}); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift(); renderBattleMsg(); } }   // 💬 전투 중: 위 박스에 최근 줄 누적
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
-function clearLog(){ $("log").innerHTML=""; _bmLines=[]; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger"); } }
+function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big"); } }
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";
-  if(EXP){ const c=(typeof CONTINENTS!=="undefined")&&CONTINENTS[EXP.ci]; const rt=(typeof REGION_TOP!=="undefined")?REGION_TOP:80; $("floortag").textContent=`🗼 ${c?c.ic:"🗺"} ${EXP.floor||1}/${rt}층${turn}`; return; }
+  if(EXP){ const c=(typeof CONTINENTS!=="undefined")&&CONTINENTS[EXP.ci];
+    if(EXP.tower){ const rt=(typeof REGION_TOP!=="undefined")?REGION_TOP:80; $("floortag").textContent=`🗼 ${c?c.ic:"🗺"} ${EXP.floor||1}/${rt}층${turn}`; }
+    else { const a=c&&c.areas&&c.areas[EXP.ai]; $("floortag").textContent=`🗺 ${a?a.n:"개척"}${turn}`; }   // 대륙 개척은 구역명
+    return; }
   $("floortag").textContent = mode==="dive"?(`탑 ${P.floor}/${TOP}층`+turn):"거점 마을"; }
 function porMini(){ $("porMini").innerHTML = (P&&!enemy) ? playerIco(22)+`<span>${P.name}</span>` : ""; }
 function setSceneFoe(){ if(!enemy)return;
