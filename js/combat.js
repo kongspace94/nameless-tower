@@ -36,7 +36,7 @@ const ENEMIES=[
   {n:"저주받은 기사",ic:"knight",hp:38,atk:10,def:4,g:22,tier:2,taunt:['"돌아가라…"',"냉기가 흐른다."]},
   {n:"굶주린 구울",ic:"ghoul",hp:34,atk:11,def:2,g:18,tier:2,taunt:["살점 냄새에 달려든다.","혀를 늘어뜨린다."]},
   {n:"동굴 박쥐떼",ic:"bat",hp:22,atk:9,def:1,g:16,tier:2,fly:true,taunt:["날갯짓 소리가 어둠을 채운다.","박쥐들이 얼굴로 달려든다."]},
-  {n:"화염 정령",ic:"fire",hp:30,atk:13,def:1,g:26,tier:3,taunt:["공기가 타오른다.",'"재가 되어라."']},
+  {n:"화염 정령",ic:"fire",hp:30,atk:13,def:1,g:26,tier:3,atkElem:"fire",taunt:["공기가 타오른다.",'"재가 되어라."']},
   {n:"석화의 고르곤",ic:"gorgon",hp:46,atk:12,def:5,g:30,tier:3,taunt:["뱀 머리가 쉭쉭거린다.","시선을 피해야 한다…"]},
 ];
 /* 제2컨셉존(16~30층) — 천공의 성역: 타락한 천상의 존재들 */
@@ -44,15 +44,15 @@ const ENEMIES2=[
   {n:"천공 하피",ic:"harpy",hp:64,atk:17,def:4,g:44,tier:4,fly:true,taunt:["날카로운 비명이 귀를 찢는다.","깃털이 칼날처럼 쏟아진다."]},
   {n:"수정 골렘",ic:"crystal",hp:104,atk:15,def:10,g:52,tier:4,taunt:["수정 몸체가 빛을 굴절시킨다.","쩌적— 균열이 번뜩인다."]},
   {n:"빛의 망령",ic:"wraith",hp:78,atk:21,def:5,g:56,tier:5,taunt:["형체가 빛으로 일렁인다.","속삭임이 머릿속을 울린다."]},
-  {n:"폭풍 와이번",ic:"wyvern",hp:118,atk:23,def:7,g:70,tier:5,fly:true,taunt:["번개가 비늘을 타고 흐른다.","날개가 폭풍을 부른다."]},
+  {n:"폭풍 와이번",ic:"wyvern",hp:118,atk:23,def:7,g:70,tier:5,fly:true,atkElem:"shock",taunt:["번개가 비늘을 타고 흐른다.","날개가 폭풍을 부른다."]},
   {n:"타락한 세라핌",ic:"seraph",hp:98,atk:25,def:8,g:78,tier:6,fly:true,taunt:['"타락한 낙원에 온 걸 환영한다."',"여섯 날개가 펼쳐진다."]},
-  {n:"천둥새",ic:"thunderbird",hp:88,atk:27,def:4,g:66,tier:6,fly:true,taunt:["대기가 찌릿하게 곤두선다.","방전이 시작된다."]},
+  {n:"천둥새",ic:"thunderbird",hp:88,atk:27,def:4,g:66,tier:6,fly:true,atkElem:"shock",taunt:["대기가 찌릿하게 곤두선다.","방전이 시작된다."]},
 ];
 /* 제3컨셉존(31~50층) — 시공의 균열: 인간의 이해를 벗어난 우주적 존재들 */
 const ENEMIES3=[
   {n:"공허 포식자",ic:"voidbeast",hp:150,atk:32,def:10,g:90,tier:7,taunt:["공간이 일그러진다.","허기진 어둠이 다가온다."]},
-  {n:"운석 거인",ic:"meteor",hp:210,atk:30,def:16,g:100,tier:7,taunt:["불타는 바위가 굴러온다.","대지가 흔들린다."]},
-  {n:"별의 잔영",ic:"starwraith",hp:158,atk:38,def:9,g:110,tier:8,taunt:["별빛이 칼날로 응결된다.","죽은 별의 노래가 들린다."]},
+  {n:"운석 거인",ic:"meteor",hp:210,atk:30,def:16,g:100,tier:7,atkElem:"fire",taunt:["불타는 바위가 굴러온다.","대지가 흔들린다."]},
+  {n:"별의 잔영",ic:"starwraith",hp:158,atk:38,def:9,g:110,tier:8,atkElem:"frost",taunt:["별빛이 칼날로 응결된다.","죽은 별의 노래가 들린다."]},
   {n:"시간 파수꾼",ic:"timewarden",hp:186,atk:40,def:12,g:120,tier:8,taunt:["초침 소리가 멈춘다.","시간이 역행한다."]},
   {n:"무형의 관찰자",ic:"watcher",hp:170,atk:44,def:11,g:130,tier:9,taunt:["수천 개의 눈이 뜬다.","존재가 응시당한다."]},
   {n:"균열의 히드라",ic:"rifthydra",hp:236,atk:41,def:14,g:140,tier:9,taunt:["세 머리가 차원을 물어뜯는다.","균열에서 포효가 울린다."]},
@@ -962,6 +962,13 @@ function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(
   return Math.max(0,dmg); }
 function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
 function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
+/* 🔥 몬스터 속성 공격 → 플레이어 지속피해(도트) 부여 · 매 턴 틱 */
+function applyMonsterAil(elem){ if(!B||!elem||typeof ELEMENTS==="undefined"||!ELEMENTS[elem])return; if(B.pdot&&B.pdot.t>0)return; const el=ELEMENTS[elem];
+  const dmg=Math.max(2, Math.round(((enemy&&enemy.atk)||8)*0.22)); const t=(elem==="shock")?2:3;
+  B.pdot={elem,t,dmg}; line(`${el.ic} <b>${el.n}</b>에 휩싸였다! ${t}턴 동안 지속 피해를 입는다.`,"dmg"); }
+function tickPlayerDot(){ if(!B||!B.pdot||(B.pdot.t||0)<=0)return false; const el=(typeof ELEMENTS!=="undefined"&&ELEMENTS[B.pdot.elem])||{ic:"☣",n:"이상"}; const d=B.pdot.dmg;
+  P.hp-=d; B.pdot.t--; deathCause=`${el.ic} ${el.n} 지속피해 (${d})`; line(`${el.ic} ${el.n}으로 ${d} 피해 (남은 ${B.pdot.t}턴)`,"dmg"); if(typeof spawnFloat==="function")spawnFloat("-"+d,"#ff8a8a","me");
+  if(B.pdot.t<=0)B.pdot=null; render(); if(P.hp<=0){ die(); return true; } return false; }
 function chargeNeed(){ return Math.max(24, Math.round(ATK()*2.3)); }   // 3턴 안에 화력을 퍼부으면 저지 가능한 수준
 /* 보스 궁극기 충전 시작 — HP 문턱을 넘을 때마다 (총 2회) */
 function maybeStartCharge(){ if(!enemy||!enemy.boss||B.charge)return false;
@@ -1061,6 +1068,7 @@ function resolveEnemyAttack(mult,it,pr){ if(!enemy)return;
   if(B.shield){ line("강철 방패가 공격을 막고 반사한다!","heal"); hitEnemy(Math.round(enemy.atk*0.8),"🛡 반사","#7ad6c0"); d=0; }
   if(B.summon&&B.summon.guard&&d>0){ d=Math.round(d*0.6); B.summon.guard=false; line(`🛡 ${B.summon.emoji} ${B.summon.n}이(가) 몸으로 막아냈다! (피해 40%↓)`,"heal"); }
   if(enemy&&d>0){ applyPlayerDamage(d,it.type==="heavy"?`${enemy.n}의 강타!`:it.type==="special"?`${enemy.n}의 맹공!`:`${enemy.n}의 공격!`);
+    if(enemy.atkElem && P.hp>0 && chance(it.type==="attack"?0.45:0.7))applyMonsterAil(enemy.atkElem);   // 🔥 속성 몬스터: 지속피해 부여(큰 공격일수록 확률↑)
     if(enemy.vamp){ const h=Math.round(d*0.5); enemy.hp+=h; enemy.hpMax=Math.max(enemy.hpMax,enemy.hp); line(`${enemy.n}이(가) ${h} 흡혈.`,"sys"); updateFoeBar(); }
     if((it.type==="heavy"||it.type==="special") && !B.disarmed && P.equip.weapon && pr!=="perfect" && B.block!=="perfect" && P.hp>0 && chance(clamp(0.24-P.stats.dex*0.008,0.05,0.24))){
       B.disarmed=true; line(`🗡️ 충격에 <b>검을 놓쳤다!</b> 무장 해제 — 회피하며 검을 주우러 가야 한다!`,"dmg"); fxShake(); } }
@@ -1068,6 +1076,7 @@ function resolveEnemyAttack(mult,it,pr){ if(!enemy)return;
 /* 적 턴 마무리 (독 틱 · 다음 인텐트 · 돌발 · 다음 플레이어 턴) */
 function endEnemyTurn(){ if(!enemy)return; B.block=null; B.parry=null; B.shield=false; if(P.hp<=0){ die(); return; }
   if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); if(P.hp<=0){ die(); return; } }
+  if(tickPlayerDot())return;   // 🔥 속성 지속피해(화상/감전/빙결 등)
   render();
   if(maybeStartCharge()){ startPlayerTurn(); return; }   // 보스: HP 문턱 도달 → 궁극기 충전 개시
   B.enemyIntent=rollIntent();

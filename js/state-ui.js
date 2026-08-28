@@ -290,6 +290,8 @@ function combatBuffHtml(){ if(!P)return ""; const good=[], bad=[]; const b=P.buf
   if(typeof B!=="undefined"&&B){
     if(B.shield)good.push(`🛡가드`);
     if(B.dmgTakenPct)bad.push(`⚠받는피해+${Math.round(B.dmgTakenPct*100)}%`);
+    if(B.pdot&&B.pdot.t>0){ const el=(typeof ELEMENTS!=="undefined"&&ELEMENTS[B.pdot.elem])||null; bad.push(`${el?el.ic:"☣"}${el?el.n:"이상"} ${B.pdot.t}턴`); }
+    if(B.poison>0)bad.push(`☠중독 ${B.poison}턴`);
     if(B.healCut)bad.push(`☣회복반감`);
     if(B.disarmed)bad.push(`🗡❌무장해제`);
     if(B.enemyGuard>0)bad.push(`🪨적 방어태세`);
