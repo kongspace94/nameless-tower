@@ -1214,11 +1214,13 @@ function winCombat(){
     : (wasBoss&&floor>=TOP) ? (()=>{ setTimeout(victory,120); })
     : (()=>{ clearLog(); setScene("🏆","적을 물리쳤다. 위층 계단이 보인다."); showClimb(); });
   showVictoryLoot(wasBoss, foeName, loot, cont); }
-/* 🎁 전리품 패널 — 전투가 끝나면 획득물을 깔끔하게 한 화면에 (전투/획득 분리) */
-function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog(); setScene("🏆", wasBoss?"보스 격파!":"승리!");
+/* 🎁 전리품 패널 — 전투 끝나면 스테이지(트로피) 자리에 크게 (스크롤 없이 '계속' 보이게) */
+function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog();
+  if(document.body)document.body.classList.add("lootview");   // 스테이지 숨기고 전리품을 위로
   const rows = (loot&&loot.length) ? loot.map(h=>`<div class="lootrow">${h}</div>`).join("") : `<div class="lootrow" style="color:var(--dim)">획득한 전리품이 없다.</div>`;
-  $("log").innerHTML=`<div class="lootpanel"><div class="lh">🎁 전리품 <span>${foeName} 처치</span></div><div class="lootlist">${rows}</div></div>`;
-  setActions([{label:"▶ 계속",full:true,act:cont}]); }
+  $("log").innerHTML=`<div class="lootpanel"><div class="lh"><span>🏆 ${wasBoss?"보스 격파!":"승리!"} · 전리품</span><span class="lhsub">${foeName} 처치</span></div><div class="lootlist">${rows}</div></div>`;
+  const go=()=>{ if(document.body)document.body.classList.remove("lootview"); cont(); };
+  setActions([{label:"▶ 계속",full:true,act:go}]); }
 function dropRelic(){ const f=P.floor; const early=["녹슨 단검","가죽 갑옷","토끼발 부적"],mid=["이 빠진 롱소드","판금 흉갑","흡혈의 반지","사냥꾼의 활"],late=["월광 세이버"];
   let pool;
   if(f>=31) pool=GEAR_TIERS.rift;               // 시공: 시공 티어
