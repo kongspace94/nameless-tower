@@ -974,6 +974,21 @@ function unleashUltimate(){ const e=enemy; if(!e)return; const c=B.charge; B.cha
   if(globalThis.__SIM__){ applyUlt("good"); return; }
   startGauge("block", applyUlt, 1.0, `🛡 ${name}이(가) 온다! 완벽한 타이밍에 막아라!`); }
 
+/* 💬 포켓몬식 전투 대화박스 — 적 행동을 박스로 알리고 [클릭/스페이스]로 진행(안 누르면 잠깐 뒤 자동). 큰 공격은 붉은 경고 */
+function battleSay(text, onDone, opts){ opts=opts||{};
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ if(onDone)onDone(); return; }
+  line(text, opts.danger?"dmg":"sys");
+  const s=$("stage"); if(s){ const old=s.querySelector(".battlesay"); if(old)old.remove();
+    const d=document.createElement("div"); d.className="battlesay"+(opts.danger?" danger":""); d.innerHTML=`<span>${text}</span><i class="bs-next">▼</i>`; s.appendChild(d); }
+  if(typeof sfx==="function")sfx("click");
+  let done=false; let timer=null;
+  const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
+    const bx=$("stage")&&$("stage").querySelector(".battlesay"); if(bx)bx.remove(); if(onDone)onDone(); };
+  const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
+  document.addEventListener("keydown",key);
+  setActions([{label:"▶ 계속  (클릭 / 스페이스)",full:true,act:go}]);
+  timer=setTimeout(go, opts.hold||1200);   // 자동 진행(빠른 템포) — 누르면 즉시
+}
 function enemyPhase(){ if(!enemy)return;
   if(B.enemyDot&&B.enemyDot.turns>0){ const dd=B.enemyDot.dmg; enemy.hp-=dd; B.enemyDot.turns--;   // 출혈/맹독 도포 DoT
     line(`🩸 출혈로 ${enemy.n}에게 <b>${dd}</b> 피해 (남은 ${B.enemyDot.turns}턴)`,"dmg"); spawnFloat("-"+dd,"#ff8a8a","foe"); updateFoeBar();
@@ -999,10 +1014,16 @@ function enemyPhase(){ if(!enemy)return;
   const it=B.enemyIntent||{type:"attack"};
   if(it.type==="guard"){ B.enemyGuard=0.5; line(`${enemy.n}이(가) 방어 태세를 취한다.`,"sys"); endEnemyTurn(); return; }
   if(it.type==="poison"){ const d=incoming(0.6); applyPlayerDamage(d,`${enemy.n}의 맹독 공격!`); if(P.hp>0){ B.poison=Math.max(B.poison,3); line("중독됐다! (3턴)","dmg"); } endEnemyTurn(); return; }
-  // 물리 공격 — 돌발 패링 기회(확률)가 뜨면 반응 QTE, 아니면 그대로 피격
-  const mult=it.type==="heavy"?2.0:it.type==="special"?2.4:1.0; if(it.type==="special")line(`✴ ${enemy.n}의 ${it.label}!`,"dmg");
-  if(!B.disarmed && !B.block && enemy && enemy.hp>0 && chance(parryProcChance())){ reactiveParry(mult,it); return; }   // 돌발 패링 (방어 안 했을 때)
-  resolveEnemyAttack(mult,it,"none"); }
+  // 물리 공격 — 💬 대화박스로 행동 예고 → 큰 공격은 항상 패링 기회, 일반은 확률 패링
+  const mult=it.type==="heavy"?2.0:it.type==="special"?2.4:1.0;
+  const big=(it.type==="heavy"||it.type==="special");
+  const actName = it.type==="heavy"?"강타":it.type==="special"?(it.label||"필살기"):(it.label||"공격");
+  const sayText = `${enemy.n}의 <b>${actName}</b>!` + (big?` <span style="color:#ffd36a">— 큰 공격! 패링 준비!</span>`:"");
+  battleSay(sayText, ()=>{ if(!enemy||P.hp<=0)return;
+    const canParry = !B.disarmed && !B.block && enemy && enemy.hp>0;
+    if(canParry && (big || chance(parryProcChance()))){ reactiveParry(mult,it); return; }   // 큰 공격은 반드시 패링 QTE
+    resolveEnemyAttack(mult,it,"none");
+  }, {danger:big, hold:big?1900:1050}); }
 /* 적 공격 최종 처리 (패링 결과 pr: perfect/good/miss/none) → 엔드턴 */
 function resolveEnemyAttack(mult,it,pr){ if(!enemy)return;
   if(pr==="perfect"){ line(`⚔️ <b>완벽한 패링!</b> ${enemy.n}의 공격을 되받아쳤다!`,"loot"); addGroggy(30);
