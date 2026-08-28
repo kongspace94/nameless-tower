@@ -232,12 +232,14 @@ function setSceneFoe(){ if(!enemy)return;
     sumHtml=`<div class="summ${S.guard?' guarding':''}"><span class="se">${S.emoji}</span><div><div class="sn">${S.n}${tr?` ${tr.ic}`:""}</div>`+
       `<div class="smeta">⚔${S.dmg} · ${S.turns}턴${S.guard?" · 🛡방어":""}</div></div></div>`; }
   $("stageContent").innerHTML = intentHtml + foe + me + compHtml + sumHtml;
+  if(typeof updateBattleBars==="function")updateBattleBars();   // 🟢 HP바 색(비율) 초기 반영
   setFloorTag(); $("porMini").innerHTML=""; }
+function hpColor(frac){ return frac>0.5?"#4fbf7a":frac>0.2?"#e8c56a":"#e2574a"; }   // 🟢 HP 비율 색: 초록→노랑→빨강
 function updateBattleBars(){ if(!enemy)return;
-  const eb=$("ebar"); if(eb)eb.style.width=clamp(enemy.hp/enemy.hpMax*100,0,100)+"%";
+  const ef=clamp(enemy.hp/enemy.hpMax,0,1); const eb=$("ebar"); if(eb){ eb.style.width=ef*100+"%"; eb.style.background=hpColor(ef); }
   const en=$("ehpnum"); if(en)en.textContent=`${Math.max(0,enemy.hp)}/${enemy.hpMax}`;
   const mhp=MAXHP(),mmp=MAXMP();
-  const hb=$("meHpBar"); if(hb)hb.style.width=clamp(P.hp/mhp*100,0,100)+"%"; const hn=$("meHpNum"); if(hn)hn.textContent=`${Math.max(0,P.hp)}/${mhp}`;
+  const mf=clamp(P.hp/mhp,0,1); const hb=$("meHpBar"); if(hb){ hb.style.width=mf*100+"%"; hb.style.background=hpColor(mf); } const hn=$("meHpNum"); if(hn)hn.textContent=`${Math.max(0,P.hp)}/${mhp}`;
   const mb=$("meMpBar"); if(mb)mb.style.width=clamp(P.mp/mmp*100,0,100)+"%"; const mn=$("meMpNum"); if(mn)mn.textContent=`${P.mp}/${mmp}`;
   const om=$("meMomBar"); if(om){ const full=(B&&(B.momentum||0)>=MOM_MAX); om.style.width=clamp((B&&B.momentum||0)/MOM_MAX*100,0,100)+"%"; om.parentElement.classList.toggle("full",full); const onn=$("meMomNum"); if(onn)onn.textContent=full?'🌟':Math.floor((B&&B.momentum)||0); }
   updateGroggyBar(); }

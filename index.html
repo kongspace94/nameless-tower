@@ -128,7 +128,11 @@
   .bunit{position:absolute; display:flex; align-items:center; gap:10px; z-index:2}
   .bfoe{top:18px; right:14px; flex-direction:row-reverse}
   .bme{bottom:12px; left:14px}
-  .bunit .bart{filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+  .bunit .bart{position:relative; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+  /* 🟢 포켓몬식 발판 — 스프라이트 밑 타원 그림자(공중에 뜬 느낌 제거) */
+  .bunit .bart::after{content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); width:92%; height:20px; border-radius:50%;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 55%, transparent 72%); z-index:-1; pointer-events:none}
+  .bfoe .bart::after{width:86%; bottom:-7px}
   .bfoe .bart{animation:bobSoft 3.6s ease-in-out infinite}   /* GIF는 자체 움직임이 있어 살짝만 */
   @keyframes bobSoft{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   /* ⚔ 공격 시 앞으로 치고 나가는 모션(플레이어=우상향, 적=좌하향) */
@@ -304,7 +308,8 @@
   body.combat .log{display:none}
   .battlemsg.danger{border-color:#c0392b; background:linear-gradient(180deg,#2a1417,#180d11)}
   .battlemsg .bm-txt{opacity:.5; transition:opacity .15s}         /* 오래된 줄은 흐리게 */
-  .battlemsg .bm-txt.cur{opacity:1; font-size:15.5px}             /* 최신 줄 또렷하게 */
+  .battlemsg .bm-txt.cur{opacity:1; font-size:15.5px; animation:bmIn .16s ease}   /* 최신 줄 또렷하게 + 살짝 등장 */
+  @keyframes bmIn{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)}}
   .battlemsg .bm-txt.dmg{color:#ff9d9d} .battlemsg .bm-txt.heal{color:#96f0bf} .battlemsg .bm-txt.loot{color:#ffe08a} .battlemsg .bm-txt.sys{color:#c7d0e0} .battlemsg .bm-txt.quote{color:#dbe2f0; font-style:italic}
   .battlemsg.await::after{content:"▼"; position:absolute; right:12px; bottom:8px; font-size:12px; color:#8fa0c8; animation:dlgblink 1s steps(1) infinite}
   /* ⤢ 메시지 박스 확대 토글 버튼 + 확대(전체 로그 스크롤) 상태 */

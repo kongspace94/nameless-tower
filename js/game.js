@@ -463,6 +463,11 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.3 · 8/28", title:"전투 화면 포켓몬 감성 업", items:[
+      "🟢 <b>스프라이트 발판(그림자)</b> 추가 — 공중에 뜬 느낌 제거, 배틀 화면 느낌↑",
+      "❤️ <b>HP바 색 변화</b> — 초록→노랑→빨강 (위험도 한눈에)",
+      "💬 메시지 최신 줄 <b>살짝 등장 연출</b>",
+    ]},
   { ver:"v2.2 · 8/28", title:"대륙 개척 원복 · 대륙 탑 분리", items:[
       "🧭 <b>대륙 개척(구역 시스템)을 원래대로 복구</b> — 개척은 그대로, 80층 탑은 '탑 등반' 목록 전용으로 분리",
       "🗼 <b>대륙 탑에 이름</b> 부여 (석화의 탑·용암의 탑·빙하의 탑·창궁의 탑·근원의 탑) · 관문(포탈) 개수 표시",
@@ -541,7 +546,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-28i",
+  id:"2026-08-28j",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
