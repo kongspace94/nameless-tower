@@ -15,6 +15,21 @@ function die(){ if(P&&P._duel){ if(typeof pvpLoss==="function")return pvpLoss(P.
   line("얻은 재료와 스킬, 스탯은 그대로다.","sys");
   if(typeof deathCause!=="undefined")deathCause="";   // 초기화
   render(); setActions([{label:"🏘 마을로 돌아간다",full:true,act:townMenu}]); }
+/* 🔓 기능 해금 안내 — 눈에 띄게 알림 */
+function unlockAnnounce(icon, title, desc){ if(typeof toast==="function")toast(icon+" "+title+" 잠금해제!");
+  line(`🔓 <b style="color:var(--gold)">${icon} ${title}</b> — <b style="color:var(--gold)">잠금 해제!</b> ${desc}`,"loot"); if(typeof sfx==="function")sfx("victory"); }
+/* 🌍 탑의 진실 — 50층 첫 정복 시 세계의 비밀을 마주하는 VN 시퀀스 */
+function towerTruthReveal(done){
+  const steps=[
+    {who:"narr", text:"이름 없는 신이 스러지자, 옥좌 뒤의 벽이 굉음과 함께 갈라진다."},
+    {who:"narr", text:"틈으로 <b>바깥</b>이 보인다. 탑은 세계의 끝이 아니었다 — 세계를 가두는 <b>말뚝</b>이었을 뿐."},
+    {who:"comp", text:"…이게 진실이었구나. 탑은 '끝까지 오른 자'를 골라내는 시험이었어."},
+    {who:"narr", text:"오른 자에게만 열리는 문. 그 너머엔 <b>수많은 탑</b>이 박힌 <b>광대한 대륙</b>이 지평선까지 펼쳐져 있었다."},
+    {who:"me", text:"…그럼 내가 오른 이 탑은, 그중 가장 낮은 하나였다는 건가."},
+    {who:"comp", text:"응. 세계를 봉인한 탑들을 하나씩 무너뜨리는 것 — <b>진짜 여정</b>은 이제부터야."},
+  ];
+  if(typeof vnScene==="function")vnScene(steps, done); else if(done)done();
+}
 function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene("👑","");
   const good=P.karma>=3, evil=P.karma<=-3;
   line(`<b style="color:var(--gold)">— 탑의 꼭대기 —</b>`);
@@ -35,16 +50,18 @@ function victory(){ stopAuctionTimer(); enemy=null; B=null; clearLog(); setScene
   line("정상의 보물을 쓸어담아 마을로 돌아왔다.","sys"); P.gold+=300; Object.keys(MATS).forEach(m=>addMat(m,5)); gainStamina(STAM_MAX); line("💰 금화 +300, 재료 대량 획득! 생활력도 가득 찼다.","loot");
   const firstClear = !(P.flags.cleared>0);
   P.flags.cleared=(P.flags.cleared||0)+1; checkTitleUnlocks();
-  if(firstClear){ P.flags.continentUnlocked=true; toast("🧭 대륙 개척 해금!");   // 정상 도달 → 대륙 개척 해금
+  if(firstClear){ P.flags.continentUnlocked=true;   // 정상 도달 → 대륙 개척 해금
     render();
-    setActions([{label:"▶ 계속",full:true,act:()=>{
-      vnScene(vnTowerToContinent(), ()=>{   // 🎭 탑→개척 전환 대화
-        clearLog(); setScene("🧭","새로운 여정 — 대륙이 열렸다.");
-        line("끝이라 믿었던 곳 너머로, <b>광대한 대륙</b>과 <b>수많은 탑</b>이 펼쳐졌다.","loot");
-        line("<span class=\"quote\">저마다의 탑엔 저마다의 수호자가 잠들어 있다. 네가 오른 이 탑은, 그중 가장 낮은 하나였을 뿐.</span>");
-        line("진짜 여정은 이제부터 — <b>🧭 대륙 개척</b>으로 새로운 탑들을 찾아 오르자!","loot");
-        line(`— 탑 정복 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");
-        render(); setActions([{label:"🏘 마을로 (대륙 개척 가능)",full:true,act:townMenu}]);
+    setActions([{label:"▶ 옥좌 뒤를 본다",full:true,act:()=>{
+      towerTruthReveal(()=>{   // 🌍 세상의 진실 리빌
+        unlockAnnounce("🧭","대륙 개척","탑 너머 광대한 대륙으로 — 개척에서 새로운 탑들을 찾아 오르세요!");
+        vnScene(vnTowerToContinent(), ()=>{   // 🎭 탑→개척 전환 대화
+          clearLog(); setScene("🧭","새로운 여정 — 대륙이 열렸다.");
+          line("끝이라 믿었던 곳 너머로, <b>광대한 대륙</b>과 <b>수많은 탑</b>이 펼쳐졌다.","loot");
+          line("진짜 여정은 이제부터 — <b>🧭 대륙 개척</b>으로 새로운 탑들을 찾아 오르자!","loot");
+          line(`— 탑 정복 ${P.flags.cleared}회. 탑은, 다시 당신을 부를 것이다. —`,"sys");
+          render(); setActions([{label:"🏘 마을로 (대륙 개척 가능)",full:true,act:townMenu}]);
+        });
       });
     }}]);
     return;

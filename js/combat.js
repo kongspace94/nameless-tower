@@ -1562,7 +1562,8 @@ function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINEN
   if(chance(0.5))dropRelic();
   if((P.flags.contCleared||0)<ci+1)P.flags.contCleared=ci+1;   // 다음 대륙 해금
   if(P.expProg)delete P.expProg[ci];   // 🧭 완전 개척 → 진행 기록 정리(재도전은 처음부터)
-  line(`🗼 <b>${c.name}</b>의 탑으로 통하는 <b>포탈</b>이 열렸다! — 마을 <b>탑 등반</b> 목록에서 다시 오를 수 있다.`,"loot");   // 🗼 탑 포탈 해금
+  if(typeof unlockAnnounce==="function")unlockAnnounce("🗼",`${c.name}의 탑`,"마을 탑 등반 목록에서 이 탑의 포탈을 이용할 수 있어요!");
+  else line(`🗼 <b>${c.name}</b>의 탑으로 통하는 <b>포탈</b>이 열렸다!`,"loot");   // 🗼 탑 포탈 해금
   EXP=null; expReturn=null; checkTitleUnlocks(); render();
   if(last){ setTimeout(trueEnding,300); return; }
   line(`🧭 <b>다음 대륙</b>이 열렸다 — ${CONTINENTS[ci+1].name}!`,"loot");
