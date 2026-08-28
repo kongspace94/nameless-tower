@@ -463,6 +463,12 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.7 · 8/29", title:"버프 표시·상태패널·패링", items:[
+      "✨ <b>전투 중 획득 버프도 칩으로 표시</b> — 이번 전투 공격 +%·치명+%·방어+·적취약+% 등(예전엔 전투 전 버프만 떴음)",
+      "📏 <b>상태패널 2배 길게</b>(넓은 화면) — HP바가 시원하게, 포켓몬식",
+      "⚔️ <b>패링 난도 상향</b> — 성공창 좁힘(무조건 성공 방지, 실패 여지)",
+      "🐛 대륙 탑 승리 화면 <b>스프라이트/전리품 겹침 완전 차단</b>",
+    ]},
   { ver:"v2.6 · 8/29", title:"전투 필드 다듬기", items:[
       "🏞 <b>필드 확대(490px) + 지면·발판 연출</b> — 스프라이트가 필드에 선 느낌(포켓몬식)",
       "🙂 플레이어 프로필 축소(124px) · 적 스프라이트 크게 유지",
@@ -563,7 +569,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29f",
+  id:"2026-08-29g",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

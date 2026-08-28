@@ -323,6 +323,11 @@ function combatBuffHtml(){ if(!P)return ""; const good=[], bad=[]; const b=P.buf
   if(b.weaponElem&&typeof ELEMENTS!=="undefined"&&ELEMENTS[b.weaponElem])good.push(`${ELEMENTS[b.weaponElem].ic}${ELEMENTS[b.weaponElem].n}`);
   if(b.regionResist)good.push(`🧿내성`);
   if(typeof B!=="undefined"&&B){
+    if(B.atkPct)good.push(`⚔공+${Math.round(B.atkPct*100)}%`);   // ⚔ 전투 중 획득 버프(전투 함성·대박 등) — 이제 칩으로 표시
+    if(B.critB)good.push(`🎯치+${Math.round(B.critB*100)}%`);
+    if(B.defB)good.push(`🛡방+${B.defB}`);
+    if(B.enemyVuln)good.push(`💥적취약+${Math.round(B.enemyVuln*100)}%`);
+    if(B.nextCrit)good.push(`✨확정치명`);
     if(B.shield)good.push(`🛡가드`);
     if(B.dmgTakenPct)bad.push(`⚠받는피해+${Math.round(B.dmgTakenPct*100)}%`);
     if(B.pdot&&B.pdot.t>0){ const el=(typeof ELEMENTS!=="undefined"&&ELEMENTS[B.pdot.elem])||null; bad.push(`${el?el.ic:"☣"}${el?el.n:"이상"} ${B.pdot.t}턴`); }

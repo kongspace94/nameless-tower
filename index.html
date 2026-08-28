@@ -183,8 +183,10 @@
   .circlecast .rune.next{color:#ffe08a; border-color:#ffd36a; box-shadow:0 0 10px #ffd36a; transform:translate(-50%,-50%) scale(1.25)}
   .circlecast .rune.lit{color:#c9a9ff; border-color:#c9a9ff; box-shadow:0 0 8px #c9a9ff}
   .circlecast .rune.bad{color:#ff8a8a; border-color:#a33; animation:shake .25s}
-  .ubox{background:#131824cc; border:1px solid var(--line); border-radius:10px; padding:6px 10px; min-width:148px; backdrop-filter:blur(2px)}
-  .ubox .un{font-size:12.5px; font-weight:600; margin-bottom:4px}
+  .ubox{background:#131824cc; border:1px solid var(--line); border-radius:10px; padding:7px 12px; min-width:190px; backdrop-filter:blur(2px)}
+  /* 🩹 전투 상태패널 포켓몬처럼 길게(넓은 화면에서 약 2배) — HP바가 시원하게 */
+  @media (min-width:821px){ .bunit .ubox{ min-width:300px; padding:9px 15px } .bunit .hpbar2{ height:10px } }
+  .ubox .un{font-size:13.5px; font-weight:600; margin-bottom:5px}
   .ubox .weakb{font-size:9.5px; font-weight:700; margin-left:5px; padding:1px 5px; border:1px solid currentColor; border-radius:6px; opacity:.9}
   .ailrow{display:flex; gap:5px; margin:-1px 0 4px} .ailrow .ailb{font-family:var(--mono); font-size:10px; font-weight:700; padding:1px 5px; border-radius:6px; background:#0a0d13; border:1px solid var(--line)}
   .ubox .mechb{font-size:9.5px; font-weight:700; margin-left:5px; padding:1px 5px; border:1px solid #3a4460; border-radius:6px; color:#a9b6d6; opacity:.9}
