@@ -761,17 +761,22 @@ function runRareSkill(k,s){ if(!enemy){ return; } const m=skillMul(k), fx=s.fx||
   if(fx.mpRestore)P.mp=clamp(P.mp+fx.mpRestore,0,MAXMP());
   if(fx.popup)bigPop(fx.popup,fx.popColor||"#ffd36a");
   if(fx.shake&&typeof fxShakeHard==="function")fxShakeHard(); else if(fx.shake)fxShake();
-  let killed=false, hp0=enemy?enemy.hp:0;
-  const dmgOnce=(base,label,color,elem)=>{ let dmg=Math.round(base); dmg = fx.defIgnore? dmg : Math.max(1, dmg-(fx.defHalf?Math.floor(enemy.def/2):enemy.def));
-    if(fx.crit&&chance(fx.crit)){ dmg=Math.round(dmg*1.7); line("🎯 <b>치명!</b>","loot"); } return hitEnemy(Math.max(1,dmg), label, color, elem); };
-  if(fx.goldThrow){ const spend=Math.min(P.gold, fx.goldThrow); P.gold-=spend; const base=(ATK()*m)+spend*0.5; line(`💰 금화 ${spend}을(를) 흩뿌린다!`,"loot"); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#ffd36a"); }
-  else if(fx.randMult){ const mn=fx.randMult[0], mx=fx.randMult[1]; const r=mn+Math.random()*(mx-mn); const base=(ATK()+rnd(4))*r*m; if(r>=mx*0.8)bigPop("대박!","#ff5a5a"); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#ffcf6a",fx.elem); }
-  else if(fx.execMult){ const low=enemy.hp/enemy.hpMax < (fx.execThresh||0.3); const mult=low?fx.execMult:(fx.mult||1); const base=(ATK()+rnd(4))*mult*m; if(low)bigPop("처형!","#ff5a5a"); killed=dmgOnce(base,`${s.emoji} ${s.n}${low?"!":""}`,fx.color||"#ff5a5a"); }
-  else if(fx.magic){ const base=(magicPow()*(fx.mult||2)*m+rnd(6)); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#c9a9ff",fx.elem); }
-  else if(fx.hits){ for(let i=0;i<fx.hits;i++){ if(!enemy||enemy.hp<=0)break; if(i>0&&typeof fxSlash==="function")fxSlash(i%2?1:-1); const base=(ATK()+rnd(4))*(fx.mult||1)*m; killed=dmgOnce(base,`${s.emoji} ${s.n}${fx.hits>1?` ${i+1}`:""}`,fx.color||"#ff8f3c",fx.elem); } }
-  if(fx.vamp && enemy){ const dealt=Math.min(hp0-(enemy?enemy.hp:0), hp0); if(dealt>0){ heal(Math.round(dealt*fx.vamp)); line(`🧛 피해의 ${Math.round(fx.vamp*100)}%를 흡수했다.`,"heal"); } }
-  render();
-  if(!killed && enemy && enemy.hp>0)afterPlayerAction(); }
+  const hasDamage=!!(fx.hits||fx.magic||fx.execMult||fx.goldThrow||fx.randMult);
+  const doDamage=(tq)=>{ let killed=false, hp0=enemy?enemy.hp:0;
+    const dmgOnce=(base,label,color,elem)=>{ let dmg=Math.round(base*tq); dmg = fx.defIgnore? dmg : Math.max(1, dmg-(fx.defHalf?Math.floor(enemy.def/2):enemy.def));
+      if(fx.crit&&chance(fx.crit)){ dmg=Math.round(dmg*1.7); line("🎯 <b>치명!</b>","loot"); } return hitEnemy(Math.max(1,dmg), label, color, elem); };
+    if(fx.goldThrow){ const spend=Math.min(P.gold, fx.goldThrow); P.gold-=spend; const base=(ATK()*m)+spend*0.5; line(`💰 금화 ${spend}을(를) 흩뿌린다!`,"loot"); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#ffd36a"); }
+    else if(fx.randMult){ const mn=fx.randMult[0], mx=fx.randMult[1]; const r=mn+Math.random()*(mx-mn); const base=(ATK()+rnd(4))*r*m; if(r>=mx*0.8)bigPop("대박!","#ff5a5a"); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#ffcf6a",fx.elem); }
+    else if(fx.execMult){ const low=enemy.hp/enemy.hpMax < (fx.execThresh||0.3); const mult=low?fx.execMult:(fx.mult||1); const base=(ATK()+rnd(4))*mult*m; if(low)bigPop("처형!","#ff5a5a"); killed=dmgOnce(base,`${s.emoji} ${s.n}${low?"!":""}`,fx.color||"#ff5a5a"); }
+    else if(fx.magic){ const base=(magicPow()*(fx.mult||2)*m+rnd(6)); killed=dmgOnce(base,`${s.emoji} ${s.n}`,fx.color||"#c9a9ff",fx.elem); }
+    else if(fx.hits){ for(let i=0;i<fx.hits;i++){ if(!enemy||enemy.hp<=0)break; if(i>0&&typeof fxSlash==="function")fxSlash(i%2?1:-1); const base=(ATK()+rnd(4))*(fx.mult||1)*m; killed=dmgOnce(base,`${s.emoji} ${s.n}${fx.hits>1?` ${i+1}`:""}`,fx.color||"#ff8f3c",fx.elem); } }
+    if(fx.vamp && enemy){ const dealt=Math.min(hp0-(enemy?enemy.hp:0), hp0); if(dealt>0){ heal(Math.round(dealt*fx.vamp)); line(`🧛 피해의 ${Math.round(fx.vamp*100)}%를 흡수했다.`,"heal"); } }
+    render(); if(!killed && enemy && enemy.hp>0)afterPlayerAction(); };
+  if(hasDamage && fx.timing){   // 🎯 상호작용: 타이밍 성공도가 위력에 반영
+    render(); startGauge("attack", q=>{ if(!enemy)return; const tq=q==="perfect"?1.4:q==="good"?1.0:0.6;
+      if(q==="perfect")line("🎯 <b>완벽한 일격 — 위력 최대!</b>","loot"); else if(q==="weak")line("빗맞아 위력이 줄었다…","sys");
+      doDamage(tq); });
+  } else { render(); if(hasDamage)doDamage(1); else if(enemy&&enemy.hp>0)afterPlayerAction(); } }
 /* 주문 영창 — 커스텀 영창(한글). 숙련 레벨이 오를수록 앞부분(reqLen)만 쳐도 발동 (완벽 시 1.15배, 실패 시 소멸) */
 const CAST_SPELLS=["fireball","heal_spell","drain"];   // 타이핑 영창 주문
 const MIN_CHANT_REQ=1, CHANT_LV_CAP=30;   // 숙련 Lv1→전체, Lv30→1자 (선형, 최대 30레벨 기준)
