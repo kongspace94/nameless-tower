@@ -18,7 +18,7 @@ const IX={
   bat:["enemies/bat.png","🦇"], skeleton:["enemies/skeleton.png","💀"], slime:["enemies/slime.png","🟢"],
   spider:["enemies/spider.png","🕷️"], knight:["enemies/cursed_knight.png","🛡️"], ghoul:["enemies/ghoul.png","🧟"],
   fire:["enemies/fire_spirit.png","🔥"], gorgon:["enemies/gorgon.png","🐍"],
-  golem:["enemies/boss_golem.png","🗿"], countess:["enemies/boss_countess.png","🧛"], tentacle:["enemies/boss_tentacle.png","🐙"],
+  golem:["enemies/boss_golem.gif","🗿"], countess:["enemies/boss_countess.png","🧛"], tentacle:["enemies/boss_tentacle.png","🐙"],
   /* 제2컨셉존(16~30층) 천공의 성역 */
   harpy:["enemies/harpy.png","🦅"], crystal:["enemies/crystal_golem.png","💠"], wraith:["enemies/light_wraith.png","👻"],
   wyvern:["enemies/storm_wyvern.png","🐲"], seraph:["enemies/fallen_seraph.png","👼"], thunderbird:["enemies/thunderbird.png","⚡"],

@@ -58,7 +58,7 @@ const ENEMIES3=[
   {n:"균열의 히드라",ic:"rifthydra",hp:236,atk:41,def:14,g:140,tier:9,taunt:["세 머리가 차원을 물어뜯는다.","균열에서 포효가 울린다."]},
 ];
 const BOSSES={
-  5:{n:"탑의 문지기 · 골렘",ic:"golem",hp:70,atk:12,def:6,g:60,boss:true,sp:"대지 강타",taunt:["돌 주먹이 천장을 긁는다.",'"자격 없는 자는 오르지 못한다."']},
+  5:{n:"탑의 문지기 · 용암 골렘",ic:"golem",hp:70,atk:12,def:6,g:60,boss:true,sp:"용암 강타",weak:"frost",atkElem:"fire",taunt:["갈라진 몸에서 용암이 흘러내린다.","룬이 붉게 타오른다.",'"자격 없는 자는 오르지 못한다."']},
   10:{n:"핏빛 여백작",ic:"countess",hp:110,atk:16,def:6,g:120,boss:true,vamp:true,sp:"피의 강타",taunt:['"네 피는 좋은 빈티지겠구나."',"손톱을 세운다."]},
   15:{n:"심연의 촉수",ic:"tentacle",hp:150,atk:20,def:8,g:180,boss:true,sp:"촉수 난타",taunt:["바닥의 어둠이 살아 움직인다.","수십 촉수가 솟는다."]},
   20:{n:"성문의 수호자 · 아르콘",ic:"archon",hp:230,atk:26,def:12,g:260,boss:true,sp:"빛의 심판",taunt:["거대한 빛의 검이 내려온다.",'"여기서부터는 신의 영역이다."']},
