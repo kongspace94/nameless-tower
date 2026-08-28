@@ -463,6 +463,12 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.1 · 8/28", title:"전투 진행·전리품 정리", items:[
+      "🖱️ <b>전투 중 자동 진행 제거</b> — 적 행동·전리품 전환은 클릭/스페이스로 직접 넘깁니다 (단, 패링 QTE는 그대로 반응형)",
+      "📦 <b>재료 전리품을 한 줄로 통합</b> — 같은 재료가 여러 줄로 나뉘던 것 합산 표시",
+      "🥾 장비 획득 표기 간결화 — 중복되던 '…을(를) 손에 넣었다!' 제거 (장비 획득 + NEW만)",
+      "🧪 <b>물약은 인간형 몬스터만 드랍</b> — 골렘·슬라임·정령 등에서 물약이 나오지 않습니다",
+    ]},
   { ver:"v2.0 · 8/28", title:"대륙이 80층 탑으로!", items:[
       "🗼 <b>대륙 개척을 80층 탑 등반으로 전면 개편</b> — 구역 시스템 대신 '이름 없는 탑'처럼 층을 오릅니다",
       "👹 대륙 환경에 맞는 <b>지역 몬스터·지역 디버프</b>, <b>10층마다 지역 보스</b>, <b>80층 대륙 수호체</b>",
@@ -528,7 +534,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-28g",
+  id:"2026-08-28h",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

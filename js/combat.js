@@ -28,6 +28,11 @@ function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); 
 function returnToTown(){ line("밧줄을 타고 탑을 빠져나왔다. 획득물은 그대로다.","sys"); setTimeout(townMenu,150); }
 let deathCause="";   // 💀 마지막으로 플레이어를 쓰러뜨린 원인(사인 표시용)
 let _killBlow=null;   // 💥 적을 쓰러뜨린 마지막 일격(스킬/피해) — 승리 연출용
+let _matBuf=null;   // 📦 승리 시 재료 획득을 한 줄로 합쳐 표시하기 위한 버퍼
+function lootMat(k,n){ addMat(k,n); if(_matBuf){ _matBuf[k]=(_matBuf[k]||0)+n; } else { line(`${MATS[k][0]} ${MATS[k][1]} +${n}`,"loot"); } }
+function flushMatBuf(){ if(!_matBuf)return; const ks=Object.keys(_matBuf); if(ks.length){ line(`📦 재료 — ${ks.map(k=>`${MATS[k][0]}${MATS[k][1]}+${_matBuf[k]}`).join(" · ")}`,"loot"); } _matBuf=null; }
+const HUMANOID_ICS=new Set(["knight","skeleton","ghoul","wraith","starwraith","gorgon","godhead","voidlord","cultist","bandit","witch","mage","siren","assassin","warlord"]);   // 🧍 인간형(물약 소지) — 골렘·슬라임·정령·짐승 등은 제외
+function isHumanoidFoe(e){ return !!(e && (e.human || HUMANOID_ICS.has(e.ic))); }
 function setDeathCause(c){ deathCause=c; }
 
 const ENEMIES=[
@@ -1022,7 +1027,7 @@ function battleSay(text, onDone, opts){ opts=opts||{};
   const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
   document.addEventListener("keydown",key);
   setActions([{label:"▶ 계속  (클릭 / 스페이스)",full:true,act:go}]);
-  timer=setTimeout(go, opts.hold||1200);   // 자동 진행(빠른 템포) — 누르면 즉시
+  // ⏸ 자동 진행 제거 — 유저가 클릭/스페이스로 직접 넘긴다 (패링 QTE는 reactiveParry가 따로 반응형으로 처리)
 }
 function enemyPhase(){ if(!enemy)return;
   if(B.enemyDot&&B.enemyDot.turns>0){ const dd=B.enemyDot.dmg; enemy.hp-=dd; B.enemyDot.turns--;   // 출혈/맹독 도포 DoT
@@ -1200,9 +1205,9 @@ function winCombat(){
     line(`💥 <b>${how}</b> — ${kb&&kb.crit?'<span style="color:#ff8f3c">치명! </span>':''}${dtxt}`,"dmg"); }
   if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사(박스)
   // ===== 전리품 수집(캡처) → 나중에 별도 패널로 한 번에 보여줌(전투/획득 분리) =====
-  _lootCapture=true; _lootBuf=[];
+  _lootCapture=true; _lootBuf=[]; _matBuf={};   // 📦 재료는 버퍼에 모아 한 줄로
   const g=enemy.g+rnd(6); P.gold+=g; line(`💰 금화 +${g}`,"loot"); spawnFloat("💰+"+g,"#ffe08a","foe");
-  const mkeys=Object.keys(MATS); const m=mkeys[rnd(mkeys.length)]; const ma=1+rnd(3); addMat(m,ma); line(`${MATS[m][0]} ${MATS[m][1]} +${ma}`,"loot");   // 재료 1~3개
+  const mkeys=Object.keys(MATS); const m=mkeys[rnd(mkeys.length)]; const ma=1+rnd(3); lootMat(m,ma);   // 재료 1~3개(합산 표시)
   if(typeof FOODS!=="undefined" && chance(wasBoss?1:0.28)){ const fk=pick(["food_heal","food_dps","food_tank"]); const fa=(wasBoss?2:1)+rnd(2); gainFood(fk,fa); line(`${FOODS[fk].emoji} <b>${FOODS[fk].n}</b> +${fa} <span style="color:var(--dim)">(동료 먹이)</span>`,"loot"); }   // 🍖 동료 먹이 드랍
   { const st=pick(["str","int","dex","vit","luk"]); const tp=3+rnd(3)+Math.floor((enemy.atk||6)/4)+(wasBoss?12:0)+(enemy.elite?6:0);
     const up=trainStat(st,tp); if(up>0){ spawnFloat(`✦ ${STAT_NAME[st]} +${up}`,"#9be08a","me"); line(`✦ <b>${STAT_NAME[st]} +${up}</b> (전투 숙련)`,"loot"); } }
@@ -1214,6 +1219,7 @@ function winCombat(){
   if(P.companion&&typeof gainCompBond==="function")gainCompBond(wasBoss?Math.round(15+floor*0.8):Math.round(3+floor*0.25));   // 🐾 동료 유대
   if(wasBoss&&typeof maybeDropCompanion==="function")maybeDropCompanion(floor);
   if(typeof dropRareSkill==="function")dropRareSkill(wasBoss);
+  flushMatBuf();   // 📦 모은 재료를 한 줄로 (같은 재료 중복 합산)
   _lootCapture=false;
   checkTitleUnlocks(); checkQuests();
   const loot=_lootBuf.slice(); enemy=null; B=null; save(true);
@@ -1232,7 +1238,8 @@ function deathDropPause(wasBoss, next){
   const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
   document.addEventListener("keydown",key);
   setActions([{label:"▶ 전리품 확인  (클릭 / 스페이스)",full:true,act:go}]);
-  timer=setTimeout(go, wasBoss?2400:1500); }
+  // ⏸ 자동 진행 제거 — 유저가 직접 눌러 전리품으로 넘어간다
+}
 /* 🎁 전리품 패널 — 전투 끝나면 스테이지(트로피) 자리에 크게 (스크롤 없이 '계속' 보이게) */
 function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog();
   if(document.body)document.body.classList.add("lootview");   // 스테이지 숨기고 전리품을 위로
@@ -1251,11 +1258,10 @@ function dropRelic(){ const f=P.floor; const early=["녹슨 단검","가죽 갑�
 function dropBook(){ const books=Object.keys(CONS).filter(k=>CONS[k].use==="learn"&&!CONS[k].rare); const bk=pick(books); gainCons(bk); line(`${CONS[bk].emoji} <b>${CONS[bk].n}</b>을(를) 발견했다! (가방에서 사용해 스킬 습득)`,"loot"); }   // 희귀 비급은 제외(전용 드랍만)
 function dropManaOrb(){ if((P.skillSlots||SLOT_BASE)>=SLOT_MAX)return; gainCons("mana_orb"); line(`🔵 <b>마나 오브</b> 드랍! 가방에서 쓰면 액티브 스킬 슬롯 +1 (현재 ${P.skillSlots}/${SLOT_MAX}).`,"loot"); toast("마나 오브 획득!"); }
 function bossReward(){ const f=P.floor;
-  const mats=Object.keys(MATS).slice().sort(()=>Math.random()-0.5).slice(0,3);   // 3종만 (뭉뚱그리지 않고 구체적으로)
-  const got=mats.map(m=>{ const a=2+rnd(3); addMat(m,a); return `${MATS[m][0]}${MATS[m][1]}+${a}`; });
-  line(`📦 재료 — ${got.join(" · ")}`,"loot");
-  if(f===15)addRelic("이름 없는 열쇠"); P.potions+=1; line("🧪 물약 +1","loot");
-  if(f>=45){ const g=pick(GEAR_TIERS.myth); addRelic(g); line(`✦ <b>신화 장비</b> — ${g}을(를) 손에 넣었다!`,"loot"); toast("신화 장비 획득!"); }   // 정점 보스: 신화 확정
+  Object.keys(MATS).slice().sort(()=>Math.random()-0.5).slice(0,3).forEach(m=>lootMat(m,2+rnd(3)));   // 재료 3종 — winCombat에서 한 줄로 합쳐 표시
+  if(f===15)addRelic("이름 없는 열쇠");
+  if(isHumanoidFoe(enemy)){ P.potions+=1; line("🧪 물약 +1","loot"); }   // 🧪 물약은 인간형 몬스터만 (골렘·슬라임·정령 등은 X)
+  if(f>=45){ addRelic(pick(GEAR_TIERS.myth)); toast("✦ 신화 장비 획득!"); }   // 정점 보스: 신화 확정(획득 라인은 addRelic이 표시)
   else if(f>=31){ if(chance(0.6))addRelic(pick(GEAR_TIERS.rift)); }   // 상위 장비는 60% (매번 확정 X)
   else if(f>=16){ if(chance(0.6))addRelic(pick(GEAR_TIERS.sky)); } }   // 랜덤 소비품 지급 제거(퍼주기 방지)
 function showClimb(){ setActions([
