@@ -131,6 +131,19 @@
   .bunit .bart{filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
   .bfoe .bart{animation:bobSoft 3.6s ease-in-out infinite}   /* GIF는 자체 움직임이 있어 살짝만 */
   @keyframes bobSoft{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  /* ⚔ 공격 시 앞으로 치고 나가는 모션(플레이어=우상향, 적=좌하향) */
+  .bart.lungeMe{animation:lungeMe .26s ease-out !important}
+  .bart.lungeFoe{animation:lungeFoe .26s ease-out !important}
+  @keyframes lungeMe{0%{transform:translate(0,0)}38%{transform:translate(16px,-13px)}100%{transform:translate(0,0)}}
+  @keyframes lungeFoe{0%{transform:translate(0,0)}38%{transform:translate(-16px,13px)}100%{transform:translate(0,0)}}
+  /* 🎁 처치 시 상자/장비 드랍 연출 */
+  .chestfx{position:absolute; left:62%; top:42%; font-size:40px; z-index:6; pointer-events:none;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.55)); animation:chestDrop .72s cubic-bezier(.3,1.5,.5,1) both, chestGlow 1.3s ease-in-out .72s infinite}
+  .chestfx.boss{font-size:58px; left:57%; top:36%}
+  @keyframes chestDrop{0%{transform:translateY(-96px) scale(.55); opacity:0}42%{opacity:1}62%{transform:translateY(7px) scale(1.06)}80%{transform:translateY(-6px) scale(.97)}100%{transform:translateY(0) scale(1); opacity:1}}
+  @keyframes chestGlow{0%,100%{filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}50%{filter:drop-shadow(0 0 17px rgba(255,214,106,.92)) brightness(1.18)}}
+  .chestspark{position:absolute; z-index:6; pointer-events:none; font-size:16px; animation:chestSpark .9s ease-out forwards}
+  @keyframes chestSpark{0%{opacity:0; transform:translate(0,0) scale(.4)}25%{opacity:1}100%{opacity:0; transform:translate(var(--sx),var(--sy)) scale(1)}}
   .summ{position:absolute; left:18px; bottom:104px; display:flex; align-items:center; gap:6px; z-index:3; background:#171326cc; border:1px solid #4a3d6e; border-radius:10px; padding:4px 8px; backdrop-filter:blur(2px); animation:bob 2.8s ease-in-out infinite; max-width:170px}
   .summ.guarding{border-color:#7ad6c0; box-shadow:0 0 9px #7ad6c0aa}
   .summ .se{font-size:22px; line-height:1; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}

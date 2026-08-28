@@ -240,12 +240,19 @@ function spawnFloat(text,color,side){ const s=$("stage"); const f=document.creat
   else if(side==="foe"){ f.style.left=jit(68)+"%"; f.style.top=`calc(22% - ${up}px)`; }
   else { f.style.left=(38+rnd(24))+"%"; f.style.top=`calc(46% - ${up}px)`; }
   s.appendChild(f); setTimeout(()=>{ f.remove(); _floatActive[key]=Math.max(0,_floatActive[key]-1); },1000); }
-function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
+function fxLunge(el,cls){ if(!el)return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(()=>{ if(el)el.classList.remove(cls); },300); }
+function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } fxLunge($("meArt"),"lungeMe"); }   // 🗡 내가 때리면 나도 앞으로 치고 나감
+/* 🎁 처치 시 상자/장비 드랍 연출 — 보스는 큰 선물상자+반짝이, 일반은 나무상자 */
+function dropChestFx(boss){ const s=$("stage"); if(!s||typeof document==="undefined")return;
+  const d=document.createElement("div"); d.className="chestfx"+(boss?" boss":""); d.textContent=boss?"🎁":"📦"; s.appendChild(d);
+  setTimeout(()=>{ if(d.parentNode)d.remove(); }, 2600);
+  if(boss){ const base={l:57,t:36}; for(let i=0;i<6;i++){ setTimeout(()=>{ if(!s.isConnected)return; const sp=document.createElement("div"); sp.className="chestspark"; sp.textContent=pick(["✨","⭐","💫"]);
+    sp.style.left=base.l+"%"; sp.style.top=base.t+"%"; sp.style.setProperty("--sx",(rnd(80)-40)+"px"); sp.style.setProperty("--sy",(-30-rnd(40))+"px"); s.appendChild(sp); setTimeout(()=>{ if(sp.parentNode)sp.remove(); },900); }, 720+i*90); } } }
 function fxShake(){ const s=$("stage"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
 function fxShakeHard(){ const s=$("stage"); if(!s)return; s.classList.remove("shake-hard"); void s.offsetWidth; s.classList.add("shake-hard"); }
 function fxSlash(dir){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="slashfx"; d.style.setProperty("--sl",((dir<0?-1:1)*(28+rnd(12)))+"deg"); s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },320); }
 function fxBigHit(){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="hitflash"; s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },440); if(typeof fxHit==="function")fxHit(); }
-function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } if(typeof sfx==="function")sfx("hurt"); }
+function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } fxLunge($("foeArt"),"lungeFoe"); if(typeof sfx==="function")sfx("hurt"); }   // 👹 적이 때리면 적도 앞으로 나옴
 
 /* ---------- HUD ---------- */
 function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); if(ub)ub.hidden=false; } regenStamina();

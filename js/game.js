@@ -460,6 +460,11 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v1.7 · 8/28", title:"처치 연출 강화", items:[
+      "💥 <b>마지막 일격 표시</b> — 어떤 공격으로 몇 피해에 쓰러졌는지 전리품 전에 보여줌",
+      "🎁 처치 시 <b>상자/장비 드랍 연출</b> — 보스는 큰 선물상자+반짝이, 일반 몬스터는 나무상자 (클릭/스페이스로 전리품 확인)",
+      "🗡️ <b>공격 모션</b> — 때릴 때 플레이어·몬스터가 앞으로 치고 나가는 런지 동작 추가",
+    ]},
   { ver:"v1.6 · 8/31", title:"전투 연출·밸런스", items:[
       "🌋 <b>용암 골렘</b> 보스(GIF) 등장 · 전투 스프라이트 확대 + 통통 튀는 모션 완화",
       "🎁 승리 시 <b>전리품 패널</b>을 화면 위에 크게 (스크롤 없이) · '내 턴' 텍스트 제거·글씨 짤림 수정",
@@ -503,7 +508,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-31c",
+  id:"2026-08-28d",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

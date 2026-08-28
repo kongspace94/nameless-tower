@@ -26,6 +26,7 @@ function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); 
     {label:"🏘 마을로 (준비하고 다시)",full:true,act:townMenu}]); }   // 뒤로 — 깜빡한 준비가 있으면 돌아가기
 function returnToTown(){ line("밧줄을 타고 탑을 빠져나왔다. 획득물은 그대로다.","sys"); setTimeout(townMenu,150); }
 let deathCause="";   // 💀 마지막으로 플레이어를 쓰러뜨린 원인(사인 표시용)
+let _killBlow=null;   // 💥 적을 쓰러뜨린 마지막 일격(스킬/피해) — 승리 연출용
 function setDeathCause(c){ deathCause=c; }
 
 const ENEMIES=[
@@ -865,7 +866,7 @@ function applyAil(elem,strong){ if(!enemy)return; if(!enemy.ail)enemy.ail={}; co
 function tickAilments(){ if(!enemy||!enemy.ail)return false; const a=enemy.ail;
   ["fire","venom"].forEach(k=>{ if(a[k]&&a[k].t>0){ enemy.hp-=a[k].dmg; a[k].t--;
     line(`${ELEMENTS[k].ic} ${ELEMENTS[k].ail}으로 ${enemy.n}에게 <b>${a[k].dmg}</b> 피해 (남은 ${a[k].t})`,"dmg"); spawnFloat("-"+a[k].dmg,ELEMENTS[k].col,"foe"); if(a[k].t<=0)delete a[k]; } });
-  updateFoeBar(); if(enemy.hp<=0){ winCombat(); return true; }
+  updateFoeBar(); if(enemy.hp<=0){ _killBlow={label:"지속 피해",dmg:null,dot:true}; winCombat(); return true; }
   if(a.shock&&a.shock.t>0){ a.shock.t--; if(a.shock.t<=0)delete a.shock; }
   if(a.frost&&a.frost.t>0){ const froze=chance(0.4); a.frost.t--; if(a.frost.t<=0)delete a.frost;
     if(froze){ line(`❄️ ${enemy.n}이(가) 얼어붙어 이번 턴 움직이지 못한다!`,"heal"); B.block=null; B.parry=null; B.shield=false; render(); endEnemyTurn(); return true; } }
@@ -896,6 +897,7 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
     if(enemy.mech==="split" && !enemy.splitUsed){ enemy.splitUsed=true; enemy.hp=Math.round(enemy.hpMax*0.45); enemy.atk=Math.round(enemy.atk*0.8); enemy.staggered=false; enemy.groggy=0;
       line(`🫧 <b>${enemy.n}이(가) 둘로 갈라졌다!</b> 더 작아진 채 다시 일어선다.`,"dmg"); bigPop("SPLIT!","#8fd0ff"); updateFoeBar(); setSceneFoe(); return false; }
     if(_wasFull && typeof bumpFeat==="function"){ bumpFeat("oneShot"); if(enemy.boss)bumpFeat("oneShotBoss"); }   // 🎖 원펀맨(풀피 한 방)
+    _killBlow={label:label, dmg:dmg, crit:(color==="#ff8f3c")};   // 💥 마지막 일격 기록
     winCombat(); return true; }
   checkEnrage();                                            // 💢 광폭화 문턱 판정
   if(enemy.mech==="thorns" && dmg>0 && P.hp>0){ const r=Math.max(1,Math.round(dmg*0.12)); P.hp-=r;   // 🌵 가시 반사
@@ -1024,7 +1026,7 @@ function battleSay(text, onDone, opts){ opts=opts||{};
 function enemyPhase(){ if(!enemy)return;
   if(B.enemyDot&&B.enemyDot.turns>0){ const dd=B.enemyDot.dmg; enemy.hp-=dd; B.enemyDot.turns--;   // 출혈/맹독 도포 DoT
     line(`🩸 출혈로 ${enemy.n}에게 <b>${dd}</b> 피해 (남은 ${B.enemyDot.turns}턴)`,"dmg"); spawnFloat("-"+dd,"#ff8a8a","foe"); updateFoeBar();
-    if(B.enemyDot.turns<=0)B.enemyDot=null; if(enemy.hp<=0){ winCombat(); return; } }
+    if(B.enemyDot.turns<=0)B.enemyDot=null; if(enemy.hp<=0){ _killBlow={label:"🩸 출혈",dmg:dd,dot:true}; winCombat(); return; } }
   if(tickAilments())return;   // 🔥 속성 상태이상(화상/중독 DoT · 빙결 동결 판정 · 감전 지속)
   if(enemy.mech==="regen" && enemy.hp>0 && enemy.hp<enemy.hpMax){ const h=Math.max(2,Math.round(enemy.hpMax*0.05)); enemy.hp=Math.min(enemy.hpMax,enemy.hp+h);   // 💚 재생
     line(`💚 ${enemy.n}이(가) ${h} 회복했다.`,"sys"); spawnFloat("+"+h,"#6bcf8a","foe"); updateFoeBar(); }
@@ -1190,6 +1192,10 @@ function winCombat(){
   P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor, foeName=enemy.n;
   if(typeof sfx==="function")sfx("victory");
   line(`<b style="color:var(--good)">🏆 ${foeName}을(를) 쓰러뜨렸다!</b>`);   // 전투 마무리(위 박스에 표시)
+  { const kb=_killBlow; _killBlow=null;   // 💥 마지막 일격 — 어떤 공격으로 몇 데미지에 죽었는지
+    const how=kb&&kb.label?String(kb.label).replace(/\s*—.*$/,"").trim():"마지막 일격";
+    const dtxt=(kb&&kb.dot)?"지속 피해가 숨통을 끊었다!":(kb&&kb.dmg!=null?`<b style="color:#ffd36a">${kb.dmg}</b> 피해로 쓰러뜨렸다!`:"쓰러뜨렸다!");
+    line(`💥 <b>${how}</b> — ${kb&&kb.crit?'<span style="color:#ff8f3c">치명! </span>':''}${dtxt}`,"dmg"); }
   if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사(박스)
   // ===== 전리품 수집(캡처) → 나중에 별도 패널로 한 번에 보여줌(전투/획득 분리) =====
   _lootCapture=true; _lootBuf=[];
@@ -1212,7 +1218,19 @@ function winCombat(){
   const cont = expReturn ? (()=>{ const r=expReturn; expReturn=null; render(); setTimeout(r,120); })
     : (wasBoss&&floor>=TOP) ? (()=>{ setTimeout(victory,120); })
     : (()=>{ clearLog(); setScene("🏆","적을 물리쳤다. 위층 계단이 보인다."); showClimb(); });
-  showVictoryLoot(wasBoss, foeName, loot, cont); }
+  deathDropPause(wasBoss, ()=>showVictoryLoot(wasBoss, foeName, loot, cont)); }
+/* 🎁 처치 → 상자/장비 드랍 연출을 잠깐 보여준 뒤(클릭/스페이스) 전리품 패널로 */
+function deathDropPause(wasBoss, next){
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ next(); return; }
+  if(typeof dropChestFx==="function")dropChestFx(wasBoss);   // 스테이지에 상자 떨구기
+  const bm=$("battlemsg"); if(bm)bm.classList.add("await");
+  let done=false, timer=null;
+  const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
+    const b=$("battlemsg"); if(b)b.classList.remove("await"); next(); };
+  const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
+  document.addEventListener("keydown",key);
+  setActions([{label:"▶ 전리품 확인  (클릭 / 스페이스)",full:true,act:go}]);
+  timer=setTimeout(go, wasBoss?2400:1500); }
 /* 🎁 전리품 패널 — 전투 끝나면 스테이지(트로피) 자리에 크게 (스크롤 없이 '계속' 보이게) */
 function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog();
   if(document.body)document.body.classList.add("lootview");   // 스테이지 숨기고 전리품을 위로
