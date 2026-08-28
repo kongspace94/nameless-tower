@@ -526,7 +526,8 @@ function skillMul(k){ return 1 + (skillProf(k).lv-1)*0.08; }
 function gainSkillXp(k,n){ const p=skillProf(k); p.xp+=n; let up=false; while(p.xp>=p.lv*30){ p.xp-=p.lv*30; p.lv++; up=true; }
   if(up)line(`📈 <b>${SKILLS[k].n}</b> 숙련도 상승! Lv.${p.lv} (효과 +${Math.round((skillMul(k)-1)*100)}%)`,"loot"); }
 function skillCombatMenu(){ const actives=(P.loadout||[]).filter(k=>SKILLS[k]&&SKILLS[k].type==="active");
-  const acts=actives.map(k=>{ const s=SKILLS[k]; return {label:`${s.emoji} ${s.n} Lv.${skillProf(k).lv}`,desc:`기력 ${s.mp} · ${s.desc}`,disabled:P.mp<s.mp,act:()=>useSkill(k)}; });
+  const acts=actives.map(k=>{ const s=SKILLS[k]; const wepOk=(typeof weaponOkForSkill==="function")?weaponOkForSkill(k):true;
+    return {label:`${s.emoji} ${s.n} Lv.${skillProf(k).lv}${!wepOk?" 🚫":""}`,desc:`기력 ${s.mp}${s.wep?` · ${wepReqLabel(k)}`:""}${!wepOk?" · ⚠무기 교체 필요":""} · ${s.desc}`,disabled:P.mp<s.mp||!wepOk,act:()=>useSkill(k)}; });
   if(actives.length===0)acts.push({label:"(장착한 액티브 스킬 없음 · 아래에서 교체)",disabled:true,act:()=>{}});
   const bench=P.skills.filter(k=>SKILLS[k]&&SKILLS[k].type==="active"&&!P.loadout.includes(k));
   const used=B.swaps||0;
@@ -687,6 +688,7 @@ function skillChainStep(k){ if(!B||!enemy)return; if(!B.chain)B.chain=[]; B.chai
   if(checkCombo())return;
   const op=COMBOS.find(c=>c.seq[0]===k); if(op){ const nx=SKILLS[op.seq[1]]; line(`　└ <span style="color:#c9a9ff">연계 가능</span> — 이어서 <b>${nx?nx.n:op.seq[1]}</b> → <b>${op.n}</b>`,"sys"); } }
 function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); return; }
+  if(typeof weaponOkForSkill==="function" && !weaponOkForSkill(k)){ toast(`⚠ ${wepReqLabel(k)} 무기가 필요해요 (가방에서 무기 교체)`); line(`🚫 <b>${s.n}</b>은(는) <b>${wepReqLabel(k)}</b> 무기로만 쓸 수 있다 — 무기를 바꿔야 한다.`,"dmg"); return; }   // 🗡️ 무기별 스킬 게이팅
   if(k==="summon"){ beginSummon(); return; }   // 소환: 메뉴→영창 후 확정 시 기력 차감
   P.mp-=s.mp; const m=skillMul(k); gainSkillXp(k,10); render();
   skillChainStep(k); if(!enemy)return;   // ✨ 콤보 판정(연계 폭발이 적을 처치하면 스킬 본체는 생략)

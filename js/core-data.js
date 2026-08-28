@@ -72,22 +72,22 @@ const STAT_NAME={str:"힘",int:"지능",dex:"민첩",vit:"체력",luk:"행운"};
 const STAM_MAX=100, STAM_COST=8, STAM_REGEN_MS=210000; // 생활력: 활동당 8 소모 · 기본 칸당 ~3.5분(체력 낮을 때 완충 ~5.5h) · 체력(vit) 높을수록 가속 · 생활 비약/제단으로 보충
 const DIVE_POTION_MAX=10; // 탑에 들고 들어갈 수 있는 물약 최대치(나머지는 마을에 보관)
 const SKILLS={
-  heavy_strike:{n:"강타",emoji:"💥",type:"active",mp:4,tier:1,req:{str:7},cost:{gold:40,ore:3},desc:"강한 물리 피해"},
+  heavy_strike:{n:"강타",emoji:"💥",type:"active",mp:4,tier:1,req:{str:7},cost:{gold:40,ore:3},wep:"melee",desc:"강한 물리 피해 (근접 무기)"},
   guard_up:{n:"방패 숙련",emoji:"🛡️",type:"passive",tier:1,req:{vit:7},cost:{gold:40,wood:3},desc:"방어 시 피해 추가 감소"},
   heal_spell:{n:"회복술",emoji:"✨",type:"active",mp:5,tier:1,req:{int:7},cost:{gold:50,herb:4},chant:"치유의 빛이여 나를 감싸안아라",desc:"HP 회복 (지능 비례) · 영창 필요"},
-  power_shot:{n:"급소 찌르기",emoji:"🎯",type:"active",mp:4,tier:1,req:{dex:7},cost:{gold:45,fish:3},desc:"높은 치명타 공격"},
+  power_shot:{n:"급소 찌르기",emoji:"🎯",type:"active",mp:4,tier:1,req:{dex:7},cost:{gold:45,fish:3},wep:"precise",desc:"높은 치명타 공격 (활·단검)"},
   meditate:{n:"명상",emoji:"🧘",type:"passive",tier:2,req:{int:10},cost:{gold:70,mana:3},desc:"최대 기력↑ · 매 턴 기력 회복"},
   fireball:{n:"파이어볼",emoji:"🔥",type:"active",mp:6,tier:2,req:{int:11,skill:"heal_spell"},cost:{gold:90,mana:4},chant:"불꽃이여 타올라 적을 태워라",desc:"강한 마법 화염 (방어 무시) · 영창 필요"},
   crit_focus:{n:"급소 간파",emoji:"👁️",type:"passive",tier:2,req:{dex:11,skill:"power_shot"},cost:{gold:80,fish:5},desc:"모든 공격 치명 확률 +10%"},
-  double_slash:{n:"연속 베기",emoji:"⚔️",type:"active",mp:7,tier:2,req:{str:12,skill:"heavy_strike"},cost:{gold:110,ore:6},desc:"2회 연속 타격"},
-  execute:{n:"처형",emoji:"☠️",type:"active",mp:8,tier:3,req:{str:16,dex:14,skill:"double_slash"},cost:{gold:180,ore:8,mana:4},desc:"적 HP 30%↓면 막대한 피해"},
+  double_slash:{n:"연속 베기",emoji:"⚔️",type:"active",mp:7,tier:2,req:{str:12,skill:"heavy_strike"},cost:{gold:110,ore:6},wep:"blade",desc:"2회 연속 타격 (검·단검)"},
+  execute:{n:"처형",emoji:"☠️",type:"active",mp:8,tier:3,req:{str:16,dex:14,skill:"double_slash"},cost:{gold:180,ore:8,mana:4},wep:"melee",desc:"적 HP 30%↓면 막대한 피해 (근접)"},
   /* 버프/디버프/특수 — 턴을 투자해 판을 만드는 스킬 (턴 쪼개기) */
   war_cry:{n:"전투 함성",emoji:"🗣️",type:"active",mp:5,tier:2,req:{str:12},cost:{gold:100,ore:5},desc:"이번 전투 공격력 +35% (버프)"},
   iron_will:{n:"강철 의지",emoji:"🛡️",type:"active",mp:5,tier:2,req:{vit:12},cost:{gold:100,wood:5},desc:"이번 전투 방어 +6 (받는 피해↓)"},
-  sunder:{n:"무장 파괴",emoji:"🔨",type:"active",mp:6,tier:3,req:{str:14,skill:"heavy_strike"},cost:{gold:150,ore:7},desc:"적 방어 -4 + 그로기 축적 (디버프)"},
+  sunder:{n:"무장 파괴",emoji:"🔨",type:"active",mp:6,tier:3,req:{str:14,skill:"heavy_strike"},cost:{gold:150,ore:7},wep:"melee",desc:"적 방어 -4 + 그로기 축적 (근접 디버프)"},
   expose:{n:"약점 노출",emoji:"🎯",type:"active",mp:5,tier:2,req:{dex:11},cost:{gold:110,fish:5},desc:"이번 전투 적이 받는 피해 +35% (디버프)"},
   focus:{n:"집중",emoji:"🌀",type:"active",mp:4,tier:2,req:{dex:10},cost:{gold:90,fish:4},desc:"다음 공격 확정 치명 + 치명률 +12%"},
-  bleed_blade:{n:"맹독 도포",emoji:"🩸",type:"active",mp:5,tier:3,req:{dex:12,skill:"power_shot"},cost:{gold:150,herb:6},desc:"적에게 4턴 출혈(지속 피해)"},
+  bleed_blade:{n:"맹독 도포",emoji:"🩸",type:"active",mp:5,tier:3,req:{dex:12,skill:"power_shot"},cost:{gold:150,herb:6},wep:"blade",desc:"적에게 4턴 출혈(지속 피해) · 검·단검"},
   weaken:{n:"약화의 저주",emoji:"💀",type:"active",mp:5,tier:2,req:{int:11},cost:{gold:110,mana:4},desc:"이번 전투 적 공격력 -30% (디버프)"},
   barrier:{n:"마력 방벽",emoji:"🔮",type:"active",mp:6,tier:2,req:{int:12},cost:{gold:120,mana:5},desc:"이번 전투 방어 +8 (버프)"},
   drain:{n:"생명 흡수",emoji:"🧛",type:"active",mp:6,tier:3,req:{int:12,skill:"heal_spell"},chant:"생명을 바쳐 나의 힘이 되어라",cost:{gold:160,mana:6},desc:"마법 피해 + 그만큼 절반 회복 · 영창"},
@@ -111,11 +111,11 @@ const SKILLS={
   /* 🌀 마법진 영창 — 말이 아니라 룬을 순서대로 이어 그려 시전 */
   rune_blast:{n:"룬 파열",emoji:"🌀",type:"active",mp:7,tier:3,req:{int:13,skill:"fireball"},cost:{gold:200,mana:7},chant:"__circle__",desc:"마법진을 그려 시전 · 원 완성도만큼 강한 마법 피해(방어 무시)"},
   /* 🗡️ 도적 — 단검·기습·독 (그림자 교관 카이) */
-  backstab:{n:"기습",emoji:"🗡️",type:"active",mp:5,tier:2,req:{dex:11},cost:{gold:110,fish:5},desc:"치명적인 기습 일격 (치명 확률↑ · 타이밍)",fx:{hits:1,mult:1.9,crit:0.4,color:"#ff5a5a",shake:true,timing:true}},
-  shadow_step:{n:"그림자 밟기",emoji:"🌑",type:"active",mp:4,tier:2,req:{dex:12},cost:{gold:100,fish:4},desc:"다음 공격 확정 치명 + 이번 전투 치명 +15%",fx:{nextCrit:true,buff:{critB:0.15},msg:"그림자에 스며든다"}},
-  venom_coat:{n:"독 바르기",emoji:"🧪",type:"active",mp:5,tier:2,req:{dex:11},cost:{gold:110,herb:5},desc:"단검에 맹독 — 적에게 5턴 중독(지속 피해)",fx:{dot:{atk:0.4,turns:5},msg:"칼날에 독을 바른다"}},
-  fan_knives:{n:"칼날 부채",emoji:"🔪",type:"active",mp:7,tier:3,req:{dex:14,skill:"backstab"},cost:{gold:160,fish:7},desc:"단검을 흩뿌려 4연타 (타이밍)",fx:{hits:4,mult:0.7,color:"#dfeaff",timing:true}},
-  assassinate:{n:"암살",emoji:"☠️",type:"active",mp:8,tier:3,req:{dex:16,skill:"venom_coat"},cost:{gold:190,fish:8,mana:3},desc:"적 HP 35%↓면 즉사급 피해 (타이밍)",fx:{execMult:5,execThresh:0.35,mult:1.6,color:"#c96ad6",timing:true}},
+  backstab:{n:"기습",emoji:"🗡️",type:"active",mp:5,tier:2,req:{dex:11},cost:{gold:110,fish:5},wep:"dagger",desc:"치명적인 기습 일격 (단검 · 치명↑ · 타이밍)",fx:{hits:1,mult:1.9,crit:0.4,color:"#ff5a5a",shake:true,timing:true}},
+  shadow_step:{n:"그림자 밟기",emoji:"🌑",type:"active",mp:4,tier:2,req:{dex:12},cost:{gold:100,fish:4},wep:"dagger",desc:"다음 공격 확정 치명 + 이번 전투 치명 +15% (단검)",fx:{nextCrit:true,buff:{critB:0.15},msg:"그림자에 스며든다"}},
+  venom_coat:{n:"독 바르기",emoji:"🧪",type:"active",mp:5,tier:2,req:{dex:11},cost:{gold:110,herb:5},wep:"dagger",desc:"단검에 맹독 — 적에게 5턴 중독(지속 피해)",fx:{dot:{atk:0.4,turns:5},msg:"칼날에 독을 바른다"}},
+  fan_knives:{n:"칼날 부채",emoji:"🔪",type:"active",mp:7,tier:3,req:{dex:14,skill:"backstab"},cost:{gold:160,fish:7},wep:"dagger",desc:"단검을 흩뿌려 4연타 (단검 · 타이밍)",fx:{hits:4,mult:0.7,color:"#dfeaff",timing:true}},
+  assassinate:{n:"암살",emoji:"☠️",type:"active",mp:8,tier:3,req:{dex:16,skill:"venom_coat"},cost:{gold:190,fish:8,mana:3},wep:"dagger",desc:"적 HP 35%↓면 즉사급 피해 (단검 · 타이밍)",fx:{execMult:5,execThresh:0.35,mult:1.6,color:"#c96ad6",timing:true}},
   /* 🌟 희귀 스킬 — 보스 처치/몬스터 파밍으로만 획득(교관 습득 불가). 예능~강력 */
   meteor:{n:"메테오",emoji:"☄️",type:"active",mp:12,rare:true,src:"boss",desc:"하늘에서 운석 낙하 — 방어 무시 대마법 (타이밍)",fx:{magic:true,mult:3.4,elem:"fire",defIgnore:true,popup:"METEOR",shake:true,timing:true}},
   thousand_cuts:{n:"천의 칼날",emoji:"🌀",type:"active",mp:10,rare:true,src:"farm",desc:"환영의 칼날로 6연타 (타이밍)",fx:{hits:6,mult:0.62,color:"#dfeaff",timing:true}},
@@ -316,6 +316,11 @@ const WEAPONS={
   card:  {n:"카드",  hits:1, mult:0.90, crit:0.05, groggy:6,  gauge:1.00, ic:"🃏", mg:"card"},    // 랜덤 3장 뽑아 1장으로 공격/버프
 };
 const MG_NAME={gauge:"타이밍 게이지",slash:"연속 베기 콤보",figure:"급소 주사위(도박)",charge:"활시위 당기기",aim:"접근원 조준",twinbar:"2영역 급소 연격",dice:"주사위 굴리기",card:"카드 뽑기"};
+/* 🗡️ 무기별 스킬 게이팅 — 물리 스킬은 맞는 무기 타입이 있어야 사용 가능 (마법·버프는 무기 무관) */
+const WEP_GROUPS={ melee:["sword","saber","dagger","fist","dice","card"], blade:["sword","saber","dagger"], sword:["sword","saber"], dagger:["dagger"], bow:["bow"], precise:["bow","dagger"] };
+const WEP_REQ_LABEL={ melee:"근접(검·단검 등)", blade:"검·단검", sword:"검", dagger:"단검", bow:"활", precise:"활·단검" };
+function weaponOkForSkill(k){ const s=SKILLS[k]; if(!s||!s.wep)return true; const wt=(typeof weaponType==="function")?weaponType():"fist"; const grp=WEP_GROUPS[s.wep]||[s.wep]; return grp.indexOf(wt)>=0; }
+function wepReqLabel(k){ const s=SKILLS[k]; return s&&s.wep?(WEP_REQ_LABEL[s.wep]||s.wep):""; }
 
 /* ============================================================
    스토리 레이어 (데이터 기반) — 어느 모드에서든 보스에 서사를 입힌다
