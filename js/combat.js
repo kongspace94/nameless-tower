@@ -605,7 +605,7 @@ function useConsumableCombat(key){ if((P.consumables[key]||0)<=0)return; const c
   else if(c.use==="heal"){ heal(c.amount||25); }
   P.consumables[key]--; if(P.consumables[key]<=0)delete P.consumables[key]; render(); afterPlayerAction(); }
 /* 그로기 */
-function addGroggy(n){ if(!enemy||enemy.staggered||(B&&B.charge))return; enemy.groggy=(enemy.groggy||0)+n;
+function addGroggy(n){ if(!enemy||enemy.staggered||(B&&B.charge))return; if(enemy.boss)n=Math.round(n*0.55); enemy.groggy=(enemy.groggy||0)+n;   // 🪨 보스는 그로기 저항(55%) — 퍼그로기로 못 움직이던 문제 완화
   if(enemy.groggy>=enemy.groggyMax){ enemy.staggered=true; enemy.groggy=enemy.groggyMax;
     line(`💫 <b>그로기!</b> ${enemy.n}이(가) 휘청인다 — 받는 피해 2배 · 다음 행동 불가!`,"loot"); fxShake(); }
   updateGroggyBar(); }
@@ -978,7 +978,7 @@ function applyMonsterAil(elem){ if(!B||!elem||typeof ELEMENTS==="undefined"||!EL
 function tickPlayerDot(){ if(!B||!B.pdot||(B.pdot.t||0)<=0)return false; const el=(typeof ELEMENTS!=="undefined"&&ELEMENTS[B.pdot.elem])||{ic:"☣",n:"이상"}; const d=B.pdot.dmg;
   P.hp-=d; B.pdot.t--; deathCause=`${el.ic} ${el.n} 지속피해 (${d})`; line(`${el.ic} ${el.n}으로 ${d} 피해 (남은 ${B.pdot.t}턴)`,"dmg"); if(typeof spawnFloat==="function")spawnFloat("-"+d,"#ff8a8a","me");
   if(B.pdot.t<=0)B.pdot=null; render(); if(P.hp<=0){ die(); return true; } return false; }
-function chargeNeed(){ return Math.max(24, Math.round(ATK()*2.3)); }   // 3턴 안에 화력을 퍼부으면 저지 가능한 수준
+function chargeNeed(){ return Math.max(40, Math.round(ATK()*4.0)); }   // 3턴 안에 집중 화력(약 2~3방)을 퍼부어야 저지 — 아슬아슬하게(예전 2.3배는 한 방에 참)
 /* 보스 궁극기 충전 시작 — HP 문턱을 넘을 때마다 (총 2회) */
 function maybeStartCharge(){ if(!enemy||!enemy.boss||B.charge)return false;
   const frac=enemy.hp/enemy.hpMax, done=B.chargeCount||0, thr=[0.62,0.30];
@@ -1091,8 +1091,8 @@ function endEnemyTurn(){ if(!enemy)return; B.block=null; B.parry=null; B.shield=
   const emCh=enemy.boss?0.2:0.1; if(chance(emCh))triggerEmergency(()=>{ if(enemy&&P.hp>0)startPlayerTurn(); }); else startPlayerTurn(); }
 
 function triggerEmergency(done){ const luck=LUKv();
-  const thr=clamp((enemy?enemy.atk:6)*0.008*(enemy&&enemy.boss?1.4:1),0,0.25);   // 적이 강할수록 회피 어려움
-  const evadeP=clamp(0.55+luck*0.03-thr,0.10,0.95), rollP=clamp(0.6+luck*0.03-thr,0.10,0.95);
+  const thr=clamp((enemy?enemy.atk:6)*0.01*(enemy&&enemy.boss?1.3:1) + ((typeof EXP!=="undefined"&&EXP)?0.14:0),0,0.42);   // 적이 강할수록·대륙 탑일수록 회피 어려움
+  const evadeP=clamp(0.52+luck*0.012-thr,0.30,0.85), rollP=clamp(0.56+luck*0.012-thr,0.30,0.85);   // 행운 비중↓·상한 0.95→0.85 (전부 95% 방지)
   const pool=[
     {text:`${enemy.n}이(가) 독안개를 뿜는다!`,time:4,opts:[
       {label:`숨 참고 회피 (${Math.round(evadeP*100)}%)`,resolve:()=>{ if(chance(evadeP))line("회피 성공! 무사하다.","heal"); else{ B.poison=3; line("실패… 중독됐다.","dmg"); } }},
