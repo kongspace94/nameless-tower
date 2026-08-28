@@ -1120,7 +1120,7 @@ function doGuard(){ startGauge("block",q=>{ B.block=q; line(q==="perfect"?"완�
 /* ⚔️ 돌발 패링 — 적 공격 중 확률로 튀어나오는 반응 QTE. 결과를 resolveEnemyAttack로 전달 */
 function parryProcChance(){ return clamp(0.14 + estat("dex")*0.006 + LUKv()*0.004, 0.14, 0.5); }
 /* ⚔️ 돌발 패링 — 시간 기반 반응 QTE. 뜬 뒤 0.1~0.5초에 [클릭/스페이스]면 성공(good), 0.25~0.4초=완벽. 너무 빠르거나(<0.1s) 늦으면(>0.5s) 실패 */
-const PARRY_GOOD_MIN=100, PARRY_GOOD_MAX=500, PARRY_PERF_MIN=250, PARRY_PERF_MAX=400, PARRY_DUR=560;
+const PARRY_GOOD_MIN=200, PARRY_GOOD_MAX=380, PARRY_PERF_MIN=262, PARRY_PERF_MAX=328, PARRY_DUR=460;   // 성공창 좁힘(예전 100~500 → 200~380) — 너무 쉬워서 실패 여지 추가
 function parryRingPx(t){ if(t<=PARRY_GOOD_MIN)return 150-(150-58)*(t/PARRY_GOOD_MIN);   // 150→58px (접근)
   if(t<=PARRY_PERF_MIN)return 58-(58-30)*((t-PARRY_GOOD_MIN)/(PARRY_PERF_MIN-PARRY_GOOD_MIN));   // 58→30 (완벽존 진입)
   if(t<=PARRY_PERF_MAX)return 30-(30-22)*((t-PARRY_PERF_MIN)/(PARRY_PERF_MAX-PARRY_PERF_MIN));   // 30→22 (완벽존 ≈코어26)
@@ -1259,7 +1259,10 @@ function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog();
   if(document.body)document.body.classList.add("lootview");   // 스테이지 숨기고 전리품을 위로
   const rows = (loot&&loot.length) ? loot.map(h=>`<div class="lootrow">${h}</div>`).join("") : `<div class="lootrow" style="color:var(--dim)">획득한 전리품이 없다.</div>`;
   $("log").innerHTML=`<div class="lootpanel"><div class="lh"><span>🏆 ${wasBoss?"보스 격파!":"승리!"} · 전리품</span><span class="lhsub">${foeName} 처치</span></div><div class="lootlist">${rows}</div></div>`;
-  const go=()=>{ if(document.body)document.body.classList.remove("lootview"); cont(); };
+  const go=()=>{ if(document.body)document.body.classList.remove("lootview");
+    enemy=null; clearLog();   // 🧹 전리품 패널 즉시 제거(겹침 방지)
+    if(typeof setScene==="function")setScene("🪜","");   // 스프라이트 잔상 즉시 제거 후 cont가 제대로 된 씬을 그림
+    cont(); };
   setActions([{label:"▶ 계속",full:true,act:go}]); }
 function dropRelic(){ const f=P.floor; const early=["녹슨 단검","가죽 갑옷","토끼발 부적"],mid=["이 빠진 롱소드","판금 흉갑","흡혈의 반지","사냥꾼의 활"],late=["월광 세이버"];
   let pool;
