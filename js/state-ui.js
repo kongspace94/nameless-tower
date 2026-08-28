@@ -174,10 +174,13 @@ function stamEta(){ if(P.stamina>=STAM_MAX)return "가득"; const per=stamRegenM
 function gainStamina(n){ if(P.stamina==null)P.stamina=0; const b=Math.min(n,STAM_MAX-P.stamina); if(b>0){ P.stamina+=b; return b; } return 0; }
 
 /* ---------- 로그 / 무대 / 이펙트 ---------- */
+let _bmLines=[]; const BM_MAX=4;   // 💬 전투 메시지 박스에 쌓이는 최근 줄 수(최대 4)
+function renderBattleMsg(){ const bm=$("battlemsg"); if(!bm)return;
+  bm.innerHTML=_bmLines.map((l,i)=>`<div class="bm-txt ${l.c}${i===_bmLines.length-1?' cur':''}">${l.h}</div>`).join(""); }
 function line(html,cls){ const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
-  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); bm.innerHTML=`<span class="bm-txt ${cls||''}">${html}</span>`; } }   // 💬 전투 중: 위 메시지 박스에 최신 메시지
+  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } }   // 💬 전투 중: 위 박스에 최근 줄 누적
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
-function clearLog(){ $("log").innerHTML=""; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger"); } }
+function clearLog(){ $("log").innerHTML=""; _bmLines=[]; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger"); } }
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";
