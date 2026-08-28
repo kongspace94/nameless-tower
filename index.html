@@ -17,7 +17,8 @@
   body{ background:radial-gradient(900px 500px at 50% -8%, rgba(200,150,60,.10), transparent 60%),
       radial-gradient(1200px 700px at 50% 0%, #171d2b 0%, var(--bg) 58%) fixed;
     color:var(--ink); font-family:var(--font); line-height:1.6; display:flex; align-items:flex-start; justify-content:center; padding:20px 12px 60px; }
-  .wrap{width:100%; max-width:1040px}   /* 🖥 PC에서 넓게 (모바일은 width:100%라 그대로) */
+  .wrap{width:100%; max-width:1040px; user-select:none; -webkit-user-select:none}   /* 🖥 PC에서 넓게 · 드래그 시 텍스트 파랗게 선택되는 것 방지(게임 느낌) */
+  input,textarea,[contenteditable],.reccode{ user-select:text; -webkit-user-select:text }   /* 입력칸·복구코드는 선택 가능하게 예외 */
   h1{font-size:clamp(24px,5vw,38px); letter-spacing:.06em; margin:.1em 0 0; text-align:center; font-weight:600; text-shadow:0 2px 24px rgba(232,197,106,.28)}
   .sub{text-align:center; color:var(--dim); margin:2px 0 14px; font-size:13px; letter-spacing:.24em}
   body:not(.title) h1, body:not(.title) .sub{ display:none }   /* 타이틀 텍스트는 타이틀 화면에서만 (게임 중엔 숨겨 화면 확보) */
@@ -134,12 +135,13 @@
   /* 🖥 넓은 화면(PC): 필드가 커진 만큼 스프라이트도 크게 (모바일 상한은 아래 미디어쿼리 유지) */
   @media (min-width:821px){
     body.combat .bfoe .bart img{ width:200px !important; height:200px !important }
-    body.combat .bme .bart img, body.combat .bme .bart .pavimg, body.combat .bme .bart .pavatar{ width:160px !important; height:160px !important }
+    body.combat .bme .bart img, body.combat .bme .bart .pavimg, body.combat .bme .bart .pavatar{ width:124px !important; height:124px !important }   /* 플레이어 프로필은 좀 작게 */
   }
-  /* 🟢 포켓몬식 발판 — 스프라이트 밑 타원 그림자(공중에 뜬 느낌 제거) */
-  .bunit .bart::after{content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); width:92%; height:20px; border-radius:50%;
-    background:radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 55%, transparent 72%); z-index:-1; pointer-events:none}
-  .bfoe .bart::after{width:86%; bottom:-7px}
+  /* 🟢 포켓몬식 발판 — 스프라이트 밑 원형 플랫폼(빛나는 지면 느낌) + 그림자 */
+  .bunit .bart::after{content:""; position:absolute; left:50%; bottom:-14px; transform:translateX(-50%); width:135%; height:40px; border-radius:50%;
+    background:radial-gradient(ellipse at 50% 40%, rgba(150,138,200,.30) 0%, rgba(96,86,140,.30) 38%, rgba(20,16,34,.55) 66%, rgba(0,0,0,.32) 76%, transparent 84%);
+    box-shadow:0 6px 18px rgba(0,0,0,.45); z-index:-1; pointer-events:none}
+  .bfoe .bart::after{width:120%; bottom:-10px; height:34px}
   /* 💀 처치 시 몬스터(스프라이트+정보판)가 스르륵 사라짐 → 그 자리엔 상자만 */
   .bunit.foedie{ animation:foeDie .55s ease forwards !important; pointer-events:none }
   @keyframes foeDie{ 0%{opacity:1; filter:none} 24%{opacity:1; filter:brightness(2.4) saturate(.5)} 100%{opacity:0; transform:translateY(14px) scale(.62); filter:brightness(2.2)} }
@@ -282,8 +284,11 @@
 
   .log{padding:16px 18px 6px; max-height:44vh; overflow-y:auto; font-size:15.5px; background:#0c0f16; border-left:1px solid var(--line); border-right:1px solid var(--line)}
   /* 전투 중: 정석 분리형 — 씬(상) / 메시지박스 3줄(중) / 커맨드박스(하) 를 겹침 없이 쌓는다 */
-  body.combat .stage{ height:460px; border-radius:14px 14px 0 0 }   /* 필드 넉넉하게 — 밑 여백 활용(위아래 좁던 문제 해결) */
-  body.combat .bme{ bottom:172px }   /* 💬 커진 메시지 박스 위로 플레이어 유닛 올림 */
+  body.combat .stage{ height:490px; border-radius:14px 14px 0 0 }   /* 필드 넉넉하게 — 밑 여백 활용(위아래 좁던 문제 해결) */
+  body.combat .bme{ bottom:186px }   /* 💬 커진 메시지 박스 위로 플레이어 유닛 올림 */
+  /* 🏞 전투 필드 지면감 — 하단에 은은한 바닥 그림자(스프라이트가 필드에 선 느낌, 모든 존에서 자연스럽게) */
+  body.combat .stage::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:44%; z-index:0; pointer-events:none;
+    background:linear-gradient(180deg, transparent 38%, rgba(0,0,0,.16) 74%, rgba(0,0,0,.30) 100%) }
   /* 💬 포켓몬식 대화박스: 고정 높이 + 최신 줄 강조 + 높은 대비 (가독성↑) */
   body.combat .log{ height:140px; max-height:140px; margin:0; padding:14px 18px 14px; font-size:15.5px; line-height:1.62; color:#e9eef8;
     border:2px solid #37425f; border-top:0; border-bottom:0; border-radius:0; background:linear-gradient(180deg,#141a29 0%,#0e131e 100%);
@@ -321,15 +326,21 @@
   .battlemsg .bm-txt.cur{opacity:1; font-size:15.5px; animation:bmIn .16s ease}   /* 최신 줄 또렷하게 + 살짝 등장 */
   @keyframes bmIn{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)}}
   .battlemsg .bm-txt.dmg{color:#ff9d9d} .battlemsg .bm-txt.heal{color:#96f0bf} .battlemsg .bm-txt.loot{color:#ffe08a} .battlemsg .bm-txt.sys{color:#c7d0e0} .battlemsg .bm-txt.quote{color:#dbe2f0; font-style:italic}
-  .battlemsg.await::after{content:"▼"; position:absolute; right:12px; bottom:8px; font-size:12px; color:#8fa0c8; animation:dlgblink 1s steps(1) infinite}
+  .battlemsg.await::after{content:"▼"; position:absolute; right:12px; bottom:8px; font-size:11px; color:#7a86a8; opacity:.6}   /* 💬 '계속' 힌트 — 깜빡임 제거(정적) */
   /* ⤢ 메시지 박스 확대 토글 버튼 + 확대(전체 로그 스크롤) 상태 */
-  .battlemsg .bmexp{position:absolute; top:5px; right:8px; z-index:3; padding:2px 7px; font-size:12px; font-weight:700; line-height:1.4;
-    background:#26314a; color:#b9c6e4; border:1px solid #3a4560; border-radius:7px; cursor:pointer}
-  .battlemsg .bmexp:hover{background:#334063; color:#fff}
-  .battlemsg.big{max-height:58vh; overflow-y:auto; justify-content:flex-start; padding-top:34px}
+  .battlemsg .bmexp{position:absolute; top:7px; right:9px; z-index:5; padding:4px 10px; font-size:13px; font-weight:700; line-height:1.4;
+    background:#26314a; color:#c7d3ef; border:1px solid #4a5674; border-radius:8px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .battlemsg .bmexp:hover{background:#3a4870; color:#fff}
+  .battlemsg.big .bmexp{position:sticky; top:2px; align-self:flex-end; z-index:6}   /* 확대 시 닫기 버튼 항상 위에 고정(스크롤해도 안 사라짐) */
+  .battlemsg.big{max-height:46vh; overflow-y:auto; justify-content:flex-start; padding-top:12px;
+    scrollbar-width:thin; scrollbar-color:#4a5674 transparent}   /* 🎨 스크롤바 테마색(하얀 기본 제거) */
+  .battlemsg.big::-webkit-scrollbar{width:9px}
+  .battlemsg.big::-webkit-scrollbar-track{background:transparent; margin:8px 0}
+  .battlemsg.big::-webkit-scrollbar-thumb{background:#4a5674; border-radius:9px; border:2px solid transparent; background-clip:padding-box}
+  .battlemsg.big::-webkit-scrollbar-thumb:hover{background:#5c6a90; background-clip:padding-box}
   .battlemsg.big .bm-txt{opacity:1}   /* 확대 시 전체 또렷하게 */
   .battlemsg.big.await::after{display:none}
-  @media (max-width:640px){ .battlemsg{font-size:13.5px; padding:10px 13px 12px; max-height:104px} .battlemsg .bm-txt.cur{font-size:14.5px} .battlemsg.big{max-height:62vh; padding-top:32px} }
+  @media (max-width:640px){ .battlemsg{font-size:13.5px; padding:10px 13px 12px; max-height:140px} .battlemsg .bm-txt.cur{font-size:14.5px} .battlemsg.big{max-height:56vh; padding-top:10px} }
   /* 🎁 전리품 패널 (승리 후 획득물 정리 — 스테이지 자리에 크게) */
   body.lootview .stage, body.lootview .qtrack{ display:none !important }   /* 승리 화면: 스테이지·퀘스트바 숨기고 전리품에 공간 양보 */
   .lootpanel{background:linear-gradient(180deg,#171c2a,#0f131d); border:1px solid #37425f; border-radius:12px; overflow:hidden}
