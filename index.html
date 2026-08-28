@@ -280,6 +280,24 @@
   .battlesay .bs-next{flex-shrink:0; font-size:12px; color:#8fa0c8; animation:dlgblink 1s steps(1) infinite}
   @keyframes bsIn{from{transform:translateY(10px); opacity:0}to{transform:none; opacity:1}}
   @media (max-width:640px){ .battlesay{font-size:14.5px; padding:10px 13px} }
+  /* 🔀 무기 교체 오버레이 (인벤 스타일) */
+  .wswap{position:absolute; left:8px; right:8px; top:8px; bottom:8px; z-index:13; display:flex; flex-direction:column;
+    background:linear-gradient(180deg,#141a29,#0d1119); border:2px solid #37425f; border-radius:12px; box-shadow:0 8px 26px rgba(0,0,0,.6); animation:bsIn .16s ease; overflow:hidden}
+  .wshead{display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:#1a2233; border-bottom:1px solid var(--line); font-weight:800; font-size:14px; color:#fff}
+  .wshead small{color:var(--dim); font-weight:600; font-size:11px; margin-left:6px}
+  .wshead .wsx{background:none; border:0; color:var(--dim); font-size:16px; cursor:pointer; padding:2px 6px; border-radius:6px}
+  .wshead .wsx:hover{color:#fff; background:rgba(255,255,255,.08)}
+  .wslist{flex:1; overflow-y:auto; padding:8px 10px; display:flex; flex-direction:column; gap:6px; scrollbar-width:thin; scrollbar-color:#37425f transparent}
+  .wslist::-webkit-scrollbar{width:7px} .wslist::-webkit-scrollbar-thumb{background:#37425f; border-radius:7px}
+  .wsrow{display:flex; align-items:center; gap:9px; padding:7px 9px; background:#0f1420; border:1px solid var(--line); border-radius:10px}
+  .wsrow.on{border-color:#3a5a3f; background:rgba(60,140,80,.12)}
+  .wsrow .wsic{flex-shrink:0; width:30px; height:30px; display:flex; align-items:center; justify-content:center}
+  .wsrow .wsm{flex:1; min-width:0}
+  .wsrow .wsn{font-size:13.5px; color:#fff; font-weight:600}
+  .wsrow .wsd{font-size:11px; color:var(--dim); margin-top:1px}
+  .wsrow .wstag{font-size:11px; color:var(--good); font-weight:700; flex-shrink:0}
+  .wsrow .ibtn{flex-shrink:0}
+  .wsempty{color:var(--dim); text-align:center; padding:18px; font-size:13px}
   @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
 
   .actions{padding:14px 16px 18px; border:1px solid var(--line); border-top:0; border-radius:0 0 16px 16px; background:#0b0e15; display:grid; grid-template-columns:1fr 1fr; gap:10px}

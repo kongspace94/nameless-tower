@@ -233,14 +233,24 @@ function playCard(k){ if(!enemy)return; const c=CARDS[k]; line(`🃏 <b>${c.n}</
   if(killed||!enemy)return; if(enemy.hp<=0)return; afterPlayerAction(); }
 /* 🔀 무기 빠른 교체 — 턴 소모 없음, 전투당 제한 */
 const WSWAP_MAX=3;
+/* 🔀 무기 빠른 교체 — 인벤처럼 아이콘 행으로 (스테이지 오버레이 · 전투 로그 유지) */
 function weaponSwapMenu(){ if(!enemy)return; if(B.disarmed){ toast("무장 해제 상태"); return; }
   const left=WSWAP_MAX-(B.wswaps||0);
-  const weapons=P.inv.filter(it=>RELICS[it.k]&&RELICS[it.k].slot==="weapon"&&P.equip.weapon!==it.id);
-  const acts=[{label:`🔀 무기 빠른 교체 (남은 ${left}회 · 턴 소모 없음)`,disabled:true,act:()=>{}}];
-  if(left<=0)acts.push({label:"(이번 전투 교체 횟수 소진)",disabled:true,act:()=>{}});
-  else if(!weapons.length)acts.push({label:"(가방에 다른 무기 없음)",disabled:true,act:()=>{}});
-  else weapons.forEach(it=>{ const w=RELICS[it.k]; acts.push({label:`${it.k}${it.up?' +'+it.up:''}`,desc:`${MG_NAME[w.wt?WEAPONS[w.wt].mg:"gauge"]||""} · ${w.note||""}`,act:()=>quickSwapWeapon(it.id)}); });
-  acts.push({label:"← 뒤로",full:true,act:fightMenu}); setActions(acts); }
+  const weapons=P.inv.filter(it=>RELICS[it.k]&&RELICS[it.k].slot==="weapon");
+  const cur=equippedItem("weapon"); const s=$("stage"); if(!s)return;
+  const old=s.querySelector(".wswap"); if(old)old.remove();
+  const row=(it)=>{ const g=RELICS[it.k], w=g.wt&&WEAPONS[g.wt]; const equipped=cur&&cur.id===it.id; const mg=w?(MG_NAME[w.mg]||""):"";
+    return `<div class="wsrow${equipped?' on':''}"><span class="wsic">${ico(relicIco(it.k),30)}</span>`+
+      `<div class="wsm"><div class="wsn">${it.k}${it.up?` <b style="color:var(--gold)">+${it.up}</b>`:''}</div><div class="wsd">${gearTypeLabel(g)} · ${mg}</div></div>`+
+      `${equipped?'<span class="wstag">착용중</span>':(left>0?`<button class="ibtn on wsbtn" data-id="${it.id}">교체</button>`:'<button class="ibtn" disabled>소진</button>')}</div>`; };
+  const box=document.createElement("div"); box.className="wswap";
+  box.innerHTML=`<div class="wshead"><span>🔀 무기 교체 <small>남은 ${left}회 · 턴 소모 없음</small></span><button class="wsx" aria-label="닫기">✕</button></div>`+
+    `<div class="wslist">${weapons.length?weapons.map(row).join(""):'<div class="wsempty">가방에 무기가 없다</div>'}</div>`;
+  s.appendChild(box);
+  const close=()=>{ const bx=s.querySelector(".wswap"); if(bx)bx.remove(); };
+  box.querySelector(".wsx").onclick=close;
+  box.querySelectorAll("button.wsbtn[data-id]").forEach(b=>b.onclick=()=>{ const id=+b.dataset.id; close(); quickSwapWeapon(id); });
+  setActions([{label:"← 전투로",full:true,act:()=>{ close(); fightMenu(); }}]); }
 function quickSwapWeapon(id){ if(!enemy)return; if((B.wswaps||0)>=WSWAP_MAX){ toast("교체 횟수 소진"); return; } const it=P.inv.find(x=>x.id===id); if(!it)return;
   P.equip.weapon=it.id; B.wswaps=(B.wswaps||0)+1; line(`🔀 <b>${it.k}</b>(으)로 교체! (턴 소모 없음)`,"heal"); toast("무기 교체"); render(); setSceneFoe(); fightMenu(); }
 /* 🐾 소환 (영창 길이 = 개체 등급) — 계약 몬스터 또는 무명 정령 */
