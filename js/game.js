@@ -440,41 +440,65 @@ function onServerUpdated(){
 /* ⚙️ 운영자: 아래 NOTICE만 고치면 됨. 내용 바꿀 땐 id도 함께 바꿔야 '오늘 안 보기' 눌렀던 사람에게도 새로 뜬다. */
 const NOTICE={
   id:"2026-08-30",
-  title:"📢 공지 · 업데이트 안내",
-  html:`
-    <p class="ntc-lead">이름 없는 탑에 오신 걸 환영합니다! 최근 대규모 업데이트가 적용됐어요.</p>
-    <div class="ntc-sec"><b>🆕 이번 패치</b>
-      <ul>
-        <li>🗡️ <b>도적 교관</b> + 단검 스킬, 🌟 <b>희귀 스킬 20종</b>(보스·파밍 드랍) 추가</li>
-        <li>🐾 <b>동료 먹이 시스템</b> 개편 + 동료 10마리로 확장</li>
-        <li>🗼 대륙 정복 시 <b>탑 포탈</b> 해금 · 개척 진행 버그 수정</li>
-        <li>💥 강타·연속공격 <b>타격감 강화</b> · 전투 텍스트 가독성 개선</li>
-        <li>🧳 인벤/창고/대장간/잡화점 <b>UI 개편</b> · 📬 우편함 신설</li>
-      </ul>
-    </div>
-    <div class="ntc-sec"><b>🎁 이벤트</b>
-      <ul>
-        <li>📬 <b>우편함</b>에서 개편 기념 보상을 잊지 말고 받아가세요!</li>
-        <li>💎 통신판매 다이아 상점 오픈 (100다이아 = 1,000원 기준)</li>
-      </ul>
-    </div>
-    <p class="ntc-foot">즐거운 등반 되세요 — 버그·건의는 언제든 환영입니다. 🗼</p>`
+  title:"📢 공지사항",
+  tabs:[
+    {key:"notice", label:"📢 공지", html:`
+      <p class="ntc-lead">이름 없는 탑에 오신 걸 환영합니다! 🗼</p>
+      <div class="ntc-sec"><b>📢 안내</b>
+        <ul>
+          <li>이 게임은 브라우저에 <b>자동 저장</b>돼요. (온라인은 클라우드 동기화)</li>
+          <li>진행이 막히거나 버그를 발견하면 언제든 알려주세요 — 바로 고칩니다.</li>
+          <li>📬 <b>우편함</b>으로 운영자 보상·소식이 도착하니 종종 확인하세요.</li>
+        </ul>
+      </div>
+      <p class="ntc-foot">즐거운 등반 되세요! 문의·건의 환영합니다. 🙌</p>`},
+    {key:"update", label:"🆕 업데이트", html:`
+      <div class="ntc-sec"><b>🆕 이번 패치 (8/30)</b>
+        <ul>
+          <li>🗡️ <b>도적 교관</b> + 단검 스킬, 🌟 <b>희귀 스킬 20종</b>(보스·파밍 드랍) 추가</li>
+          <li>🐾 <b>동료 먹이 시스템</b> 개편 + 동료 10마리로 확장</li>
+          <li>🗼 대륙 정복 시 <b>탑 포탈</b> 해금 · 개척 진행 버그 수정</li>
+          <li>💥 강타·연속공격 <b>타격감 강화</b> · 전투 텍스트 가독성 개선</li>
+          <li>🧳 인벤/창고/대장간/잡화점 <b>UI 개편</b> · 📬 우편함 신설</li>
+        </ul>
+      </div>
+      <p class="ntc-foot">앞으로도 꾸준히 다듬어 나갈게요.</p>`},
+    {key:"event", label:"🎁 이벤트", html:`
+      <div class="ntc-sec"><b>🎁 진행 중 이벤트</b>
+        <ul>
+          <li>📬 <b>개편 기념 보상</b> — 우편함에서 잊지 말고 받아가세요!</li>
+          <li>💎 <b>통신판매 다이아 상점</b> 오픈 (100다이아 = 1,000원 기준)</li>
+          <li>🐔 신규 <b>예능 스킬</b>(고무 치킨·아재개그 등) 파밍 도전!</li>
+        </ul>
+      </div>
+      <p class="ntc-foot">새 이벤트는 여기에서 공지됩니다.</p>`},
+  ]
 };
-let _noticeSeen=false;
+let _noticeSeen=false, _noticeTab="notice";
 function noticeHiddenToday(){ try{ return localStorage.getItem("nt_notice_hide")===new Date().toDateString()+"|"+NOTICE.id; }catch(e){ return false; } }
 function hideNoticeToday(){ try{ localStorage.setItem("nt_notice_hide", new Date().toDateString()+"|"+NOTICE.id); }catch(e){} closeNotice(); }
 function closeNotice(){ const o=document.getElementById("noticeoverlay"); if(o)o.remove(); }
+function noticeTabs(){ return (NOTICE.tabs&&NOTICE.tabs.length)?NOTICE.tabs:[{key:"notice",label:NOTICE.title||"공지",html:NOTICE.html||""}]; }
+function noticeTab(key){ _noticeTab=key; const tabs=noticeTabs();
+  const bar=document.getElementById("noticetabs"), body=document.getElementById("noticebody");
+  if(bar)bar.querySelectorAll(".noticetab").forEach(b=>b.classList.toggle("on", b.dataset.k===key));
+  const t=tabs.find(x=>x.key===key)||tabs[0]; if(body){ body.innerHTML=t.html; body.scrollTop=0; }
+  if(typeof sfx==="function")sfx("click"); }
 function showNotice(){ if(document.getElementById("noticeoverlay"))return;
+  const tabs=noticeTabs(); if(!tabs.some(t=>t.key===_noticeTab))_noticeTab=tabs[0].key;
+  const cur=tabs.find(t=>t.key===_noticeTab)||tabs[0];
+  const tabBar=tabs.length>1?`<div class="noticetabs" id="noticetabs">`+tabs.map(t=>`<button type="button" class="noticetab ${t.key===_noticeTab?'on':''}" data-k="${t.key}" onclick="noticeTab('${t.key}')">${t.label}</button>`).join("")+`</div>`:"";
   const o=document.createElement("div"); o.id="noticeoverlay"; o.className="noticeoverlay";
   o.innerHTML=`<div class="noticebox" role="dialog" aria-modal="true">
     <div class="noticehd"><span>${NOTICE.title}</span><button class="noticex" onclick="closeNotice()" aria-label="닫기">✕</button></div>
-    <div class="noticebody">${NOTICE.html}</div>
+    ${tabBar}
+    <div class="noticebody" id="noticebody">${cur.html}</div>
     <div class="noticeft"><button class="noticebtn dim" onclick="hideNoticeToday()">오늘은 보지 않기</button><button class="noticebtn" onclick="closeNotice()">닫기</button></div>
   </div>`;
   o.addEventListener("click",e=>{ if(e.target===o)closeNotice(); });   // 바깥 어두운 곳 클릭 시 닫기
   document.body.appendChild(o); if(typeof sfx==="function")sfx("click"); }
 function maybeShowNotice(){ if(_noticeSeen)return; _noticeSeen=true; if(noticeHiddenToday())return; setTimeout(showNotice,450); }
-window.closeNotice=closeNotice; window.hideNoticeToday=hideNoticeToday; window.showNotice=showNotice;
+window.closeNotice=closeNotice; window.hideNoticeToday=hideNoticeToday; window.showNotice=showNotice; window.noticeTab=noticeTab;
 async function enterOnline(){
   if(typeof chatLog!=="undefined")chatLog=[];   // 🆕 새 로그인 세션 → 광장 채팅 초기화(같은 접속 중엔 유지, 로그인마다 비움)
   let cloud=null, authErr=false, loadErr=false;
