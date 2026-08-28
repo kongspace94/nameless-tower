@@ -591,6 +591,7 @@
   @media (max-width:560px){ .hud{grid-template-columns:1fr} .stage{height:132px} }
   /* 전투 중엔 상단 HUD 숨겨서 전투창을 위로 (전투창에 HP/기력 다 표시됨) */
   body.combat #hud{ display:none }
+  body.combat .uibar{ display:none }   /* ⚔ 전투 중엔 상단 인벤/스킬/칭호/도감 버튼 숨김 (전투는 아래 커맨드로) */
   /* 퀘스트 추적기 (항상 표시) */
   .qtrack{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:-4px 0 12px; cursor:pointer }
   .qtrack .qhdr{ font-size:11px; color:var(--dim); font-family:var(--mono); letter-spacing:.05em }
