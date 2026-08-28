@@ -175,9 +175,11 @@ function gainStamina(n){ if(P.stamina==null)P.stamina=0; const b=Math.min(n,STAM
 
 /* ---------- 로그 / 무대 / 이펙트 ---------- */
 let _bmLines=[]; const BM_MAX=4;   // 💬 전투 메시지 박스에 쌓이는 최근 줄 수(최대 4)
+let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
 function renderBattleMsg(){ const bm=$("battlemsg"); if(!bm)return;
   bm.innerHTML=_bmLines.map((l,i)=>`<div class="bm-txt ${l.c}${i===_bmLines.length-1?' cur':''}">${l.h}</div>`).join(""); }
-function line(html,cls){ const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
+function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); return; }   // 🎁 전리품은 버퍼에 모아 승리 패널에서 한 번에
+  const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
   if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } }   // 💬 전투 중: 위 박스에 최근 줄 누적
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
 function clearLog(){ $("log").innerHTML=""; _bmLines=[]; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger"); } }

@@ -1188,27 +1188,37 @@ function winCombat(){
   if(P._duel && enemy && enemy.pvp){ const npc=P._duel; P._duel=null; const g=npc.gold||0; P.gold+=g;   // ⚔ PvP 결투 승리
     line(`⚔ <b>결투 승리!</b> ${npc.name}을(를) 제압하고 <b>${g}G</b>를 약탈했다!`,"loot"); if(npc.item&&chance(0.6)){ addRelic(npc.item); line(`전리품: <b>${npc.item}</b>!`,"loot"); }
     toast("약탈 +"+g+"G"); if(typeof sfx==="function")sfx("victory"); if(typeof bumpFeat==="function")bumpFeat("pvpWin"); enemy=null; B=null; save(true); setScene("🏆","결투에서 승리했다!"); showClimb(); return; }
-  P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor;
-  line(`<b style="color:var(--good)">${enemy.n}을(를) 쓰러뜨렸다!</b>`); if(typeof sfx==="function")sfx("victory");
-  if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사
+  P.kills++; P.runKills=(P.runKills||0)+1; const wasBoss=enemy.boss, floor=P.floor, foeName=enemy.n;
+  if(typeof sfx==="function")sfx("victory");
+  line(`<b style="color:var(--good)">🏆 ${foeName}을(를) 쓰러뜨렸다!</b>`);   // 전투 마무리(위 박스에 표시)
+  if(wasBoss)line(bossStory(floor,"defeat"),"quote");   // 보스 처치 서사(박스)
+  // ===== 전리품 수집(캡처) → 나중에 별도 패널로 한 번에 보여줌(전투/획득 분리) =====
+  _lootCapture=true; _lootBuf=[];
   const g=enemy.g+rnd(6); P.gold+=g; line(`💰 금화 +${g}`,"loot"); spawnFloat("💰+"+g,"#ffe08a","foe");
   const mkeys=Object.keys(MATS); const m=mkeys[rnd(mkeys.length)]; const ma=1+rnd(3); addMat(m,ma); line(`${MATS[m][0]} ${MATS[m][1]} +${ma}`,"loot");   // 재료 1~3개
   if(typeof FOODS!=="undefined" && chance(wasBoss?1:0.28)){ const fk=pick(["food_heal","food_dps","food_tank"]); const fa=(wasBoss?2:1)+rnd(2); gainFood(fk,fa); line(`${FOODS[fk].emoji} <b>${FOODS[fk].n}</b> +${fa} <span style="color:var(--dim)">(동료 먹이)</span>`,"loot"); }   // 🍖 동료 먹이 드랍
-  { const st=pick(["str","int","dex","vit","luk"]); const tp=3+rnd(3)+Math.floor((enemy.atk||6)/4)+(wasBoss?12:0)+(enemy.elite?6:0);   // 처치마다 숙련 획득(강한 적일수록↑) → 오르면 플로트로 축하
-    const up=trainStat(st,tp); if(up>0)spawnFloat(`✦ ${STAT_NAME[st]} +${up}`,"#9be08a","me"); }
+  { const st=pick(["str","int","dex","vit","luk"]); const tp=3+rnd(3)+Math.floor((enemy.atk||6)/4)+(wasBoss?12:0)+(enemy.elite?6:0);
+    const up=trainStat(st,tp); if(up>0){ spawnFloat(`✦ ${STAT_NAME[st]} +${up}`,"#9be08a","me"); line(`✦ <b>${STAT_NAME[st]} +${up}</b> (전투 숙련)`,"loot"); } }
   if(wasBoss){ bossReward(); if(chance(0.4))dropManaOrb(); if(chance(0.55)){ const gm=1+rnd(2); P.gems=(P.gems||0)+gm; line(`💎 <b>크리스탈 +${gm}</b> (프로필 커스터마이징 재화)`,"loot"); }
     if(chance(0.01)){ gainCons("enhance_charm"); line(`⚜️ <b>강화의 축복</b>을 얻었다! (초희귀 · 대장간 강화 시 성공↑·파괴방지)`,"loot"); toast("강화의 축복 획득!"); } }   // 보스 초희귀 드랍
   else { if(chance(0.025))dropManaOrb();   // 물약은 몬스터가 떨구지 않음 — 상자에서만
-    if(chance(0.008))dropBook(); else if(chance(clamp((0.005+LUKv()*0.0004)*(1+metaEff().drop),0,0.015)))dropRelic(); else if(chance(0.55)){ const gb=5+rnd(12); P.gold+=gb; line(`💰 금화 +${gb}`,"loot"); } }   // 스킬북 0.8%·장비 캡 1.5%(하향) · 좋은 장비는 시그니처 파밍으로
+    if(chance(0.008))dropBook(); else if(chance(clamp((0.005+LUKv()*0.0004)*(1+metaEff().drop),0,0.015)))dropRelic(); else if(chance(0.55)){ const gb=5+rnd(12); P.gold+=gb; line(`💰 금화 +${gb}`,"loot"); } }
   dropSignature(enemy, wasBoss);   // ✨ 몬스터 고유(시그니처) 드랍 + 몬스터 도감 처치 기록
-  if(P.companion&&typeof gainCompBond==="function")gainCompBond(wasBoss?Math.round(15+floor*0.8):Math.round(3+floor*0.25));   // 🐾 동료 유대 획득(전투)
-  if(wasBoss&&typeof maybeDropCompanion==="function")maybeDropCompanion(floor);   // ✨ 보스: 희귀 동료 영입 기회
-  if(typeof dropRareSkill==="function")dropRareSkill(wasBoss);   // 🌟 희귀 스킬 드랍(보스 높음/파밍 낮음)
+  if(P.companion&&typeof gainCompBond==="function")gainCompBond(wasBoss?Math.round(15+floor*0.8):Math.round(3+floor*0.25));   // 🐾 동료 유대
+  if(wasBoss&&typeof maybeDropCompanion==="function")maybeDropCompanion(floor);
+  if(typeof dropRareSkill==="function")dropRareSkill(wasBoss);
+  _lootCapture=false;
   checkTitleUnlocks(); checkQuests();
-  enemy=null; B=null; save(true);
-  if(expReturn){ const r=expReturn; expReturn=null; render(); setScene("🏆","전투에서 승리했다!"); setTimeout(r,180); return; }   // 개척 중이면 개척 흐름으로 복귀
-  if(wasBoss&&floor>=TOP){ setTimeout(victory,300); return; }
-  setScene("🏆","적을 물리쳤다. 위층 계단이 보인다."); showClimb(); }
+  const loot=_lootBuf.slice(); enemy=null; B=null; save(true);
+  const cont = expReturn ? (()=>{ const r=expReturn; expReturn=null; render(); setTimeout(r,120); })
+    : (wasBoss&&floor>=TOP) ? (()=>{ setTimeout(victory,120); })
+    : (()=>{ clearLog(); setScene("🏆","적을 물리쳤다. 위층 계단이 보인다."); showClimb(); });
+  showVictoryLoot(wasBoss, foeName, loot, cont); }
+/* 🎁 전리품 패널 — 전투가 끝나면 획득물을 깔끔하게 한 화면에 (전투/획득 분리) */
+function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog(); setScene("🏆", wasBoss?"보스 격파!":"승리!");
+  const rows = (loot&&loot.length) ? loot.map(h=>`<div class="lootrow">${h}</div>`).join("") : `<div class="lootrow" style="color:var(--dim)">획득한 전리품이 없다.</div>`;
+  $("log").innerHTML=`<div class="lootpanel"><div class="lh">🎁 전리품 <span>${foeName} 처치</span></div><div class="lootlist">${rows}</div></div>`;
+  setActions([{label:"▶ 계속",full:true,act:cont}]); }
 function dropRelic(){ const f=P.floor; const early=["녹슨 단검","가죽 갑옷","토끼발 부적"],mid=["이 빠진 롱소드","판금 흉갑","흡혈의 반지","사냥꾼의 활"],late=["월광 세이버"];
   let pool;
   if(f>=31) pool=GEAR_TIERS.rift;               // 시공: 시공 티어

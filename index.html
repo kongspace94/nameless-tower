@@ -293,6 +293,14 @@
   .battlemsg .bm-txt.dmg{color:#ff9d9d} .battlemsg .bm-txt.heal{color:#96f0bf} .battlemsg .bm-txt.loot{color:#ffe08a} .battlemsg .bm-txt.sys{color:#c7d0e0} .battlemsg .bm-txt.quote{color:#dbe2f0; font-style:italic}
   .battlemsg.await::after{content:"▼"; position:absolute; right:12px; bottom:8px; font-size:12px; color:#8fa0c8; animation:dlgblink 1s steps(1) infinite}
   @media (max-width:640px){ .battlemsg{font-size:13.5px; padding:9px 13px 11px; max-height:96px} .battlemsg .bm-txt.cur{font-size:14.5px} }
+  /* 🎁 전리품 패널 (승리 후 획득물 정리) */
+  .lootpanel{background:linear-gradient(180deg,#171c2a,#0f131d); border:1px solid #37425f; border-radius:12px; overflow:hidden}
+  .lootpanel .lh{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#1b2233; border-bottom:1px solid var(--line); font-weight:800; font-size:14px; color:#ffe08a}
+  .lootpanel .lh span{color:var(--dim); font-weight:600; font-size:12px}
+  .lootpanel .lootlist{padding:8px 14px 12px; display:flex; flex-direction:column; gap:6px; max-height:210px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#37425f transparent}
+  .lootpanel .lootlist::-webkit-scrollbar{width:7px} .lootpanel .lootlist::-webkit-scrollbar-thumb{background:#37425f; border-radius:7px}
+  .lootpanel .lootrow{font-size:14px; color:#dbe2f0; padding:6px 9px; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:8px; line-height:1.4}
+  .lootpanel .lootrow b{color:#fff}
   /* 🔀 무기 교체 오버레이 (인벤 스타일) */
   .wswap{position:absolute; left:8px; right:8px; top:8px; bottom:8px; z-index:13; display:flex; flex-direction:column;
     background:linear-gradient(180deg,#141a29,#0d1119); border:2px solid #37425f; border-radius:12px; box-shadow:0 8px 26px rgba(0,0,0,.6); animation:bsIn .16s ease; overflow:hidden}
