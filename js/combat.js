@@ -1011,13 +1011,12 @@ function unleashUltimate(){ const e=enemy; if(!e)return; const c=B.charge; B.cha
 /* 💬 포켓몬식 전투 대화박스 — 적 행동을 박스로 알리고 [클릭/스페이스]로 진행(안 누르면 잠깐 뒤 자동). 큰 공격은 붉은 경고 */
 function battleSay(text, onDone, opts){ opts=opts||{};
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ if(onDone)onDone(); return; }
-  line(text, opts.danger?"dmg":"sys");
-  const s=$("stage"); if(s){ const old=s.querySelector(".battlesay"); if(old)old.remove();
-    const d=document.createElement("div"); d.className="battlesay"+(opts.danger?" danger":""); d.innerHTML=`<span>${text}</span><i class="bs-next">▼</i>`; s.appendChild(d); }
+  line(text, opts.danger?"dmg":"sys");   // 💬 위 메시지 박스(#battlemsg) 갱신
+  const bm=$("battlemsg"); if(bm){ bm.classList.add("await"); bm.classList.toggle("danger", !!opts.danger); }
   if(typeof sfx==="function")sfx("click");
-  let done=false; let timer=null;
+  let done=false, timer=null;
   const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
-    const bx=$("stage")&&$("stage").querySelector(".battlesay"); if(bx)bx.remove(); if(onDone)onDone(); };
+    const b=$("battlemsg"); if(b){ b.classList.remove("await","danger"); } if(onDone)onDone(); };
   const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
   document.addEventListener("keydown",key);
   setActions([{label:"▶ 계속  (클릭 / 스페이스)",full:true,act:go}]);

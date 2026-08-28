@@ -175,8 +175,9 @@ function gainStamina(n){ if(P.stamina==null)P.stamina=0; const b=Math.min(n,STAM
 
 /* ---------- 로그 / 무대 / 이펙트 ---------- */
 function line(html,cls){ const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
+  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); bm.innerHTML=`<span class="bm-txt ${cls||''}">${html}</span>`; } }   // 💬 전투 중: 위 메시지 박스에 최신 메시지
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
-function clearLog(){ $("log").innerHTML=""; }
+function clearLog(){ $("log").innerHTML=""; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger"); } }
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";
