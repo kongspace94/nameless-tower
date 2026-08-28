@@ -17,7 +17,7 @@
   body{ background:radial-gradient(900px 500px at 50% -8%, rgba(200,150,60,.10), transparent 60%),
       radial-gradient(1200px 700px at 50% 0%, #171d2b 0%, var(--bg) 58%) fixed;
     color:var(--ink); font-family:var(--font); line-height:1.6; display:flex; align-items:flex-start; justify-content:center; padding:20px 12px 60px; }
-  .wrap{width:100%; max-width:820px}
+  .wrap{width:100%; max-width:1040px}   /* 🖥 PC에서 넓게 (모바일은 width:100%라 그대로) */
   h1{font-size:clamp(24px,5vw,38px); letter-spacing:.06em; margin:.1em 0 0; text-align:center; font-weight:600; text-shadow:0 2px 24px rgba(232,197,106,.28)}
   .sub{text-align:center; color:var(--dim); margin:2px 0 14px; font-size:13px; letter-spacing:.24em}
   body:not(.title) h1, body:not(.title) .sub{ display:none }   /* 타이틀 텍스트는 타이틀 화면에서만 (게임 중엔 숨겨 화면 확보) */
@@ -131,6 +131,11 @@
   .bunit .bart{position:relative; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
   /* 🖼 전투 스프라이트는 아이콘 박스(어두운 배경·모서리·그림자) 벗기고 필드에 얹은 느낌으로 — 전체가 보이게 contain */
   .bunit .bart img{ background:transparent !important; box-shadow:none !important; border-radius:0 !important; object-fit:contain !important }
+  /* 🖥 넓은 화면(PC): 필드가 넓어진 만큼 스프라이트도 키워서 허전함 방지 (모바일 상한은 아래 미디어쿼리 유지) */
+  @media (min-width:821px){
+    body.combat .bfoe .bart img{ width:160px !important; height:160px !important }
+    body.combat .bme .bart img, body.combat .bme .bart .pavimg, body.combat .bme .bart .pavatar{ width:128px !important; height:128px !important }
+  }
   /* 🟢 포켓몬식 발판 — 스프라이트 밑 타원 그림자(공중에 뜬 느낌 제거) */
   .bunit .bart::after{content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); width:92%; height:20px; border-radius:50%;
     background:radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 55%, transparent 72%); z-index:-1; pointer-events:none}
