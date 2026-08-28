@@ -463,6 +463,10 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.5 · 8/29", title:"대륙 탑 버그 수정", items:[
+      "🐛 <b>대륙 탑 승리 시 스프라이트/정보판이 전리품 패널과 겹치던 버그 수정</b> (승리 후 화면 정리)",
+      "🌀 <b>대륙 탑 포탈(관문) 개방 완화</b> — 10층 보스에 '도달하면' 바로 관문 개방(예전엔 통과해야 열림)",
+    ]},
   { ver:"v2.4 · 8/29", title:"전투 화면 시원하게", items:[
       "🖥 <b>PC 화면 폭 확대</b> (820→1040px) — 넓은 모니터에서 시원하게 (모바일은 그대로)",
       "📐 <b>전투 필드 높이 확대</b> (340→460px) — 위아래로 좁던 문제 해결, 밑 여백 활용",
@@ -553,7 +557,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29c",
+  id:"2026-08-29d",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

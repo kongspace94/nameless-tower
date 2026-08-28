@@ -1603,7 +1603,7 @@ function expCombat(){ expReturn=expeditionHub; setScene("⚔️","무언가 다�
 function saveRegionProg(){ if(!EXP||!EXP.tower||!P)return; if(!P.towerProg)P.towerProg={}; const prev=(P.towerProg[EXP.ci]&&P.towerProg[EXP.ci].floor)||1; P.towerProg[EXP.ci]={floor:Math.max(prev,EXP.floor||1)}; save(true); }   // 🗼 대륙 탑 최고 도달 층
 function regionAreaFor(f){ const c=CONT(), n=Math.max(1,c.areas.length); const per=REGION_TOP/n; return c.areas[Math.min(n-1,Math.floor((f-1)/per))]||c.areas[0]; }   // 층 구간별 지역(환경 연출)
 function regionBossArea(f){ const c=CONT(); return c.areas[((f/REGION_BOSS_EVERY)-1)%Math.max(1,c.areas.length)]||c.areas[0]; }   // 10층마다 지역 보스(구역 보스 순환)
-function regionCheckpoints(ci){ const hi=(P.towerProg&&P.towerProg[ci]&&P.towerProg[ci].floor)||1; const cps=[1]; for(let f=REGION_BOSS_EVERY; f<REGION_TOP && f<hi; f+=REGION_BOSS_EVERY)cps.push(f); return cps; }
+function regionCheckpoints(ci){ const hi=(P.towerProg&&P.towerProg[ci]&&P.towerProg[ci].floor)||1; const cps=[1]; for(let f=REGION_BOSS_EVERY; f<REGION_TOP && f<=hi; f+=REGION_BOSS_EVERY)cps.push(f); return cps; }   // 도달한 층까지 10층마다 관문(포탈) — 도달 즉시 개방
 function beginRegionTower(ci){ mode="dive"; EXP={ci,floor:1,tower:true}; EXP.debuff=REGION_DEBUFFS[CONTINENTS[ci].debuff]; EXP.debuffKey=CONTINENTS[ci].debuff; expReturn=null;
   const c=CONTINENTS[ci], cps=regionCheckpoints(ci);
   if(cps.length<=1){ regionStartAt(1); return; }   // 관문 없음 → 1층부터
@@ -1630,8 +1630,12 @@ function enterRegionFloor(){ if(!EXP||enemy)return; mode="dive"; const f=EXP.flo
 function regionCombat(){ if(EXP)EXP._resume=regionCombat; expReturn=showRegionClimb; setScene("⚔️","무언가 다가온다.");
   line(pick(["폐허 사이로 형체가 다가온다.","공기가 뒤틀리며 그것이 나타났다.","발소리가 가까워진다.","무너진 탑 그림자에서 그것이 걸어 나온다."]),"sys");
   setActions([{label:"맞선다",full:true,act:()=>startCombat(expEnemy(expDifficulty()),"")}]); }
-function showRegionClimb(){ if(!EXP)return; EXP._resume=showRegionClimb; mode="dive";
-  const f=EXP.floor, nextF=Math.min(f+1,REGION_TOP), nextBoss=(nextF>=REGION_TOP)||(nextF%REGION_BOSS_EVERY===0);
+function showRegionClimb(){ if(!EXP)return; EXP._resume=showRegionClimb; mode="dive"; enemy=null;
+  if(document.body)document.body.classList.remove("lootview");   // 🎁 승리 전리품 패널 정리
+  render(); clearLog();   // 🧹 전투 잔상·전리품 패널 제거 + combat 해제(스테이지 겹침 방지)
+  const c=CONT(), f=EXP.floor;
+  setScene(c.ic, `${towerName(EXP.ci)} · ${f}/${REGION_TOP}층 — 계단 앞`);   // 필드 씬 복구
+  const nextF=Math.min(f+1,REGION_TOP), nextBoss=(nextF>=REGION_TOP)||(nextF%REGION_BOSS_EVERY===0);
   const nlabel = nextF>=REGION_TOP?`👑 ${REGION_TOP}층 — 대륙 수호체 결전!` : nextBoss?`⚔ ${nextF}층 — 지역 보스 결전!` : `계단을 올라 ${nextF}층으로`;
   setActions([
     {label:nlabel,full:true,act:regionNextFloor},
