@@ -1198,7 +1198,7 @@ function winCombat(){
   if(typeof FOODS!=="undefined" && chance(wasBoss?1:0.28)){ const fk=pick(["food_heal","food_dps","food_tank"]); const fa=(wasBoss?2:1)+rnd(2); gainFood(fk,fa); line(`${FOODS[fk].emoji} <b>${FOODS[fk].n}</b> +${fa} <span style="color:var(--dim)">(동료 먹이)</span>`,"loot"); }   // 🍖 동료 먹이 드랍
   { const st=pick(["str","int","dex","vit","luk"]); const tp=3+rnd(3)+Math.floor((enemy.atk||6)/4)+(wasBoss?12:0)+(enemy.elite?6:0);
     const up=trainStat(st,tp); if(up>0){ spawnFloat(`✦ ${STAT_NAME[st]} +${up}`,"#9be08a","me"); line(`✦ <b>${STAT_NAME[st]} +${up}</b> (전투 숙련)`,"loot"); } }
-  if(wasBoss){ bossReward(); if(chance(0.4))dropManaOrb(); if(chance(0.55)){ const gm=1+rnd(2); P.gems=(P.gems||0)+gm; line(`💎 <b>크리스탈 +${gm}</b> (프로필 커스터마이징 재화)`,"loot"); }
+  if(wasBoss){ bossReward(); if(chance(0.18))dropManaOrb();   // 💎 크리스탈은 전투 중 지급 안 함(과금 재화 — 통신판매/우편으로만)
     if(chance(0.01)){ gainCons("enhance_charm"); line(`⚜️ <b>강화의 축복</b>을 얻었다! (초희귀 · 대장간 강화 시 성공↑·파괴방지)`,"loot"); toast("강화의 축복 획득!"); } }   // 보스 초희귀 드랍
   else { if(chance(0.025))dropManaOrb();   // 물약은 몬스터가 떨구지 않음 — 상자에서만
     if(chance(0.008))dropBook(); else if(chance(clamp((0.005+LUKv()*0.0004)*(1+metaEff().drop),0,0.015)))dropRelic(); else if(chance(0.55)){ const gb=5+rnd(12); P.gold+=gb; line(`💰 금화 +${gb}`,"loot"); } }
@@ -1230,12 +1230,14 @@ function dropRelic(){ const f=P.floor; const early=["녹슨 단검","가죽 갑�
   addRelic(pick(pool)); }
 function dropBook(){ const books=Object.keys(CONS).filter(k=>CONS[k].use==="learn"&&!CONS[k].rare); const bk=pick(books); gainCons(bk); line(`${CONS[bk].emoji} <b>${CONS[bk].n}</b>을(를) 발견했다! (가방에서 사용해 스킬 습득)`,"loot"); }   // 희귀 비급은 제외(전용 드랍만)
 function dropManaOrb(){ if((P.skillSlots||SLOT_BASE)>=SLOT_MAX)return; gainCons("mana_orb"); line(`🔵 <b>마나 오브</b> 드랍! 가방에서 쓰면 액티브 스킬 슬롯 +1 (현재 ${P.skillSlots}/${SLOT_MAX}).`,"loot"); toast("마나 오브 획득!"); }
-function bossReward(){ const f=P.floor; line("보스가 무너지며 재료 무더기를 떨군다…","sys"); Object.keys(MATS).forEach(m=>{ const a=1+rnd(3); addMat(m,a); });   // 재료 종류별 1~3개
-  line("각종 재료를 대량 획득!","loot"); if(f===15)addRelic("이름 없는 열쇠"); P.potions+=2; line("🧪 물약 +2","loot");
-  if(f>=45){ const g=pick(GEAR_TIERS.myth); addRelic(g); line(`✦ <b>신화 장비</b> — ${g}을(를) 손에 넣었다!`,"loot"); toast("신화 장비 획득!"); }   // 정점 보스: 신화 티어 확정 드랍
-  else if(f>=31){ addRelic(pick(GEAR_TIERS.rift)); }
-  else if(f>=16){ addRelic(pick(GEAR_TIERS.sky)); }
-  const ck=pick(Object.keys(CONS).filter(k=>!CONS[k].rare&&CONS[k].use!=="learn")); if(ck){ gainCons(ck); line(`${CONS[ck].emoji} ${CONS[ck].n}을(를) 얻었다!`,"loot"); } }   // 희귀 비급·스킬북은 무작위 지급 제외
+function bossReward(){ const f=P.floor;
+  const mats=Object.keys(MATS).slice().sort(()=>Math.random()-0.5).slice(0,3);   // 3종만 (뭉뚱그리지 않고 구체적으로)
+  const got=mats.map(m=>{ const a=2+rnd(3); addMat(m,a); return `${MATS[m][0]}${MATS[m][1]}+${a}`; });
+  line(`📦 재료 — ${got.join(" · ")}`,"loot");
+  if(f===15)addRelic("이름 없는 열쇠"); P.potions+=1; line("🧪 물약 +1","loot");
+  if(f>=45){ const g=pick(GEAR_TIERS.myth); addRelic(g); line(`✦ <b>신화 장비</b> — ${g}을(를) 손에 넣었다!`,"loot"); toast("신화 장비 획득!"); }   // 정점 보스: 신화 확정
+  else if(f>=31){ if(chance(0.6))addRelic(pick(GEAR_TIERS.rift)); }   // 상위 장비는 60% (매번 확정 X)
+  else if(f>=16){ if(chance(0.6))addRelic(pick(GEAR_TIERS.sky)); } }   // 랜덤 소비품 지급 제거(퍼주기 방지)
 function showClimb(){ setActions([
   {label:`계단을 올라 ${P.floor+1}층으로`,full:true,act:nextFloor},
   {label:"🎒 소지품 (장비 착용)",desc:"드랍 장비 착용·정리",act:inventoryMenu},

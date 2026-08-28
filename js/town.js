@@ -476,7 +476,12 @@ function doUpgradeSel(id, useCharm){ const it=bsFind(id); if(!it||!RELICS[it.k]|
   if(chance(succ)){ it.up=up+1; line(`⚒️ <b>${it.k}</b> 강화 성공! → <b>+${it.up}</b> (${upStatText(it)} 대폭↑)`,"loot"); toast("강화 성공! +"+it.up); fxOk();
     if(it.up%5===0 || chance(0.22)){ const r=upRandStat(); if(!it.extra)it.extra={}; it.extra[r[0]]=(it.extra[r[0]]||0)+r[1]; const nm=r[0]==="atk"?"공격":r[0]==="def"?"방어":"행운"; line(`✨ <b>추가 옵션!</b> ${nm} +${r[1]} (랜덤)`,"loot"); }   // 🎲 랜덤 추가스탯(5강마다 확정)
   } else {
-    if(!charm && chance(upDestroyChance(up))){ line(`💥 강화 실패 — <b style="color:var(--danger)">${it.k}이(가) 파괴됐다!</b>`,"dmg"); toast("장비 파괴…"); removeUpgItem(it); if(typeof bumpFeat==="function")bumpFeat("destroyed"); render(); save(true); blacksmithMenu(); return; }
+    if(!charm && chance(upDestroyChance(up))){ removeUpgItem(it); if(typeof bumpFeat==="function")bumpFeat("destroyed"); render(); save(true); if(typeof sfx==="function")sfx("hurt");
+      clearLog(); setScene("💥","강화 실패 — 장비 파괴!");   // 🔊 명확한 파괴 확인 화면(바로 안 넘어감)
+      line(`💥 <b style="color:var(--danger)">${it.k}${up?` +${up}`:""}이(가) 산산조각 났다!</b>`,"dmg");
+      line("강화에 실패해 장비가 <b>완전히 파괴</b>됐습니다 — 가방·창고에서 사라졌어요.","sys");
+      line("다음엔 <b>⚜️ 강화의 축복</b>을 쓰면 파괴를 막을 수 있어요.","quote");
+      toast("💥 장비 파괴됨"); setActions([{label:"← 대장간으로",full:true,act:blacksmithMenu}]); return; }
     line(`⚒️ ${it.k} 강화 실패… 재료가 날아갔다.${charm?" (축복이 파괴를 막았다)":" (레벨 유지)"}`,"dmg"); toast("강화 실패");
   }
   render(); save(true); upgradePreview(id); }   // 같은 장비 상세로 복귀 → 연속 강화 가능
