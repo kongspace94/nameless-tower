@@ -129,7 +129,8 @@
   .bfoe{top:18px; right:14px; flex-direction:row-reverse}
   .bme{bottom:12px; left:14px}
   .bunit .bart{filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
-  .bfoe .bart{animation:bob 2.4s ease-in-out infinite}
+  .bfoe .bart{animation:bobSoft 3.6s ease-in-out infinite}   /* GIF는 자체 움직임이 있어 살짝만 */
+  @keyframes bobSoft{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   .summ{position:absolute; left:18px; bottom:104px; display:flex; align-items:center; gap:6px; z-index:3; background:#171326cc; border:1px solid #4a3d6e; border-radius:10px; padding:4px 8px; backdrop-filter:blur(2px); animation:bob 2.8s ease-in-out infinite; max-width:170px}
   .summ.guarding{border-color:#7ad6c0; box-shadow:0 0 9px #7ad6c0aa}
   .summ .se{font-size:22px; line-height:1; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
@@ -253,7 +254,7 @@
 
   .log{padding:16px 18px 6px; max-height:44vh; overflow-y:auto; font-size:15.5px; background:#0c0f16; border-left:1px solid var(--line); border-right:1px solid var(--line)}
   /* 전투 중: 정석 분리형 — 씬(상) / 메시지박스 3줄(중) / 커맨드박스(하) 를 겹침 없이 쌓는다 */
-  body.combat .stage{ height:296px; border-radius:14px 14px 0 0 }
+  body.combat .stage{ height:340px; border-radius:14px 14px 0 0 }   /* 스프라이트 키운 만큼 전투 화면 확대 */
   body.combat .bme{ bottom:120px }   /* 💬 하단 메시지 박스(최대 4줄) 위로 플레이어 유닛 올림 */
   /* 💬 포켓몬식 대화박스: 고정 높이 + 최신 줄 강조 + 높은 대비 (가독성↑) */
   body.combat .log{ height:140px; max-height:140px; margin:0; padding:14px 18px 14px; font-size:15.5px; line-height:1.62; color:#e9eef8;
@@ -675,7 +676,9 @@
     .actions button{ min-height:56px; font-size:16px; padding:14px 14px }
     button .desc{ font-size:12.5px }
     .log{ max-height:52vh; font-size:16px }
-    body.combat .stage{ height:256px } body.combat .bme{ bottom:108px }
+    body.combat .stage{ height:290px } body.combat .bme{ bottom:104px }
+    body.combat .bfoe .bart img{ max-width:96px !important; max-height:96px !important }   /* 모바일: 적 스프라이트 상한(겹침 방지) */
+    body.combat .bme .bart img{ max-width:80px !important; max-height:80px !important }
     body.combat .log{ margin:0; height:120px; max-height:120px; font-size:15px; line-height:1.55 }
     body.combat .log p:last-child{ font-size:16px }
     body.combat .actions{ margin:0 }

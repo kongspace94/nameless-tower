@@ -203,12 +203,12 @@ function setSceneFoe(){ if(!enemy)return;
   const mechHtml = mech ? `<span class="mechb${enemy.enraged?' hot':''}">${mech.ic}${mech.n}</span>` : "";
   const flyHtml = enemy.fly ? `<span class="flyb" title="비행 — 근접 공격이 빗나갈 수 있다 (활·마법은 명중)">🦅 비행</span>` : "";
   const shieldRow = (enemy.shieldHp>0) ? `<div class="hprow"><span class="tag" style="color:#8fd0ff">보호막</span><div class="hpbar2 shd"><i style="width:${clamp(enemy.shieldHp/(enemy.shieldMax||enemy.shieldHp)*100,0,100)}%"></i></div><span class="hpnum">${enemy.shieldHp}</span></div>` : "";
-  const foe = `<div class="bunit bfoe"><div class="bart${chg?' charging':''}" id="foeArt">${ico(enemy.ic,96)}</div>`+
+  const foe = `<div class="bunit bfoe"><div class="bart${chg?' charging':''}" id="foeArt">${ico(enemy.ic, enemy.boss?150:120)}</div>`+
     `<div class="ubox"><div class="un">${enemy.n}${chg?` <span style="color:#8fd0ff">🔮충전 ${B.charge.left}</span>`:(enemy.staggered?' <span style="color:#ffd36a">💫</span>':'')}${weakHtml}${flyHtml}${mechHtml}</div>`+
     (ailHtml?`<div class="ailrow">${ailHtml}</div>`:"")+
     `<div class="hprow"><span class="tag">HP</span><div class="hpbar2 hp"><i id="ebar" style="width:${ew}%"></i></div><span class="hpnum" id="ehpnum">${Math.max(0,enemy.hp)}/${enemy.hpMax}</span></div>`+
     shieldRow+gRow+`</div></div>`;
-  const me = `<div class="bunit bme"><div class="bart" id="meArt">${playerIco(84)}</div>`+
+  const me = `<div class="bunit bme"><div class="bart" id="meArt">${playerIco(100)}</div>`+
     `<div class="ubox"><div class="un">${P.name}${B&&B.disarmed?' <span style="color:var(--danger)">🗡️❌ 무장해제</span>':''}</div>`+
     `<div class="hprow"><span class="tag">HP</span><div class="hpbar2 hp"><i id="meHpBar" style="width:${clamp(P.hp/mhp*100,0,100)}%"></i></div><span class="hpnum" id="meHpNum">${Math.max(0,P.hp)}/${mhp}</span></div>`+
     `<div class="hprow"><span class="tag">기력</span><div class="hpbar2 mp"><i id="meMpBar" style="width:${clamp(P.mp/mmp*100,0,100)}%"></i></div><span class="hpnum" id="meMpNum">${P.mp}/${mmp}</span></div>`+
