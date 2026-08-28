@@ -186,7 +186,7 @@ function clearLog(){ $("log").innerHTML=""; _bmLines=[]; const bm=$("battlemsg")
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";
-  if(EXP){ const c=(typeof CONTINENTS!=="undefined")&&CONTINENTS[EXP.ci]; const a=c&&c.areas[EXP.ai]; $("floortag").textContent=`🗺 ${a?a.n:"개척"}${turn}`; return; }
+  if(EXP){ const c=(typeof CONTINENTS!=="undefined")&&CONTINENTS[EXP.ci]; const rt=(typeof REGION_TOP!=="undefined")?REGION_TOP:80; $("floortag").textContent=`🗼 ${c?c.ic:"🗺"} ${EXP.floor||1}/${rt}층${turn}`; return; }
   $("floortag").textContent = mode==="dive"?(`탑 ${P.floor}/${TOP}층`+turn):"거점 마을"; }
 function porMini(){ $("porMini").innerHTML = (P&&!enemy) ? playerIco(22)+`<span>${P.name}</span>` : ""; }
 function setSceneFoe(){ if(!enemy)return;

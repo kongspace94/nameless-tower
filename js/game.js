@@ -8,7 +8,7 @@ function die(){ if(P&&P._duel){ if(typeof pvpLoss==="function")return pvpLoss(P.
   const cause=(typeof deathCause==="string"&&deathCause)?deathCause:"";
   enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); if(typeof bgm==="function")bgm("town"); clearLog(); setScene("💀","");   // 🎵 패배 즉시 전투/보스 BGM 종료 → 마을 테마(마을로 귀환하므로)
   let place=`탑 ${P.floor}층`;   // 🧭 개척(대륙) 중 사망이면 '탑 N층'이 아니라 대륙·구역명으로
-  try{ if(typeof EXP!=="undefined" && EXP && typeof CONT==="function"){ const c=CONT(); if(c){ const a=c.areas&&c.areas[EXP.ai]; place=`${c.name}${a?` · ${a.n}`:(c.contBoss?` · ${c.contBoss.n}`:"")}`; } } }catch(e){}
+  try{ if(typeof EXP!=="undefined" && EXP && typeof CONT==="function"){ const c=CONT(); if(c){ place=`${c.name} ${EXP.floor||1}층`; } } }catch(e){}   // 🧭 대륙 탑: 대륙명 + 지역 층수
   line(`<b style="color:var(--danger)">${place}에서 정신을 잃었다…</b>`);
   if(cause)line(`<b>사인:</b> ${cause}`,"dmg");   // 💀 무엇에 쓰러졌는지 명확히
   if(lastLog.length)line(`<div style="font-size:11.5px;color:var(--dim);margin-top:2px">— 마지막 순간 —<br>${lastLog.map(s=>s.replace(/</g,"&lt;")).join("<br>")}</div>`,"quote");
@@ -463,6 +463,12 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.0 · 8/28", title:"대륙이 80층 탑으로!", items:[
+      "🗼 <b>대륙 개척을 80층 탑 등반으로 전면 개편</b> — 구역 시스템 대신 '이름 없는 탑'처럼 층을 오릅니다",
+      "👹 대륙 환경에 맞는 <b>지역 몬스터·지역 디버프</b>, <b>10층마다 지역 보스</b>, <b>80층 대륙 수호체</b>",
+      "🌀 지역 보스를 잡으면 그 층이 <b>관문(체크포인트)</b> — 다음엔 도달한 관문에서 재시작",
+      "⚖ (밸런스는 계속 다듬는 중 — 층당 난도·보스 체력 등 피드백 환영!)",
+    ]},
   { ver:"v1.9 · 8/28", title:"드랍 위치·파밍 밸런스", items:[
       "🎁 <b>전리품 상자가 쓰러진 몬스터 자리에 떨어지게</b> 수정 (보스 선물상자·반짝이도 그 위치에)",
       "🔁 <b>이미 정복한 탑 재도전 시 2회차부터 보상 80%</b> — 무한 파밍 방지 (대륙 개척·탑 정상 모두)",
@@ -522,7 +528,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-28f",
+  id:"2026-08-28g",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

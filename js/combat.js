@@ -16,7 +16,8 @@ function towerList(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mo
   line("정복한 대륙마다 그 <b>탑으로 통하는 포탈</b>이 열렸다. 오를 탑을 고르자.","sys");
   const acts=[{label:"🗼 이름 없는 탑",desc:`시작의 탑 · 포탈 ${(P.portals||[1]).length}개 · 최고 ${P.flags.maxFloor||0}층`,full:true,act:startDive}];
   conquered.forEach(i=>{ const c=CONTINENTS[i]; const d=REGION_DEBUFFS[c.debuff];
-    acts.push({label:`🗼 ${c.name}`,desc:`정복한 대륙의 탑 · ${d?d.icon+" "+d.n+" · ":""}포탈 재도전`,full:true,act:()=>beginContinent(i)}); });
+    const hi=(P.expProg&&P.expProg[i]&&P.expProg[i].floor)||1;
+    acts.push({label:`🗼 ${c.name}`,desc:`${REGION_TOP}층 대륙 탑 · ${d?d.icon+" "+d.n+" · ":""}최고 ${Math.min(hi,REGION_TOP)}층 · 관문 재도전`,full:true,act:()=>beginContinent(i)}); });
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 function beginDive(floor){ mode="dive"; P.dives++; P.floor=floor; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(typeof amb==="function")amb("tower");
   const total=(P.potions||0)+(P._divePotBank||0); P._divePotBank=Math.max(0,total-DIVE_POTION_MAX); P.potions=Math.min(total,DIVE_POTION_MAX);  // 반입 제한
@@ -1263,7 +1264,7 @@ function showClimb(){ setActions([
   {label:"📋 스킬 (장착 변경)",desc:"액티브·패시브 교체",act:skillWindow},
   {label:"🚪 마을로 귀환",desc:"다이브 종료 · 획득물 유지",act:returnToTown},
 ]); }
-function backToClimb(){ if(EXP&&!enemy){ expeditionHub(); return; } clearLog(); setScene("🪜",`${P.floor}층 계단 앞 — 위로 오를까?`); line("계단 앞으로 돌아왔다.","sys"); showClimb(); }
+function backToClimb(){ if(EXP&&!enemy){ (EXP._resume||showRegionClimb)(); return; } clearLog(); setScene("🪜",`${P.floor}층 계단 앞 — 위로 오를까?`); line("계단 앞으로 돌아왔다.","sys"); showClimb(); }
 function nextFloor(){ P.floor=Math.min((P.floor||1)+1,50); P.mp=clamp(P.mp+2,0,MAXMP()); render(); save(true); enterFloor(); }   // 탑은 50층까지(정상). 그 위는 대륙 개척으로.
 function checkpointTown(f){ const c=CHECKPOINTS[f]; const firstPortal=!P.portals.includes(f);
   if(firstPortal){ P.portals.push(f); if(typeof toast==="function")toast("포탈 해금: "+c.n); }
@@ -1502,7 +1503,9 @@ const CONTINENTS=[
 ];
 function CONT(){ return CONTINENTS[(EXP&&EXP.ci)||0]; }
 function contUnlockedCount(){ return Math.min(CONTINENTS.length, (P.flags.contCleared||0)+1); }
-function expDifficulty(){ if(!EXP)return 10; return CONT().diffBase + EXP.ai*2 + Math.floor(EXP.step/2); }
+const REGION_TOP=80;   // 🗼 대륙 탑은 80층까지 (이름 없는 탑=50, 대륙 탑=80·환경별)
+const REGION_BOSS_EVERY=10;   // 10층마다 지역 보스, 80층=대륙 수호체
+function expDifficulty(){ if(!EXP)return 10; return CONT().diffBase + (EXP.floor||1); }   // 지역 층수가 난도를 끌어올림(튜닝 지점)
 function expScale(diff){ return 1 + (diff-1)*0.17; }   // 밸런스: 대륙 곡선 대폭 강화(0.12→0.17) — 탑과 격차 확대
 /* 🌩 개척은 탑과 '비교도 안 될' 강함: 몬스터 자체에 배수 부여 */
 const EXP_HPMUL=1.85, EXP_ATKMUL=1.6, EXP_DEFADD=3;
@@ -1515,93 +1518,84 @@ function applyRegionDebuff(){ const d=regionDebuff(); if(!d||!B)return;   // 전
 function regionTurnTick(){ const d=regionDebuff(); if(!d||!d.onTurn||!enemy||regionResisted())return; d.onTurn(); if(P.hp<=0)deathCause=`${d.icon||"🌫"} 지역 효과 · ${d.n||"디버프"}`; render(); if(P.hp<=0){ die(); return true; } return false; }
 /* 🧭 대륙 선택 */
 function startExpedition(){ if(enemy){ toast("전투 중엔 갈 수 없다"); return; } stopAuctionTimer(); auction=null; expSelectContinent(); }
-function expSelectContinent(){ mode="town"; EXP=null; render(); clearLog(); setScene("🧭","대륙 개척 — 어느 대륙으로?");
-  line("탑 너머로 펼쳐진 대륙들. 갈수록 강력한 적과 <b>지역 디버프</b>가 기다린다.","sys");
+function expSelectContinent(){ mode="town"; EXP=null; render(); clearLog(); setScene("🧭","대륙의 탑 — 어느 탑으로?");
+  line(`탑 너머로 펼쳐진 대륙들. 각 대륙엔 환경에 맞는 <b>${REGION_TOP}층 탑</b>과 <b>지역 디버프</b>가 있다.`,"sys");
   const unlocked=contUnlockedCount();
   const acts=CONTINENTS.map((c,i)=>{ const d=REGION_DEBUFFS[c.debuff]; const cleared=(P.flags.contCleared||0)>i; const open=i<unlocked;
-    const pr=P.expProg&&P.expProg[i]; const inProg=!cleared&&pr&&(pr.ai>0||pr.step>0);
+    const hi=(P.expProg&&P.expProg[i]&&P.expProg[i].floor)||1; const inProg=!cleared&&hi>1;
     return open
-      ? {label:`${cleared?"✅":inProg?"▶":c.ic} ${c.name}${inProg?` <span style="color:var(--gold)">개척 중 ${pr.ai}/${c.areas.length}</span>`:""}`,desc:`${d.icon} ${d.n} · ${d.desc}${cleared?" · 개척완료(재도전)":inProg?" · 이어서 개척":""}`,full:true,act:()=>beginContinent(i)}
-      : {label:`🔒 ${c.name}`,desc:"이전 대륙을 먼저 개척해야 열린다",full:true,disabled:true,act:()=>{}}; });
+      ? {label:`${cleared?"✅":inProg?"▶":c.ic} ${c.name}${(inProg||cleared)?` <span style="color:var(--gold)">최고 ${Math.min(hi,REGION_TOP)}/${REGION_TOP}층</span>`:""}`,desc:`${d.icon} ${d.n} · ${d.desc}${cleared?" · 정복완료(재도전)":inProg?" · 관문에서 이어오르기":""}`,full:true,act:()=>beginContinent(i)}
+      : {label:`🔒 ${c.name}`,desc:"이전 대륙의 탑을 먼저 정복해야 열린다",full:true,disabled:true,act:()=>{}}; });
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
-function saveExpProg(){ if(!EXP||!P)return; if(!P.expProg)P.expProg={}; P.expProg[EXP.ci]={ai:EXP.ai,step:EXP.step}; save(true); }   // 🧭 개척 진행 저장(마을 갔다 와도 이어짐)
-function beginContinent(ci){ mode="dive"; const sv=(P.expProg&&P.expProg[ci])||null; const rai=(sv&&sv.ai)||0, rstep=(sv&&sv.step)||0;
-  EXP={ci,ai:rai,step:rstep}; EXP.debuff=REGION_DEBUFFS[CONTINENTS[ci].debuff]; EXP.debuffKey=CONTINENTS[ci].debuff; expReturn=null;
-  P.dives++; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(P.buffs)P.buffs.regionResist=null; P.floor=expDifficulty();
+function saveRegionProg(){ if(!EXP||!P)return; if(!P.expProg)P.expProg={}; const prev=(P.expProg[EXP.ci]&&P.expProg[EXP.ci].floor)||1; P.expProg[EXP.ci]={floor:Math.max(prev,EXP.floor||1)}; save(true); }   // 🗼 대륙 탑 최고 도달 층 저장(관문 재시작용)
+function regionAreaFor(f){ const c=CONT(), n=Math.max(1,c.areas.length); const per=REGION_TOP/n; return c.areas[Math.min(n-1,Math.floor((f-1)/per))]||c.areas[0]; }   // 층 구간별 지역(환경 연출)
+function regionBossArea(f){ const c=CONT(); return c.areas[((f/REGION_BOSS_EVERY)-1)%Math.max(1,c.areas.length)]||c.areas[0]; }   // 10층마다 지역 보스(구역 보스 순환)
+function regionCheckpoints(ci){ const hi=(P.expProg&&P.expProg[ci]&&P.expProg[ci].floor)||1; const cps=[1]; for(let f=REGION_BOSS_EVERY; f<REGION_TOP && f<hi; f+=REGION_BOSS_EVERY)cps.push(f); return cps; }
+function beginContinent(ci){ mode="dive"; EXP={ci,floor:1}; EXP.debuff=REGION_DEBUFFS[CONTINENTS[ci].debuff]; EXP.debuffKey=CONTINENTS[ci].debuff; expReturn=null;
+  const c=CONTINENTS[ci], cps=regionCheckpoints(ci);
+  if(cps.length<=1){ regionStartAt(1); return; }   // 관문 없음 → 1층부터
+  render(); clearLog(); setScene(c.ic,c.name);   // 🌀 도달한 관문 선택
+  line(`🗺️ <b>${c.name}</b> — 어느 관문에서 오를까? (도달했던 층의 관문에서 재시작할 수 있다)`,"sys");
+  const acts=cps.slice().reverse().map(f=>({label:f===1?"🚪 1층 (탑 입구)":`🌀 ${f}층 관문`,desc:f===1?"처음부터 등반":"도달한 관문에서 시작",full:true,act:()=>regionStartAt(f)}));
+  acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
+function regionStartAt(floor){ if(!EXP)return; EXP.floor=floor; mode="dive"; P.dives++; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(P.buffs)P.buffs.regionResist=null; expReturn=null;
   const total=(P.potions||0)+(P._divePotBank||0); P._divePotBank=Math.max(0,total-DIVE_POTION_MAX); P.potions=Math.min(total,DIVE_POTION_MAX);
-  const c=CONT(), d=regionDebuff(); render(); clearLog(); setScene(c.ic,c.name);
+  const c=CONT(), d=regionDebuff(); P.floor=expDifficulty(); render(); clearLog(); setScene(c.ic,c.name);
   line(`🗺️ <b>${c.name}</b> — ${c.intro}`,"sys");
   line(`${d.icon} <b>지역 디버프: ${d.n}</b> — ${d.desc}. <b>${CONS[d.resist].n}</b>(잡화점)으로 무효화 가능.`,"dmg");
+  line(`🗼 <b>${REGION_TOP}층 탑</b> — ${REGION_BOSS_EVERY}층마다 지역 보스, ${REGION_TOP}층에 <b>${c.contBoss.n}</b>이(가) 기다린다.`,"sys");
   if(P._divePotBank>0)line(`🧪 물약은 최대 ${DIVE_POTION_MAX}개만 반입 (나머지 ${P._divePotBank}개 마을 보관).`,"sys");
-  if(rai>0||rstep>0)line(`📍 이전 진행부터 이어서 개척한다 — <b>${(CONTINENTS[ci].areas[rai]||{}).n||"수호체"}</b> (${rai}/${CONTINENTS[ci].areas.length} 구역 완료).`,"loot");
-  expeditionHub(); }
-function expMapHtml(){ const c=CONT(), spa=STEPS_PER_AREA, areas=c.areas, total=areas.length*spa;
-  const done=EXP.ai*spa+Math.min(EXP.step,spa), pct=Math.round(done/total*100);
-  let rows=areas.map((a,idx)=>{ let cls,mark,extra="";
-    if(idx<EXP.ai){ cls="done"; mark="✅"; }
-    else if(idx===EXP.ai){ cls="cur"; mark="▶"; const filled=Math.min(EXP.step,spa);
-      const pips=Array.from({length:spa},(_,i)=>`<span class="epip ${i<filled?'on':''}"></span>`).join("");
-      extra=`<div class="epips">${pips}<span class="estep">${filled}/${spa}${EXP.step>=spa?" · 수호자!":""}</span></div>`; }
-    else { cls="lock"; mark="🔒"; }
-    return `<div class="enode ${cls}"><div class="eln">${mark} ${a.ic} ${a.n}${idx<EXP.ai?" — 개척 완료":idx===EXP.ai?" — 개척 중":""}</div>${extra}</div>`; }).join("");
-  rows+=`<div class="enode boss ${EXP.ai>=areas.length?'cur':'lock'}"><div class="eln">👑 ${c.contBoss.n}</div></div>`;
-  const d=regionDebuff(), res=regionResisted();
-  const dbadge=`<div class="edebuff ${res?'ok':''}">${d.icon} ${d.n}${res?" · 내성✔":" (내성 필요)"}</div>`;
-  return `<div class="expmap"><div class="ehead"><span>${c.ic} ${c.name}</span><span class="epct">개척 ${pct}%</span></div>${dbadge}${rows}</div>`; }
-function expeditionHub(){ if(!EXP||enemy)return; mode="dive"; P.floor=expDifficulty(); render();
-  const c=CONT(), spa=STEPS_PER_AREA;
-  if(EXP.ai>=c.areas.length){   // 🐛 FIX: 모든 구역 완료 → 대륙 수호체 결전 대기 (예전엔 area=undefined로 크래시 → 진행 불가)
-    setScene("👑",`${c.name} · 대륙 수호체`);
-    $("log").innerHTML=expMapHtml();
-    setActions([
-      {label:`⚔ ${c.contBoss.n} 결전`,desc:"모든 구역 개척 완료 · 대륙 수호체와 최종 결전",full:true,act:contBossIntro},
-      {label:"🎒 소지품",act:inventoryMenu},{label:"📋 스킬",act:skillWindow},
-      {label:"🚪 마을로 귀환",desc:"개척 종료 · 획득물 유지 (다시 오면 수호체부터)",act:returnToTown},
-    ]); return;
-  }
-  const area=c.areas[EXP.ai], atBoss=EXP.step>=spa;
-  setScene(area.ic,`${c.name} · ${area.n}`);
-  $("log").innerHTML=expMapHtml();
-  setActions([
-    {label:atBoss?`⚔ ${area.boss.n} 결전`:`🧭 탐험하기 (${EXP.step}/${spa})`,desc:atBoss?"구역 보스와 결전":"이 구역을 개척한다",full:true,act:exploreStep},
-    {label:"🎒 소지품",act:inventoryMenu},{label:"📋 스킬",act:skillWindow},
-    {label:"🚪 마을로 귀환",desc:"개척 종료 · 획득물 유지",act:returnToTown},
-  ]); }
-function exploreStep(){ if(!EXP||enemy)return; const spa=STEPS_PER_AREA;
-  if(EXP.step>=spa){ areaBoss(); return; }
-  EXP.step++; saveExpProg(); P.floor=expDifficulty(); clearLog();
+  if(floor>1)line(`📍 <b>${floor}층 관문</b>에서 등반을 재개한다.`,"loot");
+  setActions([{label:`▶ ${floor}층 진입`,full:true,act:enterRegionFloor},{label:"🏘 마을로 (준비하고 다시)",full:true,act:townMenu}]); }
+function enterRegionFloor(){ if(!EXP||enemy)return; mode="dive"; const f=EXP.floor, c=CONT(); P.floor=expDifficulty(); saveRegionProg(); if(typeof bgm==="function")bgm("tower"); render(); clearLog();
+  if(f>=REGION_TOP){ regionContBossIntro(); return; }
+  if(f%REGION_BOSS_EVERY===0){ regionBossFloor(f); return; }
+  const area=regionAreaFor(f); setScene(area.ic,`${c.name} · ${f}/${REGION_TOP}층`);
+  line(`<span class="sys">— ${c.name} ${f}층 · ${area.n} —</span>`);
   const r=Math.random();
-  if(r<0.58)expCombat(); else if(r<0.73)expLifeNode(); else if(r<0.86)expTreasure(); else expEvent(); }
-function expCombat(){ expReturn=expeditionHub; setScene("⚔️","무언가 다가온다.");
-  setActions([{label:"맞선다",full:true,act:()=>startCombat(expEnemy(expDifficulty()),pick(["폐허 사이로 형체가 다가온다.","공기가 뒤틀리며 그것이 나타났다.","발소리가 가까워진다."]))}]); }
-function expLifeNode(){ setScene("⛏","자원 지대를 발견했다.");
+  if(r<0.60)regionCombat(); else if(r<0.74)expTreasure(); else if(r<0.88)expLifeNode(); else expEvent(); }   // 지역 층 이벤트
+function regionCombat(){ if(EXP)EXP._resume=regionCombat; expReturn=showRegionClimb; setScene("⚔️","무언가 다가온다.");
+  line(pick(["폐허 사이로 형체가 다가온다.","공기가 뒤틀리며 그것이 나타났다.","발소리가 가까워진다.","무너진 탑 그림자에서 그것이 걸어 나온다."]),"sys");
+  setActions([{label:"맞선다",full:true,act:()=>startCombat(expEnemy(expDifficulty()),"")}]); }
+function showRegionClimb(){ if(!EXP)return; EXP._resume=showRegionClimb; mode="dive";
+  const f=EXP.floor, nextF=Math.min(f+1,REGION_TOP), nextBoss=(nextF>=REGION_TOP)||(nextF%REGION_BOSS_EVERY===0);
+  const nlabel = nextF>=REGION_TOP?`👑 ${REGION_TOP}층 — 대륙 수호체 결전!` : nextBoss?`⚔ ${nextF}층 — 지역 보스 결전!` : `계단을 올라 ${nextF}층으로`;
+  setActions([
+    {label:nlabel,full:true,act:regionNextFloor},
+    {label:"🎒 소지품 (장비 착용)",desc:"드랍 장비 착용·정리",act:inventoryMenu},
+    {label:"📋 스킬 (장착 변경)",act:skillWindow},
+    {label:"🚪 마을로 귀환",desc:"탑 등반 종료 · 획득물 유지 (관문에서 재시작)",act:returnToTown},
+  ]); }
+function regionNextFloor(){ if(!EXP)return; EXP.floor=Math.min((EXP.floor||1)+1,REGION_TOP); saveRegionProg(); P.mp=clamp(P.mp+2,0,MAXMP()); render(); enterRegionFloor(); }
+function expLifeNode(){ if(EXP)EXP._resume=showRegionClimb; setScene("⛏","자원 지대를 발견했다.");
   const mk=pick(Object.keys(MATS)), amt=1+rnd(3); addMat(mk,amt); const st=pick(["str","vit","dex"]); trainStat(st,6+rnd(5));
   line(`${MATS[mk][0]} <b>${MATS[mk][1]} +${amt}</b> 채집 · ${STAT_NAME[st]} 단련.`,"loot"); render();
-  setActions([{label:"🧭 계속 개척",full:true,act:expeditionHub}]); }
-function expTreasure(){ setScene("🎁","폐허 속 보물을 발견했다.");
+  setActions([{label:"▶ 계속 오른다",full:true,act:showRegionClimb}]); }
+function expTreasure(){ if(EXP)EXP._resume=showRegionClimb; setScene("🎁","폐허 속 보물을 발견했다.");
   const r=Math.random();
   if(r<0.42){ const g=40+rnd(60); P.gold+=g; line(`💰 금화 +${g}`,"loot"); }
   else if(r<0.7){ const mk=pick(Object.keys(MATS)), a=1+rnd(3); addMat(mk,a); line(`${MATS[mk][0]} ${MATS[mk][1]} +${a}`,"loot"); }
   else if(r<0.94){ const n=1+rnd(2); P.potions+=n; line(`🧪 물약 +${n}`,"loot"); }
   else dropRelic();   // 장비 25%→6%(리니지급)
-  render(); setActions([{label:"🧭 계속 개척",full:true,act:expeditionHub}]); }
-function expEvent(){ setScene("🏕","버려진 야영지.");
+  render(); setActions([{label:"▶ 계속 오른다",full:true,act:showRegionClimb}]); }
+function expEvent(){ if(EXP)EXP._resume=showRegionClimb; setScene("🏕","버려진 야영지.");
   if(chance(0.5)){ heal(Math.round(MAXHP()*0.4)); P.mp=MAXMP(); line("모닥불에 숨을 고른다. HP·기력 회복.","heal"); }
   else { const g=15+rnd(30); P.gold+=g; line(`버려진 주머니에서 금화 +${g}.`,"loot"); }
-  render(); setActions([{label:"🧭 계속 개척",full:true,act:expeditionHub}]); }
-function areaBoss(){ if(!EXP)return; const area=CONT().areas[EXP.ai]; expReturn=afterAreaClear; P.floor=expDifficulty()+2;
-  clearLog(); setScene(area.ic,`${area.n} — 수호자 출현`); line(`구역의 끝. <b>${area.boss.n}</b>이(가) 길을 막는다!`,"dmg");
+  render(); setActions([{label:"▶ 계속 오른다",full:true,act:showRegionClimb}]); }
+/* 🗼 지역 보스 층(10층마다) — 구역 보스를 순환 배치. 처치하면 그 층이 관문(체크포인트)이 된다 */
+function regionBossFloor(f){ if(!EXP)return; const c=CONT(), area=regionBossArea(f); EXP._resume=()=>regionBossFloor(f); expReturn=()=>afterRegionBoss(f);
+  clearLog(); setScene(area.ic,`${c.name} · ${f}층 — 지역 보스`); line(`${f}층의 관문. <b>${area.boss.n}</b>이(가) 길을 막는다!`,"dmg");
   const e=expBoss(area.boss,expDifficulty(),false);
-  setActions([{label:"⚔ 맞선다",full:true,act:()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`))},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
-function afterAreaClear(){ if(!EXP)return; const c=CONT(); clearLog(); setScene("✅","구역 개척 완료"); line(`✅ <b>${c.areas[EXP.ai].n}</b> 구역을 개척했다!`,"loot");
-  if(c.setKey&&chance(0.22)){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각 발견!`,"loot"); dropSetPiece(c.setKey); }   // 구역 보스: 세트 조각 확률 드랍(파밍)
-  EXP.ai++; EXP.step=0; saveExpProg();
-  if(EXP.ai>=c.areas.length){ contBossIntro(); return; }
-  line(`다음 구역: <b>${c.areas[EXP.ai].n}</b>`,"sys"); setActions([{label:"🧭 다음 구역으로",full:true,act:expeditionHub}]); }
-function contBossIntro(){ if(!EXP)return; const c=CONT(); expReturn=afterContClear; P.floor=expDifficulty()+4;
-  clearLog(); setScene("👑",`${c.name} — 대륙 수호체`); line(`대륙의 심장부. <b>${c.contBoss.n}</b>이(가) 깨어난다!`,"dmg");
+  setActions([{label:"⚔ 맞선다",full:true,act:()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${area.boss.n}이(가) 포효한다!`))},{label:"🎒 소지품",act:inventoryMenu}]); }
+function afterRegionBoss(f){ if(!EXP)return; const c=CONT(); clearLog(); setScene("🌀",`${f}층 관문 개방`);
+  line(`✅ <b>${f}층 관문</b>을 열었다! 다음엔 이 관문에서 등반을 재개할 수 있다.`,"loot"); if(typeof toast==="function")toast(`${f}층 관문 개방`);
+  if(c.setKey&&chance(0.3)){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각 발견!`,"loot"); dropSetPiece(c.setKey); }   // 지역 보스: 세트 조각 확률 드랍
+  saveRegionProg(); showRegionClimb(); }
+/* 👑 80층 — 대륙 수호체 결전 (마지막 대륙은 최종보스) */
+function regionContBossIntro(){ if(!EXP)return; const c=CONT(); EXP._resume=regionContBossIntro; expReturn=afterContClear;
+  clearLog(); setScene("👑",`${c.name} · ${REGION_TOP}층 — 대륙 수호체`); line(`탑의 정점. <b>${c.contBoss.n}</b>이(가) 깨어난다!`,"dmg");
   const e=expBoss(c.contBoss,expDifficulty(),true); if(EXP.ci>=CONTINENTS.length-1)e.final=true;   // 🔥 마지막 대륙 보스 = 최종보스
-  setActions([{label:"⚔ 결전",full:true,act:()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`))},{label:"물러난다",act:()=>{ expReturn=null; expeditionHub(); }}]); }
+  setActions([{label:"⚔ 결전",full:true,act:()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`))},{label:"🎒 소지품",act:inventoryMenu}]); }
 function dropSetPiece(setKey){ const pieces=Object.keys(RELICS).filter(k=>RELICS[k].set===setKey); if(!pieces.length)return;
   const unowned=pieces.filter(k=>!P.inv.some(x=>x.k===k)&&!(P.stash&&P.stash.inv||[]).some(x=>x.k===k)); addRelic(pick(unowned.length?unowned:pieces)); }
 function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINENTS.length-1);
@@ -1616,7 +1610,7 @@ function afterContClear(){ const ci=EXP.ci, c=CONTINENTS[ci], last=(ci>=CONTINEN
   if(c.setKey && (!repeat || chance(0.8))){ line(`✦ <b>${SETS[c.setKey].n}</b> 조각을 획득했다!`,"loot"); dropSetPiece(c.setKey); }
   if(chance(0.5*mul))dropRelic();
   if((P.flags.contCleared||0)<ci+1)P.flags.contCleared=ci+1;   // 다음 대륙 해금
-  if(P.expProg)delete P.expProg[ci];   // 🧭 완전 개척 → 진행 기록 정리(재도전은 처음부터)
+  if(!P.expProg)P.expProg={}; P.expProg[ci]={floor:REGION_TOP};   // 🗼 완전 정복 → 최고층 기록 유지(재도전 시 관문에서 시작)
   if(typeof unlockAnnounce==="function")unlockAnnounce("🗼",`${c.name}의 탑`,"마을 탑 등반 목록에서 이 탑의 포탈을 이용할 수 있어요!");
   else line(`🗼 <b>${c.name}</b>의 탑으로 통하는 <b>포탈</b>이 열렸다!`,"loot");   // 🗼 탑 포탈 해금
   EXP=null; expReturn=null; checkTitleUnlocks(); render();
