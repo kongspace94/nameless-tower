@@ -262,7 +262,8 @@ function chestSpot(boss){ const s=$("stage"), foe=$("foeArt");   // 적 스프�
     if(fr.width>0){ return {px:true, x:fr.left-sr.left+fr.width/2, y:fr.top-sr.top+fr.height*0.62}; } }
   return {px:false, x:boss?57:62, y:boss?36:42}; }   // 폴백 %(적은 우상단)
 function dropChestFx(boss){ const s=$("stage"); if(!s||typeof document==="undefined")return;
-  const spot=chestSpot(boss); const off=boss?29:20;
+  const spot=chestSpot(boss); const off=boss?29:20;   // 위치는 몬스터 사라지기 전에 계산
+  const foeUnit=s.querySelector(".bfoe"); if(foeUnit)foeUnit.classList.add("foedie");   // 💀 쓰러진 몬스터는 스르륵 사라지고 그 자리에 상자만 남긴다
   const d=document.createElement("div"); d.className="chestfx"+(boss?" boss":""); d.textContent=boss?"🎁":"📦";
   if(spot.px){ d.style.left=(spot.x-off)+"px"; d.style.top=(spot.y-off)+"px"; } else { d.style.left=spot.x+"%"; d.style.top=spot.y+"%"; }
   s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); }, 2600);

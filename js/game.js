@@ -467,6 +467,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
       "🖥 <b>PC 화면 폭 확대</b> (820→1040px) — 넓은 모니터에서 시원하게 (모바일은 그대로)",
       "📐 <b>전투 필드 높이 확대</b> (340→460px) — 위아래로 좁던 문제 해결, 밑 여백 활용",
       "🔎 <b>전투 스프라이트 대폭 확대</b> (적 200·플레이어 160px) · 메시지창도 4줄로 크게",
+      "💀 <b>처치 시 몬스터가 스르륵 사라지고</b> 그 자리에 <b>전리품 상자</b>만 남는 연출",
     ]},
   { ver:"v2.3 · 8/28", title:"전투 화면 포켓몬 감성 업", items:[
       "🟢 <b>스프라이트 발판(그림자)</b> 추가 — 공중에 뜬 느낌 제거, 배틀 화면 느낌↑",
@@ -552,7 +553,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29b",
+  id:"2026-08-29c",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

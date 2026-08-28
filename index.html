@@ -140,6 +140,9 @@
   .bunit .bart::after{content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); width:92%; height:20px; border-radius:50%;
     background:radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 55%, transparent 72%); z-index:-1; pointer-events:none}
   .bfoe .bart::after{width:86%; bottom:-7px}
+  /* 💀 처치 시 몬스터(스프라이트+정보판)가 스르륵 사라짐 → 그 자리엔 상자만 */
+  .bunit.foedie{ animation:foeDie .55s ease forwards !important; pointer-events:none }
+  @keyframes foeDie{ 0%{opacity:1; filter:none} 24%{opacity:1; filter:brightness(2.4) saturate(.5)} 100%{opacity:0; transform:translateY(14px) scale(.62); filter:brightness(2.2)} }
   .bfoe .bart{animation:bobSoft 3.6s ease-in-out infinite}   /* GIF는 자체 움직임이 있어 살짝만 */
   @keyframes bobSoft{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   /* ⚔ 공격 시 앞으로 치고 나가는 모션(플레이어=우상향, 적=좌하향) */
