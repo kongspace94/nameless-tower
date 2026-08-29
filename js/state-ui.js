@@ -201,7 +201,7 @@ function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
     else { const a=c&&c.areas&&c.areas[EXP.ai]; $("floortag").textContent=`🗺 ${a?a.n:"개척"}${turn}`; }   // 대륙 개척은 구역명
     return; }
   $("floortag").textContent = mode==="dive"?(`탑 ${P.floor}/${TOP}층`+turn):"거점 마을"; }
-function porMini(){ $("porMini").innerHTML = (P&&!enemy) ? playerIco(22)+`<span>${P.name}</span>` : ""; }
+function porMini(){ $("porMini").innerHTML = (P&&!enemy&&mode!=="dive") ? playerIco(22)+`<span>${P.name}</span>` : ""; }   // 🪜 탑 탐험(조우·이벤트·등반) 씬엔 전투용 캐릭터 아바타 숨김 — 전투 화면과 구분(마을에선 유지)
 function setSceneFoe(){ if(!enemy)return; if(document.body)document.body.classList.remove("climbview");   // 전투 진입 시 등반 결과카드 해제
   const ew=clamp(enemy.hp/enemy.hpMax*100,0,100), mhp=MAXHP(), mmp=MAXMP();
   const intentHtml="";   // 몬스터 행동 미리보기 패널 제거 — 강한 공격은 로그 텍스트로만 예고(긴장감↑)
