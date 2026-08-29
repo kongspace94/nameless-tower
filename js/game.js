@@ -486,6 +486,10 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.26 · 8/30", title:"밸런스 — 속공↓ · 패링 난이도↑", items:[
+      "⚡ <b>속공 확률 대폭 하향</b> — 틈만 나면 터지던 것 완화(상한 26%→14%, 기본 5%→2.5%)",
+      "⚔️ <b>패링 성공창 대폭 축소</b> — 너무 쉬워서 빡세게(양호 180ms→90ms · 완벽 66ms→26ms). 타이밍 훨씬 정교해야 함",
+    ]},
   { ver:"v2.25 · 8/30", title:"적 턴 자동 진행", items:[
       "🤖 <b>적 턴 자동 진행</b> — 적 행동은 이제 <b>알아서 진행</b>돼요(매번 '계속' 안 눌러도 됨). 급하면 <b>클릭/스페이스로 스킵</b>, 큰 공격 예고는 더 길게 보여줘요. <b>패링 QTE는 그대로</b> 직접 반응",
     ]},
@@ -672,7 +676,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30c",
+  id:"2026-08-30d",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

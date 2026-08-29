@@ -923,7 +923,7 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
 function checkEnrage(){ if(!enemy||enemy.mech!=="enrage"||enemy.enraged)return; if(enemy.hp/enemy.hpMax<=0.30){ enemy.enraged=true; enemy.atk=Math.round(enemy.atk*1.5);
     line(`💢 <b>${enemy.n}이(가) 광폭화했다!</b> 공격이 사나워진다.`,"dmg"); bigPop("ENRAGE!","#ff5a5a"); fxShake(); setSceneFoe(); } }
 /* ⚡ 속공(턴 쪼개기) — 행동 후 확률 발동. 민첩·행운 기반 · 턴당 발동 상한 */
-function quickProcChance(){ return clamp(0.05 + estat("dex")*0.004 + LUKv()*0.002 + (passiveEquipped("crit_focus")?0.03:0), 0.05, 0.26); }   // 밸런스: 속공 확률↓(적 턴 스킵 남용 방지)
+function quickProcChance(){ return clamp(0.025 + estat("dex")*0.0022 + LUKv()*0.001 + (passiveEquipped("crit_focus")?0.02:0), 0.025, 0.14); }   // 밸런스: 속공 확률 대폭↓(틈만 나면 터지던 것 완화 · base 5→2.5% · 상한 26→14%)
 function quickProcCheck(){ if(!enemy||enemy.hp<=0)return false; if((B.quickProcs||0)>=1)return false; return chance(quickProcChance()); }   // 턴당 1회로 제한
 function afterPlayerAction(){ if(!enemy)return;
   if(quickProcCheck()){ B.quickProcs=(B.quickProcs||0)+1; line("⚡ <b>속공 발동!</b> 빈틈을 파고들어 한 번 더 행동한다!","loot"); bigPop("SPEED!","#8fd0ff"); fxShake(); render(); playerPhase(); return; }
@@ -1133,7 +1133,7 @@ function doGuard(){ startGauge("block",q=>{ B.block=q; line(q==="perfect"?"완�
 /* ⚔️ 돌발 패링 — 적 공격 중 확률로 튀어나오는 반응 QTE. 결과를 resolveEnemyAttack로 전달 */
 function parryProcChance(){ return clamp(0.14 + estat("dex")*0.006 + LUKv()*0.004, 0.14, 0.5); }
 /* ⚔️ 돌발 패링 — 시간 기반 반응 QTE. 뜬 뒤 0.1~0.5초에 [클릭/스페이스]면 성공(good), 0.25~0.4초=완벽. 너무 빠르거나(<0.1s) 늦으면(>0.5s) 실패 */
-const PARRY_GOOD_MIN=200, PARRY_GOOD_MAX=380, PARRY_PERF_MIN=262, PARRY_PERF_MAX=328, PARRY_DUR=460;   // 성공창 좁힘(예전 100~500 → 200~380) — 너무 쉬워서 실패 여지 추가
+const PARRY_GOOD_MIN=255, PARRY_GOOD_MAX=345, PARRY_PERF_MIN=286, PARRY_PERF_MAX=312, PARRY_DUR=405;   // 성공창 대폭 축소 — good 90ms·perfect 26ms(예전 180ms/66ms) · 너무 쉬워서 빡세게
 function parryRingPx(t){ if(t<=PARRY_GOOD_MIN)return 150-(150-58)*(t/PARRY_GOOD_MIN);   // 150→58px (접근)
   if(t<=PARRY_PERF_MIN)return 58-(58-30)*((t-PARRY_GOOD_MIN)/(PARRY_PERF_MIN-PARRY_GOOD_MIN));   // 58→30 (완벽존 진입)
   if(t<=PARRY_PERF_MAX)return 30-(30-22)*((t-PARRY_PERF_MIN)/(PARRY_PERF_MAX-PARRY_PERF_MIN));   // 30→22 (완벽존 ≈코어26)
