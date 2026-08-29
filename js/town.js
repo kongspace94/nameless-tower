@@ -1084,7 +1084,7 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
       for(let i=0;i<=maxIdx;i++){ const occ=P.loadout[i]&&SKILLS[P.loadout[i]];
         sb+=`<button class="ibtn spkbtn${occ?' occ':''}" onclick="skillAssign('${k}',${i})"><b>${i+1}</b>${occ?` ${occ.emoji}<span class="spkrep">교체</span>`:' <span class="spkfree">빈칸</span>'}</button>`; }
       picker=`<div class="slotpick">${sb}</div>`; }
-    return `<div class="grow ${rowCls}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}${picker}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
+    return `<div class="grow ${rowCls}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${(typeof isStaggerSkill==="function"&&isStaggerSkill(k))?' <span class="stagbadge">💫무력화</span>':''}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}${picker}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
   const groupByClass=(arr)=>{ const g={}; arr.forEach(k=>{ const c=skillClassOf(k); (g[c]=g[c]||[]).push(k); }); return g; };
   const classSec=(title,arr,empty,cnt)=>{
     if(!arr.length)return `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div><div class="glist"><div class="inv-empty">${empty}</div></div></div>`;

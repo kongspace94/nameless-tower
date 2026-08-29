@@ -557,7 +557,7 @@ function weaponSkillTiming(cb){ const w=WEAPONS[weaponType()]||WEAPONS.sword;
   startGauge("attack",cb,w.gauge||1,"🎯 타이밍!"); }                       // 기본(맨손·카드 등)
 function skillCombatMenu(){ const actives=(P.loadout||[]).filter(k=>SKILLS[k]&&SKILLS[k].type==="active");
   const acts=actives.map(k=>{ const s=SKILLS[k]; const wepOk=(typeof weaponOkForSkill==="function")?weaponOkForSkill(k):true;
-    return {label:`${s.emoji} ${s.n} Lv.${skillProf(k).lv}${!wepOk?" 🚫":""}`,desc:`기력 ${s.mp}${s.wep?` · ${wepReqLabel(k)}`:""}${!wepOk?" · ⚠무기 교체 필요":""} · ${s.desc}`,disabled:P.mp<s.mp||!wepOk,act:()=>useSkill(k)}; });
+    return {label:`${s.emoji} ${s.n} Lv.${skillProf(k).lv}${isStaggerSkill(k)?" 💫":""}${!wepOk?" 🚫":""}`,desc:`기력 ${s.mp}${isStaggerSkill(k)?" · 💫무력화↑":""}${s.wep?` · ${wepReqLabel(k)}`:""}${!wepOk?" · ⚠무기 교체 필요":""} · ${s.desc}`,disabled:P.mp<s.mp||!wepOk,act:()=>useSkill(k)}; });
   if(actives.length===0)acts.push({label:"(장착한 액티브 스킬 없음 · 아래에서 교체)",disabled:true,act:()=>{}});
   const bench=P.skills.filter(k=>SKILLS[k]&&SKILLS[k].type==="active"&&!P.loadout.includes(k));
   const used=B.swaps||0;
@@ -606,10 +606,16 @@ function useConsumableCombat(key){ if((P.consumables[key]||0)<=0)return; const c
   else if(c.use==="heal"){ heal(c.amount||25); }
   P.consumables[key]--; if(P.consumables[key]<=0)delete P.consumables[key]; render(); afterPlayerAction(); }
 /* 그로기 */
-function addGroggy(n){ if(!enemy||enemy.staggered||(B&&B.charge))return; if(enemy.boss)n=Math.round(n*0.55); enemy.groggy=(enemy.groggy||0)+n;   // 🪨 보스는 그로기 저항(55%) — 퍼그로기로 못 움직이던 문제 완화
+function addGroggy(n){ if(!enemy||enemy.staggered||(B&&B.charge))return; const raw=n; if(enemy.boss)n=Math.round(n*0.55); enemy.groggy=(enemy.groggy||0)+n;   // 🪨 보스는 무력화 저항(55%)
+  if(raw>=12 && typeof spawnFloat==="function")spawnFloat("💫무력화+"+n,"#c9a9ff","foe");   // 💫 무력화 누적 시각화(무력화 스킬 등 큰 값만 — 쌓이는 게 보이게)
   if(enemy.groggy>=enemy.groggyMax){ enemy.staggered=true; enemy.groggy=enemy.groggyMax;
-    line(`💫 <b>그로기!</b> ${enemy.n}이(가) 휘청인다 — 받는 피해 2배 · 다음 행동 불가!`,"loot"); fxShake(); }
+    line(`💫 <b>무력화 성공 — 그로기!</b> ${enemy.n}이(가) 무너졌다 — 받는 피해 2배 · 다음 행동 불가!`,"loot"); if(typeof bigPop==="function")bigPop("무력화!","#c9a9ff"); fxShake(); }
   updateGroggyBar(); }
+/* 💫 무력화 스킬 — 게이지를 크게 쌓는 스킬(전투 중 뱃지로 표시). 이걸로 쌓아 그로기 유발 */
+const STAGGER_SKILLS=["heavy_strike","double_slash","sunder","execute","dragon_fang","guillotine","self_destruct"];
+const STAG_VALUE={heavy_strike:28, double_slash:22, execute:20, guillotine:30, self_destruct:36};   // 중앙 무력화 보너스(sunder·dragon_fang은 자체 addGroggy 있어 제외)
+function isStaggerSkill(k){ return STAGGER_SKILLS.indexOf(k)>=0; }
+function isStaggerWeaponType(wt){ const w=(typeof WEAPONS!=="undefined")&&WEAPONS[wt]; return !!(w&&(w.groggy||0)>=15); }   // 세이버 등 무력화 특화 무기
 function updateGroggyBar(){ if(!enemy)return; const b=$("ebar-g"); if(b){ b.style.width=clamp(enemy.groggy/enemy.groggyMax*100,0,100)+"%"; b.parentElement.classList.toggle("stag",!!enemy.staggered); } }
 /* 연속 공격 (콤보) */
 function comboAttack(){ B.combo=0; comboStep(); }
@@ -721,6 +727,7 @@ function useSkill(k){ const s=SKILLS[k]; if(P.mp<s.mp){ toast("기력 부족"); 
   if(typeof weaponOkForSkill==="function" && !weaponOkForSkill(k)){ toast(`⚠ ${wepReqLabel(k)} 무기가 필요해요 (가방에서 무기 교체)`); line(`🚫 <b>${s.n}</b>은(는) <b>${wepReqLabel(k)}</b> 무기로만 쓸 수 있다 — 무기를 바꿔야 한다.`,"dmg"); return; }   // 🗡️ 무기별 스킬 게이팅
   if(k==="summon"){ beginSummon(); return; }   // 소환: 메뉴→영창 후 확정 시 기력 차감
   P.mp-=s.mp; const m=skillMul(k); gainSkillXp(k,10); render();
+  if(STAG_VALUE[k])addGroggy(STAG_VALUE[k]);   // 💫 무력화 스킬 — 게이지 크게 축적(보스 충전 중엔 addGroggy가 자동 무시)
   skillChainStep(k); if(!enemy)return;   // ✨ 콤보 판정(연계 폭발이 적을 처치하면 스킬 본체는 생략)
   if(k==="heavy_strike") weaponSkillTiming(q=>{ if(q==="perfect"){ if(typeof fxShakeHard==="function")fxShakeHard(); if(typeof fxBigHit==="function")fxBigHit(); if(typeof fxSlash==="function"){fxSlash(-1);fxSlash(1);} if(typeof sfx==="function"){sfx("heavy");sfx("crit");} bigPop("완벽 강타!","#ff5a5a"); } else if(typeof fxSlash==="function"){ fxSlash(-1); if(typeof sfx==="function")sfx("slash"); } playerHit(q,(q==="perfect"?2.9:2.1)*m,q==="perfect"?"💥 완벽 강타!":"💥 강타!"); if(enemy&&enemy.hp>0)afterPlayerAction(); });
   else if(k==="power_shot") weaponSkillTiming(q=>{ playerHit(q,1.4*m,"🎯 급소 찌르기",true); if(enemy&&enemy.hp>0)afterPlayerAction(); });

@@ -226,7 +226,7 @@ function setSceneFoe(){ if(!enemy)return; if(document.body)document.body.classLi
   const gw = chg ? clamp((B.charge.filled||0)/B.charge.need*100,0,100) : (enemy.groggyMax?clamp(enemy.groggy/enemy.groggyMax*100,0,100):0);
   const gRow = chg
     ? `<div class="hprow"><span class="tag" style="color:#8fd0ff">파훼</span><div class="hpbar2 brk"><i id="ebar-g" style="width:${gw}%"></i></div></div>`
-    : `<div class="hprow"><span class="tag">그로기</span><div class="hpbar2 grog${enemy.staggered?' stag':''}"><i id="ebar-g" style="width:${gw}%"></i></div></div>`;
+    : `<div class="hprow"><span class="tag" style="color:#c9a9ff">${enemy.staggered?'💫그로기':'무력화'}</span><div class="hpbar2 grog${enemy.staggered?' stag':''}"><i id="ebar-g" style="width:${gw}%"></i></div></div>`;
   let ailHtml=""; if(enemy.ail){ for(const k of ["fire","venom","frost","shock"]){ const a=enemy.ail[k]; if(a&&a.t>0){ const el=ELEMENTS[k]; ailHtml+=`<span class="ailb" style="color:${el.col}">${el.ic}${a.t}</span>`; } } }
   const weakHtml = "";   // 🚫 약점은 전투 중 위에 띄우지 않음 — 도감에 처치수만큼 공개됨
   const mech = enemy.mech&&typeof MECH_INFO!=="undefined"&&MECH_INFO[enemy.mech] ? MECH_INFO[enemy.mech] : null;
