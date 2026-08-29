@@ -1040,8 +1040,9 @@ function battleSay(text, onDone, opts){ opts=opts||{};
     const b=$("battlemsg"); if(b){ b.classList.remove("await","danger"); } if(onDone)onDone(); };
   const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
   document.addEventListener("keydown",key);
-  setActions([{label:"▶ 계속  (클릭 / 스페이스)",full:true,act:go}]);
-  // ⏸ 자동 진행 제거 — 유저가 클릭/스페이스로 직접 넘긴다 (패링 QTE는 reactiveParry가 따로 반응형으로 처리)
+  setActions([{label:"▶ 계속  (자동 진행 · 클릭/스페이스로 스킵)",full:true,act:go}]);
+  const hold=(typeof opts.hold==="number")?opts.hold:1050;   // ⏱ 적 턴 자동 진행 — hold ms 뒤 알아서 넘어감(패링 QTE는 reactiveParry가 반응형으로 처리)
+  timer=setTimeout(go, hold);
 }
 function enemyPhase(){ if(!enemy)return;
   if(B.enemyDot&&B.enemyDot.turns>0){ const dd=B.enemyDot.dmg; enemy.hp-=dd; B.enemyDot.turns--;   // 출혈/맹독 도포 DoT

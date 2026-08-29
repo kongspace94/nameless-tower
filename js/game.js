@@ -486,6 +486,13 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.25 · 8/30", title:"적 턴 자동 진행", items:[
+      "🤖 <b>적 턴 자동 진행</b> — 적 행동은 이제 <b>알아서 진행</b>돼요(매번 '계속' 안 눌러도 됨). 급하면 <b>클릭/스페이스로 스킵</b>, 큰 공격 예고는 더 길게 보여줘요. <b>패링 QTE는 그대로</b> 직접 반응",
+    ]},
+  { ver:"v2.24 · 8/30", title:"버그 수정 — 거점 로그 도배 · 동료 겹침", items:[
+      "🐛 <b>부족 거점 슬롯 강화 로그가 쌓이던 문제</b> 수정 — 강화할 때마다 줄이 도배되던 것 정리(상태 한 줄 + 토스트)",
+      "🐾 <b>동료 아이콘이 좌상단 층 표시와 겹치던 문제</b> 수정 — 동료·소환수를 층 표시 아래로 내려 안 겹치게",
+    ]},
   { ver:"v2.23 · 8/29", title:"상단 고정 턴 표시기", items:[
       "🎯 <b>현재 턴 표시기</b> — 전투 필드 상단에 <b>🗡 내 턴 / 👹 적의 턴</b>이 항상 고정 표시(적 턴엔 빨간 펄스). 기존 배너 애니는 그대로 유지",
     ]},
@@ -665,7 +672,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30a",
+  id:"2026-08-30c",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

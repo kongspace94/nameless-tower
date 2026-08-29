@@ -305,12 +305,14 @@ function farmHarvestAll(){ farmTick(); let total=0; const got={};
 function farmHire(){ const n=P.farm.slots.length; if(n>=FARM_MAX_SLOTS){ toast("일꾼 최대"); return; } const cost=farmHireCost(n);
   if(P.gold<cost){ toast("금화 부족"); return; } P.gold-=cost; P.farm.slots.push({res:null,lv:1,acc:0});
   line(`👷 일꾼을 고용했다! 생산 슬롯 +1 (총 ${P.farm.slots.length}) · -${cost}G`,"loot"); toast("일꾼 고용"); render(); save(true); farmMenu(); }
-function farmSlotMenu(i){ const s=P.farm.slots[i]; if(!s)return; farmTick(); const r=s.res?MATS[s.res]:null; const acts=[];
-  acts.push({header:true,label:`${r?r[0]+" "+r[1]:"빈 슬롯"} · Lv.${s.lv}`});
+function farmSlotMenu(i){ const s=P.farm.slots[i]; if(!s)return; farmTick(); const r=s.res?MATS[s.res]:null;
+  render(); clearLog(); setScene("⛏️",`부족 거점 · ${i+1}번 슬롯`);   // 🧹 매번 정리(로그 쌓임 방지)
+  line(`${r?r[0]+" "+r[1]:"빈 슬롯"} · <b>Lv.${s.lv}</b> · 시간당 +${farmRate(s.lv)} · 저장 ${Math.floor(s.acc||0)}/${farmCap(s.lv)}`,"sys");
+  const acts=[];
   if(s.res){ const rdy=Math.floor(s.acc||0);
-    acts.push({label:`🌾 이 슬롯 수확 (+${rdy})`,desc:`${rdy}/${farmCap(s.lv)}`,disabled:rdy<=0,act:()=>{ addMat(s.res,rdy); s.acc=0; line(`🌾 ${r[0]} ${r[1]} +${rdy} 수확.`,"loot"); render(); save(true); farmSlotMenu(i); }}); }
+    acts.push({label:`🌾 이 슬롯 수확 (+${rdy})`,desc:`${rdy}/${farmCap(s.lv)}`,disabled:rdy<=0,act:()=>{ addMat(s.res,rdy); s.acc=0; toast(`${r[0]} ${r[1]} +${rdy} 수확`); render(); save(true); farmSlotMenu(i); }}); }
   { const gcost=farmUpCostGold(s.lv), mcost=2+s.lv, mk="wood"; const can=P.gold>=gcost&&(P.mats[mk]||0)>=mcost;
-    acts.push({label:`🔧 시설 강화 Lv.${s.lv}→${s.lv+1}`,desc:`시간당 +${farmRate(s.lv)}→+${farmRate(s.lv+1)} · 상한 ${farmCap(s.lv)}→${farmCap(s.lv+1)} · ${gcost}G + ${MATS[mk][0]}${mcost}`,disabled:!can,act:()=>{ P.gold-=gcost; P.mats[mk]=(P.mats[mk]||0)-mcost; s.lv++; line(`🔧 슬롯 강화! Lv.${s.lv} (시간당 +${farmRate(s.lv)})`,"loot"); toast("강화 완료"); render(); save(true); farmSlotMenu(i); }}); }
+    acts.push({label:`🔧 시설 강화 Lv.${s.lv}→${s.lv+1}`,desc:`시간당 +${farmRate(s.lv)}→+${farmRate(s.lv+1)} · 상한 ${farmCap(s.lv)}→${farmCap(s.lv+1)} · ${gcost}G + ${MATS[mk][0]}${mcost}`,disabled:!can,act:()=>{ P.gold-=gcost; P.mats[mk]=(P.mats[mk]||0)-mcost; s.lv++; toast(`시설 강화 Lv.${s.lv} (시간당 +${farmRate(s.lv)})`); render(); save(true); farmSlotMenu(i); }}); }
   acts.push({label:"🔄 자원 변경",desc:"이 슬롯이 생산할 자원 선택 (모인 건 자동 수확)",act:()=>farmResPick(i)});
   acts.push({label:"← 뒤로",full:true,act:farmMenu}); setActions(acts); }
 function farmResPick(i){ const s=P.farm.slots[i]; if(!s)return; const acts=[{header:true,label:"생산할 자원 선택"}];

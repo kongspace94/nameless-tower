@@ -95,7 +95,7 @@
   .intent.heavy{border-color:var(--danger); color:#ffb3b3} .intent.guard{border-color:var(--mp); color:var(--mp)}
   .intent.poison{border-color:#9bd36b; color:#bfe89a} .intent.special{border-color:var(--gold); color:var(--gold)}
   .intent.charge{border-color:#8fd0ff; color:#bfe6ff; box-shadow:0 0 10px rgba(140,200,255,.5); animation:stagpulse .8s ease-in-out infinite}
-  .comp{position:absolute; top:14px; left:14px; display:flex; flex-direction:column; align-items:center; gap:2px; z-index:4}   /* 🐾 동료 — 좌상단(메시지 박스에 안 가리게) */
+  .comp{position:absolute; top:34px; left:12px; display:flex; flex-direction:column; align-items:center; gap:2px; z-index:4}   /* 🐾 동료 — 좌상단 층표시 아래(겹침 방지) */
   .comp .cn{font-family:var(--mono); font-size:10px; color:var(--dim)}
   .comp .pips{display:flex; gap:3px} .comp .pip{width:6px; height:6px; border-radius:50%; background:#2a3143}
   .comp .pip.on{background:var(--gold); box-shadow:0 0 5px var(--gold)}
@@ -178,7 +178,7 @@
   .vchest.boss{ font-size:82px }
   .vchest.drop{ animation:chestDrop .72s cubic-bezier(.3,1.5,.5,1) both, chestGlow 1.3s ease-in-out .72s infinite }
   @media (min-width:821px){ body.combat .bunit.bfoe.defeated .vchest{ font-size:88px } body.combat .bunit.bfoe.defeated .vchest.boss{ font-size:112px } }
-  .summ{position:absolute; left:14px; top:78px; display:flex; align-items:center; gap:6px; z-index:4; background:#171326cc; border:1px solid #4a3d6e; border-radius:10px; padding:4px 8px; backdrop-filter:blur(2px); animation:bob 2.8s ease-in-out infinite; max-width:170px}   /* 🌀 소환수 — 동료 아래(좌상단) */
+  .summ{position:absolute; left:12px; top:104px; display:flex; align-items:center; gap:6px; z-index:4; background:#171326cc; border:1px solid #4a3d6e; border-radius:10px; padding:4px 8px; backdrop-filter:blur(2px); animation:bob 2.8s ease-in-out infinite; max-width:170px}   /* 🌀 소환수 — 동료 아래(좌상단) */
   .summ.guarding{border-color:#7ad6c0; box-shadow:0 0 9px #7ad6c0aa}
   .summ .se{font-size:22px; line-height:1; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
   .summ .sn{font-size:11px; font-weight:600; color:#c9a9ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px}
