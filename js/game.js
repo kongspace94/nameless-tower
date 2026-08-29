@@ -486,6 +486,12 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.28 · 8/30", title:"턴 표시를 전투로그 구분선으로", items:[
+      "🔀 <b>턴 구분을 전투로그 안으로</b> — 상단 고정 '내 턴/적 턴' 표시 대신 로그에 <b>──── 🗡 내 턴 ──── / ──── 👹 상대 턴 ────</b> 구분선 삽입(누가 뭘 했는지 한눈에)",
+    ]},
+  { ver:"v2.27 · 8/30", title:"흡혈 회복 로그 도배 정리", items:[
+      "🩸 <b>흡혈 회복 로그 간결화</b> — 다타 스킬(천의 칼날 등)에서 매 타격마다 '체력을 N 회복했다'가 도배되던 것 제거. 회복은 그대로(플로팅 +숫자로 표시), 로그만 절반으로",
+    ]},
   { ver:"v2.26 · 8/30", title:"밸런스 — 속공↓ · 패링 난이도↑", items:[
       "⚡ <b>속공 확률 대폭 하향</b> — 틈만 나면 터지던 것 완화(상한 26%→14%, 기본 5%→2.5%)",
       "⚔️ <b>패링 성공창 대폭 축소</b> — 너무 쉬워서 빡세게(양호 180ms→90ms · 완벽 66ms→26ms). 타이밍 훨씬 정교해야 함",
@@ -676,7 +682,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30d",
+  id:"2026-08-30f",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

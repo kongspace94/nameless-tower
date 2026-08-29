@@ -360,6 +360,12 @@
   .battlemsg .bm-div{height:1px; flex-shrink:0; margin:2px 0; background:linear-gradient(90deg,transparent,#3a4560 18%,#3a4560 82%,transparent); opacity:.65}   /* 🔸 비트(행동) 구분선 */
   .battlemsg.big .bm-div{margin:5px 0; opacity:.8}   /* 확대(한번에 보기)에선 구분 더 또렷 */
   .battlemsg .bm-txt.dmg{color:#ff9d9d} .battlemsg .bm-txt.heal{color:#96f0bf} .battlemsg .bm-txt.loot{color:#ffe08a} .battlemsg .bm-txt.sys{color:#c7d0e0} .battlemsg .bm-txt.quote{color:#dbe2f0; font-style:italic}
+  /* ──── 내 턴 / 상대 턴 ──── 로그 구분선 */
+  .bm-txt.turn{opacity:1 !important; text-align:center; font-family:var(--mono); font-weight:800; font-size:11.5px; letter-spacing:.14em; color:#aeb9d6; display:flex; align-items:center; gap:10px; justify-content:center; margin:3px 0}
+  .bm-txt.turn::before,.bm-txt.turn::after{content:""; height:1px; flex:1; max-width:120px; background:linear-gradient(90deg,transparent,#4a5674)}
+  .bm-txt.turn::after{background:linear-gradient(90deg,#4a5674,transparent)}
+  .deathlog .bm-txt.turn{opacity:1 !important; text-align:center; font-family:var(--mono); font-weight:800; font-size:11.5px; color:#aeb9d6; display:flex; align-items:center; gap:10px; justify-content:center; margin:4px 0}
+  .deathlog .bm-txt.turn::before,.deathlog .bm-txt.turn::after{content:""; height:1px; flex:1; max-width:140px; background:#3a4560}
   .battlemsg.await::after{content:"▼"; position:absolute; right:12px; bottom:8px; font-size:11px; color:#7a86a8; opacity:.6}   /* 💬 '계속' 힌트 — 깜빡임 제거(정적) */
   /* ⤢ 메시지 박스 확대 토글 버튼 + 확대(전체 로그 스크롤) 상태 */
   .battlemsg .bmexp{position:absolute; top:7px; right:9px; z-index:5; padding:4px 10px; font-size:13px; font-weight:700; line-height:1.4;

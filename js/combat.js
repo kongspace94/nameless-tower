@@ -908,7 +908,7 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
     if(dmg<=0){ updateFoeBar(); setSceneFoe(); return false; } }
   const _wasFull=enemy.hp>=enemy.hpMax;   // 🎖 원펀맨 판정용(풀피에서 한 방)
   enemy.hp-=dmg; line(`${label} — ${enemy.n}에게 <b>${dmg}</b> 피해.`,"dmg"); fxHit(); spawnFloat("-"+dmg,color||"#ff8a8a","foe"); updateFoeBar();
-  if(relicBonus().vamp){ const h=Math.max(1,Math.round(dmg*0.12)); heal(h); }   // 밸런스: 흡혈 25%→12%(엔드 완화 과잉 방지)
+  if(relicBonus().vamp){ const h=Math.max(1,Math.round(dmg*0.12)); heal(h, true); }   // 🩸 흡혈 — 매 타격마다 로그 도배 안 하게 조용히(플로팅 숫자만)
   if(enemy.hp<=0){                                          // 🫧 분열: 죽을 때 1회 부활
     if(enemy.mech==="split" && !enemy.splitUsed){ enemy.splitUsed=true; enemy.hp=Math.round(enemy.hpMax*0.45); enemy.atk=Math.round(enemy.atk*0.8); enemy.staggered=false; enemy.groggy=0;
       line(`🫧 <b>${enemy.n}이(가) 둘로 갈라졌다!</b> 더 작아진 채 다시 일어선다.`,"dmg"); bigPop("SPLIT!","#8fd0ff"); updateFoeBar(); setSceneFoe(); return false; }

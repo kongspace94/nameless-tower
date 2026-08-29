@@ -184,10 +184,9 @@ let _bmExpanded=false;   // ⤢ 메시지 박스 확대 상태
 let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
 /* 💬 전투로그 순차 연출 — 줄을 큐에 넣고 하나씩 팝하며 등장(타격감↑). 클릭으로 즉시 스킵. 설정 토글(기본 켜짐) */
 let _bmQueue=[], _bmPacer=null, _bmLastLineT=0;   // _bmLastLineT: 직전 전투 줄 시각(비트/구분선 판정용)
-let _turnSide="me";   // 🎯 현재 턴(me/foe) — 필드 상단 고정 표시기
-function setTurnSide(s){ _turnSide=s; const st=$("stage"); if(!st)return; let el=$("turnind");
-  if(!el){ el=document.createElement("div"); el.id="turnind"; st.appendChild(el); }
-  el.className="turnind "+s; el.textContent = s==="foe" ? "👹 적의 턴" : "🗡 내 턴"; el.hidden=false; }
+let _turnSide="me";   // 🎯 현재 턴(me/foe) — 전투로그에 구분선으로 표시
+function setTurnSide(s){ _turnSide=s; if(typeof enemy!=="undefined" && enemy && typeof line==="function"){
+  line(`${s==="foe"?"👹 상대 턴":"🗡 내 턴"}`, "turn"); } }   // ──── 내 턴/상대 턴 ──── 구분선을 로그에 삽입(양옆 대시는 CSS)
 let _bmPaced=(()=>{ try{ return localStorage.getItem("nt_combat_pace")!=="off"; }catch(e){ return true; } })();
 function combatPaceSetOn(b){ _bmPaced=!!b; try{ localStorage.setItem("nt_combat_pace", b?"on":"off"); }catch(e){} if(!b)flushBM(); }
 function _bmReveal(it){ _bmLines.push(it); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); }
@@ -207,7 +206,7 @@ function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); 
   const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
   if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger");
     const now=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
-    const beat=(_bmLog.length>0)&&(now-_bmLastLineT>40);   // 🔸 이전 줄과 시간 간격>40ms = 새 행동(행위자) 시작 → 구분선. 같은 행동의 연타는 동기 호출(간격≈0)이라 안 나뉨
+    const beat=(cls!=="turn")&&(_bmLog.length>0)&&(now-_bmLastLineT>40);   // 🔸 이전 줄과 시간 간격>40ms = 새 행동(행위자) 시작 → 구분선(턴 구분선 자체엔 중복 안 붙임). 연타는 동기 호출이라 안 나뉨
     _bmLastLineT=now;
     const item={h:html,c:cls||"",beat};
     _bmLog.push(item); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift();   // 📜 전체 로그(확대뷰)는 즉시 누적
@@ -462,7 +461,7 @@ function trainStat(stat,pts){ pts=Math.round(pts*(1+metaEff().growth));   // �
   if(up>0){ line(`✦ <b>${STAT_NAME[stat]}</b>이(가) ${up} 올랐다! (현재 ${P.stats[stat]})`,"heal"); checkTitleUnlocks(); }
   return up; }
 function addMat(mat,n){ P.mats[mat]=(P.mats[mat]||0)+n; if(typeof checkQuests==="function")checkQuests(); }
-function heal(n){ n=Math.round(n*(1+(jobMods().healPct||0))); if(typeof B!=="undefined"&&B&&B.healCut)n=Math.round(n*0.5); /* ☣️역병 회복반감 */ const mhp=MAXHP(); const b=Math.min(n,mhp-P.hp); if(b>0){ P.hp+=b; line(`체력을 ${b} 회복했다.`,"heal"); spawnFloat("+"+b,"#6bcf8a","me"); if(typeof sfx==="function")sfx("heal"); } render(); }
+function heal(n, silent){ n=Math.round(n*(1+(jobMods().healPct||0))); if(typeof B!=="undefined"&&B&&B.healCut)n=Math.round(n*0.5); /* ☣️역병 회복반감 */ const mhp=MAXHP(); const b=Math.min(n,mhp-P.hp); if(b>0){ P.hp+=b; if(!silent)line(`체력을 ${b} 회복했다.`,"heal"); spawnFloat("+"+b,"#6bcf8a","me"); if(typeof sfx==="function")sfx("heal"); } render(); }   // silent=true면 로그 없이(흡혈 등 매타격 회복 도배 방지) 플로팅 숫자만
 function addRelic(name){ const g=RELICS[name];
   if(g&&g.key){ if(!P.questItems.includes(name))P.questItems.push(name); line(`🗝 <b>퀘스트 아이템</b> 획득: <b>${name}</b>`,"loot"); render(); return; }
   const it={k:name,id:newId(),up:0}; P.inv.push(it); let auto="";
