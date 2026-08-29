@@ -1040,8 +1040,8 @@ function battleSay(text, onDone, opts){ opts=opts||{};
     const b=$("battlemsg"); if(b){ b.classList.remove("await","danger"); } if(onDone)onDone(); };
   const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
   document.addEventListener("keydown",key);
-  setActions([{label:"▶ 계속  (자동 진행 · 클릭/스페이스로 스킵)",full:true,act:go}]);
-  const hold=(typeof opts.hold==="number")?opts.hold:1050;   // ⏱ 적 턴 자동 진행 — hold ms 뒤 알아서 넘어감(패링 QTE는 reactiveParry가 반응형으로 처리)
+  setActions([]);   // 🚫 적 턴엔 누를 버튼 없음(자동 진행) — 패링 QTE만 버튼을 띄운다. 급하면 스페이스로 스킵
+  const hold=(typeof opts.hold==="number")?opts.hold:1050;   // ⏱ 적 턴 자동 진행 — hold ms 뒤 알아서 넘어감
   timer=setTimeout(go, hold);
 }
 function enemyPhase(){ if(!enemy)return;
@@ -1069,16 +1069,24 @@ function enemyPhase(){ if(!enemy)return;
   const it=B.enemyIntent||{type:"attack"};
   if(it.type==="guard"){ B.enemyGuard=0.5; line(`${enemy.n}이(가) 방어 태세를 취한다.`,"sys"); endEnemyTurn(); return; }
   if(it.type==="poison"){ const d=incoming(0.6); applyPlayerDamage(d,`${enemy.n}의 맹독 공격!`); if(P.hp>0){ B.poison=Math.max(B.poison,3); line("중독됐다! (3턴)","dmg"); } endEnemyTurn(); return; }
-  // 물리 공격 — 💬 대화박스로 행동 예고 → 큰 공격은 항상 패링 기회, 일반은 확률 패링
+  // 공격 예고 → 반응. 근접 물리=패링 / 원거리·투척·마법=회피(구르기). 강공격은 텔레그래프라 반응 확률↑(무조건은 아님)
   const mult=it.type==="heavy"?2.0:it.type==="special"?2.4:1.0;
   const big=(it.type==="heavy"||it.type==="special");
+  const ranged = !!(enemy && (enemy.atkElem || enemy.fly));   // 🏹 비행·속성(마법/투척)= 원거리 → 회피만 / 그 외 근접 물리 → 패링 or 회피
   const actName = it.type==="heavy"?"강타":it.type==="special"?(it.label||"필살기"):(it.label||"공격");
-  const sayText = `${enemy.n}의 <b>${actName}</b>!` + (big?` <span style="color:#ffd36a">— 큰 공격! 패링 준비!</span>`:"");
+  const canReact = !B.disarmed && !B.block && enemy && enemy.hp>0;
+  const bigMul = big?1.4:1;
+  let react=null;
+  if(canReact){
+    if(ranged){ if(chance(clamp((0.26+estat("dex")*0.004+LUKv()*0.003)*bigMul,0,0.72)))react="dodge"; }   // 원거리/마법 = 회피(구르기)만
+    else if(chance(clamp(parryProcChance()*bigMul,0,0.75))){ react = chance(0.55)?"parry":"dodge"; } }   // 🤸 근접 물리 = 패링 또는 회피(둘 다 민첩 영향)
+  const sayText = `${enemy.n}의 <b>${actName}</b>!` + (big?` <span style="color:#ffd36a">— 큰 공격!</span>`:"")
+    + (react==="parry"?` <span style="color:#8fd0ff">⚔ 패링 기회!</span>`:react==="dodge"?` <span style="color:#8fd0ff">🤸 회피 기회!</span>`:"");
   battleSay(sayText, ()=>{ if(!enemy||P.hp<=0)return;
-    const canParry = !B.disarmed && !B.block && enemy && enemy.hp>0;
-    if(canParry && (big || chance(parryProcChance()))){ reactiveParry(mult,it); return; }   // 큰 공격은 반드시 패링 QTE
+    if(react==="parry"){ reactiveParry(mult,it); return; }
+    if(react==="dodge"){ reactiveDodge(mult,it); return; }
     resolveEnemyAttack(mult,it,"none");
-  }, {danger:big, hold:big?1900:1050}); }
+  }, {danger:big, hold:big?1700:1050}); }
 /* 적 공격 최종 처리 (패링 결과 pr: perfect/good/miss/none) → 엔드턴 */
 function resolveEnemyAttack(mult,it,pr){ if(!enemy)return;
   if(pr==="perfect"){ line(`⚔️ <b>완벽한 패링!</b> ${enemy.n}의 공격을 되받아쳤다!`,"loot"); addGroggy(30);
@@ -1170,6 +1178,25 @@ function reactiveParry(mult,it){ awaiting=null; if(typeof flushBM==="function")f
   document.addEventListener("keydown",key); box.onclick=tap; setActions([{label:"⚔️ 패링!",full:true,act:tap}]);
   const step=()=>{ if(done)return; const t=performance.now()-t0; if(t>=PARRY_DUR){ finish("miss"); return; }
     if(ring){ const px=Math.round(parryRingPx(t)); ring.style.width=px+"px"; ring.style.height=px+"px"; } raf=requestAnimationFrame(step); };
+  raf=requestAnimationFrame(step); }
+/* 🤸 돌발 회피(구르기) — 원거리·투척·마법 + 근접 물리도 회피. 좌/우로 굴러 피한다(방향은 연출, 회피 성공은 민첩·행운 확률). 게이지 다 차기 전에 반응 못 하면 직격 */
+function reactiveDodge(mult,it){ awaiting=null; if(typeof flushBM==="function")flushBM();
+  if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ resolveEnemyAttack(mult,it,"none"); return; }
+  const p=clamp(0.5+estat("dex")*0.01+LUKv()*0.006,0.35,0.9);   // 회피 성공 확률(민첩·행운)
+  const s=$("stage"); const box=document.createElement("div"); box.className="ecdown dodgeqte";
+  box.innerHTML=`<div class="et" style="color:#8fd0ff">🤸 <b>돌발! 회피</b> — 좌우로 <b>굴러 피해라!</b> (게이지 다 차기 전에 · 회피 ${Math.round(p*100)}%)</div><div class="ecbar"><i></i></div>`+
+    `<div class="ecbtns"><button type="button" data-d="L">⬅ 왼쪽으로 구르기</button><button type="button" data-d="R">오른쪽으로 구르기 ➡</button></div>`;
+  s.appendChild(box); const bar=box.querySelector(".ecbar>i");
+  const WIN=900;   // 0.9초 안에 좌/우 선택
+  const t0=performance.now(); let raf=null,done=false;
+  const resolve=(rolled)=>{ if(done)return; done=true; cancelAnimationFrame(raf); document.removeEventListener("keydown",key); box.remove();
+    if(rolled && chance(p)){ line("🤸 <b>굴러서 회피!</b> 공격이 완전히 빗나갔다.","heal"); if(typeof bigPop==="function")bigPop("DODGE!","#8fd0ff"); if(typeof fxLunge==="function")fxLunge($("meArt"),"lungeMe"); if(typeof sfx==="function")sfx("click"); if(typeof gainMomentum==="function")gainMomentum(10); render(); endEnemyTurn(); return; }
+    if(rolled){ line("구르려 했지만 살짝 스쳤다…","sys"); resolveEnemyAttack(mult*0.5,it,"none"); return; }   // 굴렀지만 실패 = 스침(피해 절반)
+    resolveEnemyAttack(mult,it,"none"); };   // 반응 못 함 = 직격
+  box.querySelectorAll(".ecbtns button").forEach(b=>{ b.onclick=()=>resolve(true); });
+  const key=(e)=>{ if(e.key==="ArrowLeft"||e.key==="ArrowRight"||e.code==="Space"||e.key===" "){ e.preventDefault(); resolve(true); } };   // ←/→/스페이스로도 구르기
+  document.addEventListener("keydown",key); setActions([]);
+  const step=()=>{ if(done)return; const t=performance.now()-t0; if(bar)bar.style.width=Math.max(0,(1-t/WIN)*100)+"%"; if(t>=WIN){ resolve(false); return; } raf=requestAnimationFrame(step); };
   raf=requestAnimationFrame(step); }
 /* 큰 팝업 (패링 성공 등 타격감) */
 function bigPop(text,color){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="bigpop"; d.textContent=text; if(color)d.style.color=color; s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },780); }
