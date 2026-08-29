@@ -184,6 +184,10 @@ let _bmExpanded=false;   // ⤢ 메시지 박스 확대 상태
 let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
 /* 💬 전투로그 순차 연출 — 줄을 큐에 넣고 하나씩 팝하며 등장(타격감↑). 클릭으로 즉시 스킵. 설정 토글(기본 켜짐) */
 let _bmQueue=[], _bmPacer=null, _bmLastLineT=0;   // _bmLastLineT: 직전 전투 줄 시각(비트/구분선 판정용)
+let _turnSide="me";   // 🎯 현재 턴(me/foe) — 필드 상단 고정 표시기
+function setTurnSide(s){ _turnSide=s; const st=$("stage"); if(!st)return; let el=$("turnind");
+  if(!el){ el=document.createElement("div"); el.id="turnind"; st.appendChild(el); }
+  el.className="turnind "+s; el.textContent = s==="foe" ? "👹 적의 턴" : "🗡 내 턴"; el.hidden=false; }
 let _bmPaced=(()=>{ try{ return localStorage.getItem("nt_combat_pace")!=="off"; }catch(e){ return true; } })();
 function combatPaceSetOn(b){ _bmPaced=!!b; try{ localStorage.setItem("nt_combat_pace", b?"on":"off"); }catch(e){} if(!b)flushBM(); }
 function _bmReveal(it){ _bmLines.push(it); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); }
@@ -211,7 +215,7 @@ function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); 
     else { _bmLines.push(item); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } } }   // ⚡ 빠르게: 즉시
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
 function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmQueue=[]; _bmLastLineT=0; if(_bmPacer){ clearTimeout(_bmPacer); _bmPacer=null; } _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big","pacing"); }
-  const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark,.projfx,.slashfx,.hitflash,.float,.bigpop").forEach(n=>n.remove()); }   // 🧹 남은 전투 연출(상자·투사체·베기·플로트 등) 정리 — 다음 화면으로 새지 않게
+  const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark,.projfx,.slashfx,.hitflash,.float,.bigpop,.turnind").forEach(n=>n.remove()); }   // 🧹 남은 전투 연출(상자·투사체·베기·플로트·턴표시 등) 정리 — 다음 화면으로 새지 않게
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";

@@ -486,6 +486,9 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.23 · 8/29", title:"상단 고정 턴 표시기", items:[
+      "🎯 <b>현재 턴 표시기</b> — 전투 필드 상단에 <b>🗡 내 턴 / 👹 적의 턴</b>이 항상 고정 표시(적 턴엔 빨간 펄스). 기존 배너 애니는 그대로 유지",
+    ]},
   { ver:"v2.22 · 8/29", title:"이펙트 잔상 버그 수정", items:[
       "🧹 <b>전투 이펙트가 다음 화면으로 새던 버그 수정</b> — 죽음·승리·이동 화면에 <b>투사체·베기·타격 연출이 날아다니던</b> 문제 해결(씬 전환 시 전부 정리)",
     ]},
@@ -662,7 +665,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29z",
+  id:"2026-08-30a",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
