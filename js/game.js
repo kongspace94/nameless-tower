@@ -252,6 +252,8 @@ function openSettings(){ if(document.querySelector(".setmodal"))return; if(typeo
     ${A?row("sfx","🔊","효과음",A.on,A.vol,"지금도 나요"):""}
     ${A?row("amb","🌬️","환경음",A.ambOn,A.ambVol,"바람·마을 소음 등 · 파일 넣으면 재생"):""}
     ${A?"":'<div class="setnote">오디오를 사용할 수 없는 환경이에요.</div>'}
+    <div class="settitle" style="margin-top:14px">🖥 화면 효과</div>
+    <div class="setrow"><div class="setrowtop"><span class="setlbl">📳 화면 흔들림 (지진)</span><button type="button" class="settgl ${(typeof FX!=="undefined"&&FX.shake)?'on':''}" data-fx="shake">${(typeof FX!=="undefined"&&FX.shake)?"켜짐":"꺼짐"}</button></div><div class="setnote">타격·강타·패링 시 화면이 흔들리는 효과</div></div>
     <div class="setbtns"><button type="button" class="setbtn settest">🔊 효과음 테스트</button><button type="button" class="setbtn setclose">닫기</button></div>
   </div>`;
   document.body.appendChild(ov);
@@ -259,11 +261,13 @@ function openSettings(){ if(document.querySelector(".setmodal"))return; if(typeo
   ov.addEventListener("click",e=>{ if(e.target===ov)close(); });
   const cb=ov.querySelector(".setclose"); if(cb)cb.onclick=close;
   const tb=ov.querySelector(".settest"); if(tb)tb.onclick=()=>{ if(typeof sfx==="function")sfx("loot"); };
+  const shk=ov.querySelector('.settgl[data-fx="shake"]'); if(shk)shk.onclick=()=>{ const on=(typeof FX!=="undefined")?!FX.shake:false; if(typeof fxShakeSetOn==="function")fxShakeSetOn(on); shk.textContent=on?"켜짐":"꺼짐"; shk.classList.toggle("on",on); if(on&&typeof fxShake==="function")fxShake(); };   // 📳 지진효과 토글 + 켤 때 미리보기 흔들림
   ov.querySelectorAll(".setsld").forEach(s=>{ s.oninput=()=>{ const v=parseFloat(s.value), k=s.dataset.k;
     if(k==="bgm"&&typeof bgmSetVol==="function")bgmSetVol(v);
     else if(k==="sfx"&&typeof sfxSetVol==="function")sfxSetVol(v);
     else if(k==="amb"&&typeof ambSetVol==="function")ambSetVol(v); }; });
-  ov.querySelectorAll(".settgl").forEach(b=>{ b.onclick=()=>{ const k=b.dataset.k; let on=false;
+  ov.querySelectorAll(".settgl").forEach(b=>{ if(b.dataset.fx)return;   // 📳 화면효과 토글(data-fx)은 아래 별도 핸들러가 처리 — 사운드 토글 로직에서 제외
+    b.onclick=()=>{ const k=b.dataset.k; let on=false;
     if(k==="bgm"){ on=!A.bgmOn; bgmSetOn(on); } else if(k==="sfx"){ on=!A.on; sfxSetOn(on); } else { on=!A.ambOn; ambSetOn(on); }
     b.textContent=on?"켜짐":"꺼짐"; b.classList.toggle("on",on); const sld=ov.querySelector('.setsld[data-k="'+k+'"]'); if(sld)sld.disabled=!on; }; });
 }
@@ -463,6 +467,14 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.11 · 8/29", title:"화면 흔들림(지진) 끄기 옵션", items:[
+      "📳 <b>설정에 '화면 흔들림(지진)' on/off 추가</b> — 타격·강타·패링 때 화면이 흔들리는 효과를 끌 수 있어요(설정은 저장됨). ⚙ 설정에서 토글",
+    ]},
+  { ver:"v2.10 · 8/29", title:"스킬 창 개편 (슬롯 지정·카테고리)", items:[
+      "🎯 <b>스킬 슬롯 직접 지정</b> — 장착 시 '장착 ▾'를 누르면 <b>어느 슬롯에 넣을지 선택</b>(빈칸 추가 / 채워진 슬롯 교체). 원하는 순서로 배치 가능",
+      "🗂 <b>카테고리 재구성</b> — 전사·사냥꾼·도박 등 뒤섞인 분류 → <b>🗡️근접전투 / 🏹원거리 / 🔮마법 / 🌲생활</b>. 각 계열 안에서 <b>액티브·패시브</b>로 나눠 표시",
+      "📇 <b>장착 스킬 표시 확대</b> — 작은 칩 → <b>큰 슬롯 카드</b>(번호·아이콘·이름·빈 슬롯 표시), 카드 클릭으로 즉시 해제",
+    ]},
   { ver:"v2.9 · 8/29", title:"승리 화면 분리 · 타격감 · 밸런스", items:[
       "🪜 <b>등반/거점 화면을 전투창과 완전 분리</b> — 계단 앞·거점이 전투 아레나 대신 <b>컴팩트한 '결과 카드'</b>로(금색 상단 액센트, 배틀 지면·캐릭터 미니 제거, 여백 축소)",
       "🗺 <b>조우·이벤트 화면 정돈</b> — 탑 탐험(맞선다·스토리·보물·휴식 등) 씬에서 전투용 캐릭터 아바타 숨김(존 분위기 배경은 유지) → 전투 화면과 확실히 구분",
@@ -584,7 +596,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29j",
+  id:"2026-08-29l",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
@@ -665,6 +677,7 @@ function settingsScreen(){ clearLog(); setScene("⚙️","설정");
   const acts=[];
   if(A){ acts.push({label:A.on?"🔊 효과음 끄기":"🔈 효과음 켜기",act:()=>{ if(typeof sfxSetOn==="function")sfxSetOn(!A.on); settingsScreen(); }});
     acts.push({label:A.bgmOn?"🎵 배경음 끄기":"🎶 배경음 켜기",act:()=>{ if(typeof bgmSetOn==="function")bgmSetOn(!A.bgmOn); settingsScreen(); }}); }
+  acts.push({label:(typeof FX!=="undefined"&&FX.shake)?"📳 화면 흔들림(지진) 끄기":"📴 화면 흔들림(지진) 켜기",act:()=>{ if(typeof fxShakeSetOn==="function")fxShakeSetOn(typeof FX!=="undefined"?!FX.shake:false); settingsScreen(); }});
   acts.push({label:"🗑 저장 데이터 삭제",desc:"모든 진행 삭제 · 되돌릴 수 없음",disabled:!hasSave(),act:()=>{ if(confirm("정말 저장 데이터를 삭제할까요? 되돌릴 수 없습니다.")){ localStorage.removeItem(SAVE_KEY); toast("저장 데이터 삭제됨"); } titleScreen(); }});
   acts.push({label:"← 뒤로",full:true,act:titleScreen});
   setActions(acts); }

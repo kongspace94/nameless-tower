@@ -461,6 +461,26 @@
   .skclabel{font-size:12px; font-weight:800; letter-spacing:.4px; color:#9fb0d6; margin:8px 2px 3px; text-transform:uppercase}
   .skclabel i{font-style:normal; color:#71809f; font-weight:700}
   .grow.skoff{opacity:.62; filter:saturate(.7)} .grow.skoff:hover{opacity:1}
+  /* 🎯 장착 슬롯 카드(크게) */
+  .slotrow{display:flex; flex-wrap:wrap; gap:8px; margin:5px 0 12px}
+  .slotcard{display:flex; align-items:center; gap:8px; min-width:150px; flex:1 1 150px; max-width:230px; padding:9px 12px; border-radius:11px; border:1px solid var(--line); background:#10141d; position:relative}
+  .slotcard .slotno{flex-shrink:0; width:20px; height:20px; border-radius:6px; background:#232c40; color:#9fb0d6; font-family:var(--mono); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center}
+  .slotcard.filled{border-color:#3a5a3f; background:linear-gradient(180deg,#16241a,#101a14); cursor:pointer}
+  .slotcard.filled:hover{border-color:#5fbf7a; background:linear-gradient(180deg,#1b2f20,#132018)}
+  .slotcard .slotemo{font-size:24px; line-height:1; flex-shrink:0}
+  .slotcard .slotname{font-weight:700; font-size:14.5px; color:#eaf1ff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .slotcard .slotx{margin-left:auto; color:#7f8db0; font-size:13px; flex-shrink:0}
+  .slotcard.filled:hover .slotx{color:#ff8a8a}
+  .slotcard.empty{border-style:dashed; opacity:.7}
+  .slotcard.empty .slotempty{color:var(--dim); font-size:13px; font-style:italic}
+  /* 🎯 슬롯 선택 피커(장착 시) */
+  .slotpick{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0 2px; padding:8px 10px; border:1px dashed #4a5674; border-radius:9px; background:rgba(120,150,220,.06)}
+  .slotpick .spklab{font-size:12px; font-weight:700; color:#9fb0d6; margin-right:2px}
+  .slotpick .spkbtn{display:inline-flex; align-items:center; gap:4px; padding:5px 10px; font-size:13px}
+  .slotpick .spkbtn.occ{border-color:#8a6a3a}
+  .slotpick .spkbtn .spkrep{font-size:10px; color:#e8c56a; opacity:.85}
+  .slotpick .spkbtn .spkfree{font-size:11px; color:#7fbf9a}
+  .ibtn.pick{border-color:#8fd0ff; color:#8fd0ff}
   /* 📭 읽은(수령완료) 우편 — 살짝 어둡게 구분 */
   .grow.mailread{opacity:.5; filter:saturate(.55) brightness(.82)} .grow.mailread:hover{opacity:.72}
   /* 📢 공지사항 팝업 */

@@ -1127,7 +1127,7 @@ function parryRingPx(t){ if(t<=PARRY_GOOD_MIN)return 150-(150-58)*(t/PARRY_GOOD_
   if(t<=PARRY_PERF_MAX)return 30-(30-22)*((t-PARRY_PERF_MIN)/(PARRY_PERF_MAX-PARRY_PERF_MIN));   // 30→22 (완벽존 ≈코어26)
   if(t<=PARRY_GOOD_MAX)return 22-(22-10)*((t-PARRY_PERF_MAX)/(PARRY_GOOD_MAX-PARRY_PERF_MAX));   // 22→10 (good 꼬리)
   return Math.max(0,10*(1-(t-PARRY_GOOD_MAX)/(PARRY_DUR-PARRY_GOOD_MAX))); }
-function reactiveParry(mult,it){ awaiting=null;
+function reactiveParry(mult,it){ awaiting=null; if(typeof flushBM==="function")flushBM();   // 💬 패링 QTE 전에 대기 줄 즉시 표시(연출 겹침 방지)
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ resolveEnemyAttack(mult,it,"good"); return; }
   const s=$("stage"); const box=document.createElement("div"); box.className="ecdown aim parry";
   box.innerHTML=`<div class="et" style="color:#ffd36a">⚡ <b>돌발! 패링</b> — 줄어드는 파란 원이 <b>금색 원</b>에 들어올 때 [클릭/스페이스] (안쪽=완벽)</div>`+
@@ -1253,6 +1253,7 @@ function winCombat(){
 /* 🎁 처치 → '전용 승리 필드'(몬스터 상태창은 그대로, 스프라이트 자리는 상자)를 보여준 뒤 클릭/스페이스로 전리품 패널로 */
 function deathDropPause(snap, next){
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ next(); return; }
+  if(typeof flushBM==="function")flushBM();   // 💬 대기 중인 전투 연출 줄을 모두 표시(승리 필드로 넘어가기 전)
   if(document.body)document.body.classList.add("combat");   // 전투 레이아웃 유지 → #log 벽 숨김, battlemsg(배틀로그)만 표시
   if(typeof victoryField==="function")victoryField(snap);   // 💀 몬스터 상태창(HP 0) 유지 + 그 자리에 상자
   if(typeof renderBattleMsg==="function")renderBattleMsg();  // 💬 방금 싸운 배틀로그를 그대로 유지(⤢로 전체 로그 열람) — '전리품 확인'은 아래 버튼으로

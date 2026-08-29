@@ -1016,7 +1016,30 @@ function skillClassOf(k){ if(typeof SKILLS!=="undefined"&&SKILLS[k]&&SKILLS[k].r
   if(typeof INSTRUCTORS!=="undefined"){ for(const c in INSTRUCTORS){ if((INSTRUCTORS[c].skills||[]).includes(k))return c; } } return "etc"; }
 const SKILL_CLASS_LABEL={warrior:"⚔️ 전사",hunter:"🏹 사냥꾼",rogue:"🗡️ 도적",mage:"🔮 마법",tamer:"🐺 조련",gambler:"🎲 도박",bard:"🎵 음유",rare:"🌟 희귀",etc:"✨ 기타"};
 const SKILL_CLASS_ORDER=["warrior","hunter","rogue","mage","tamer","gambler","bard","rare","etc"];
-let skillTab="equip";   // 📋 스킬창 탭(equip/active/passive/life)
+/* 🗂 스킬 계열 분류 — 근접전투 / 원거리 / 마법 (무기·주 스탯·연출로 판정, 애매한 건 오버라이드) */
+const SKILL_CAT_OVR={ lucky_strike:"ranged",loaded_dice:"ranged",all_in:"ranged",wild_card:"ranged",
+  meteor:"magic",blizzard:"magic",thunderclap:"magic",holy_smite:"magic",life_siphon:"magic",self_destruct:"magic",
+  troll_face:"magic",dad_joke:"magic",air_guitar:"magic",reverse_card:"magic",pizza_time:"magic",cat_nap:"magic",
+  thousand_cuts:"melee",dragon_fang:"melee",soul_reap:"melee",guillotine:"melee",berserk:"melee",duck_army:"melee",
+  rubber_chicken:"ranged",money_throw:"ranged" };
+function skillCat(k){ const s=(typeof SKILLS!=="undefined")&&SKILLS[k]; if(!s)return "magic";
+  if(SKILL_CAT_OVR[k])return SKILL_CAT_OVR[k];
+  if(s.wep)return s.wep==="precise"?"ranged":"melee";           // melee/blade/dagger=근접, precise(활)=원거리
+  if(s.chant||(s.fx&&s.fx.magic))return "magic";                // 영창·마법 연출=마법
+  const r=s.req||{}; if(r.int)return "magic"; if(r.dex||r.luk)return "ranged"; if(r.str||r.vit)return "melee"; return "magic"; }
+const SKILL_CAT_LABEL={melee:"🗡️ 근접전투",ranged:"🏹 원거리",magic:"🔮 마법"};
+const SKILL_CAT_ORDER=["melee","ranged","magic"];
+let _skillSlotPick=null;   // 🎯 슬롯 지정 UI: 현재 슬롯 선택 중인 스킬 키(없으면 null)
+function assignSkillSlot(k,idx){ if(!SKILLS[k]||SKILLS[k].type!=="active")return; const cap=activeCap(); if(!Array.isArray(P.loadout))P.loadout=[];
+  P.loadout=P.loadout.filter(x=>x!==k);                         // 중복 제거
+  idx=clamp(idx,0,cap-1);
+  if(idx<P.loadout.length)P.loadout[idx]=k;                     // 채워진 슬롯 → 교체
+  else if(P.loadout.length<cap)P.loadout.push(k);              // 다음 빈 슬롯 → 추가
+  else P.loadout[cap-1]=k;
+  P.loadout=P.loadout.slice(0,cap); if(typeof save==="function")save(true); if(typeof render==="function")render();
+  if(typeof toast==="function")toast(`${SKILLS[k].n} → ${idx+1}번 슬롯`); }
+window.skillAssign=(k,idx)=>{ assignSkillSlot(k,idx); _skillSlotPick=null; skillWindow(); };
+let skillTab="melee";   // 📋 스킬창 탭(melee/ranged/magic/life)
 function setSkillTab(t){ skillTab=t; skillWindow(); }
 window.setSkillTab=setSkillTab;
 /* 📋 스킬 창 (인벤 옆 버튼) — 상단 장착요약(툴팁) + 카테고리 탭 */
@@ -1029,15 +1052,22 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
     if(active){ const p=skillProf(k); const need=p.lv*30; eff=`Lv.${p.lv} · 효과 +${Math.round((skillMul(k)-1)*100)}% · 기력 ${s.mp}`;
       xpbar=`<div class="hpbar2 hp" style="height:6px;margin-top:3px"><i style="width:${Math.round(p.xp/need*100)}%"></i></div>`; }
     else eff="패시브 · 배우면 자동 적용";
+    const picking = active && !on && _skillSlotPick===k;
     const btn = active
-      ? (on ? `<button class="ibtn on" onclick="skillUnequip('${k}')">해제</button>` : `<button class="ibtn" onclick="skillEquip('${k}')">장착</button>`)
+      ? (on ? `<button class="ibtn on" onclick="skillUnequip('${k}')">해제</button>` : `<button class="ibtn${picking?' pick':''}" onclick="skillEquip('${k}')">${picking?'▲ 닫기':'장착 ▾'}</button>`)
       : `<span class="chip" style="color:var(--good);border-color:#3a5a3f">자동</span>`;
-    const badge = active ? (on?' <span style="color:var(--good);font-size:11px;font-weight:700">✔ 장착 중</span>':' <span style="color:var(--dim);font-size:11px">미장착</span>') : ' <span style="color:var(--good);font-size:11px">적용 중</span>';
+    const badge = active ? (on?` <span style="color:var(--good);font-size:11px;font-weight:700">✔ ${(P.loadout.indexOf(k)+1)}번 슬롯</span>`:' <span style="color:var(--dim);font-size:11px">미장착</span>') : ' <span style="color:var(--good);font-size:11px">적용 중</span>';
     const isCast = active && typeof CAST_SPELLS!=="undefined" && CAST_SPELLS.includes(k);
     const chantRow = isCast ? `<div class="ge" style="color:#c9a9ff">✨ 영창: "${spellChant(k)}" <span style="color:var(--dim)">(앞 ${chantReqLen(k)}자~전체 아무 길이나 발동)</span></div>` : "";
     const chantBtn = isCast ? `<button class="ibtn" onclick="editChant('${k}')">✏️ 영창</button>` : "";
     const rowCls = !active ? 'eq' : (on ? 'eq' : 'skoff');
-    return `<div class="grow ${rowCls}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
+    let picker="";
+    if(picking){ const cap=activeCap(); const maxIdx=Math.min((P.loadout||[]).length,cap-1);
+      let sb='<span class="spklab">어느 슬롯에?</span>';
+      for(let i=0;i<=maxIdx;i++){ const occ=P.loadout[i]&&SKILLS[P.loadout[i]];
+        sb+=`<button class="ibtn spkbtn${occ?' occ':''}" onclick="skillAssign('${k}',${i})"><b>${i+1}</b>${occ?` ${occ.emoji}<span class="spkrep">교체</span>`:' <span class="spkfree">빈칸</span>'}</button>`; }
+      picker=`<div class="slotpick">${sb}</div>`; }
+    return `<div class="grow ${rowCls}"><span class="emo" onclick="itemInfo('skill','${k}')" style="width:34px;height:34px;font-size:19px;cursor:pointer">${s.emoji}</span><div class="gmeta"><div class="gn">${s.n}${badge}</div><div class="ge">${s.desc}</div><div class="ge" style="color:var(--gold)">${eff}</div>${chantRow}${xpbar}${picker}</div><div class="gbtns">${btn}${chantBtn}</div></div>`; };
   const groupByClass=(arr)=>{ const g={}; arr.forEach(k=>{ const c=skillClassOf(k); (g[c]=g[c]||[]).push(k); }); return g; };
   const classSec=(title,arr,empty,cnt)=>{
     if(!arr.length)return `<div><div class="ih"><span>${title}</span><span class="cnt">${cnt}</span></div><div class="glist"><div class="inv-empty">${empty}</div></div></div>`;
@@ -1051,21 +1081,30 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
   const lifeRows=Object.entries(LIFE).map(([key,a])=>{ const ls=P.life[key]; const need=ls.lv*20; const pct=Math.round(ls.xp/need*100); const got=(P.lifeStat&&P.lifeStat[a.stat])||0;
     return `<div class="grow"><span class="emo" style="width:34px;height:34px;font-size:19px">${a.emoji}</span><div class="gmeta"><div class="gn">${a.n} <span style="color:var(--dim);font-size:11px">Lv.${ls.lv}</span>${got?` <span style="color:var(--good);font-size:11px">${STAT_NAME[a.stat]} +${got}</span>`:""}</div><div class="ge">Lv↑마다 ${STAT_NAME[a.stat]}+1 · ${MATS[a.mat][1]} · 숙련 ${ls.xp}/${need}</div><div class="hpbar2 mp" style="height:6px;margin-top:3px"><i style="width:${pct}%"></i></div></div></div>`; }).join("");
   const cap=activeCap(); const lifeSum=["str","int","dex","vit","luk"].map(s=>{ const v=(P.lifeStat&&P.lifeStat[s])||0; return v?`${STAT_NAME[s]}+${v}`:null; }).filter(Boolean).join(" · ");
-  // 🎯 장착 스킬 칩 — 마우스 오버 시 정보 툴팁(무기처럼)
+  // 🎯 장착 슬롯 — 크게 보이는 슬롯 카드(빈 슬롯 포함, 클릭하면 해제)
   const chipTip=(k)=>{ const s=SKILLS[k]; const pv=skillProf(k); return `${s.n} — ${(s.desc||'').replace(/"/g,'')} · Lv.${pv.lv} · 효과 +${Math.round((skillMul(k)-1)*100)}% · 기력 ${s.mp}`; };
-  const eqChips=P.loadout.filter(k=>SKILLS[k]).map(k=>`<span class="buffchip skchip" title="${chipTip(k)}" onclick="itemInfo('skill','${k}')">${SKILLS[k].emoji} ${SKILLS[k].n} <span style="opacity:.6;font-size:10px">ⓘ</span></span>`).join("");
-  const eqBar=`<div class="ih"><span>🎯 지금 장착한 스킬 <span style="color:var(--dim);font-size:11px;font-weight:400">(칩에 마우스 올리면 정보)</span></span><span class="cnt">${P.loadout.length}/${cap}</span></div><div class="ecbuffrow" style="margin:3px 0 9px">${eqChips||'<span style="color:var(--dim);font-size:12px">장착한 액티브 스킬이 없다 — 아래 탭에서 장착하세요</span>'}</div>`;
-  // 클래스별 그룹(탭 본문용)
-  const classGroups=(arr,empty)=>{ if(!arr.length)return `<div class="inv-empty">${empty}</div>`; const g=groupByClass(arr);
-    return SKILL_CLASS_ORDER.filter(c=>g[c]&&g[c].length).map(c=>{ const list=g[c].slice().sort((a,b)=>(P.loadout.includes(b)?1:0)-(P.loadout.includes(a)?1:0));
-      return `<div class="skclass"><div class="skclabel">${SKILL_CLASS_LABEL[c]||"✨"} <i>${g[c].length}</i></div><div class="glist">${list.map(skillCard).join("")}</div></div>`; }).join(""); };
-  const st=["equip","active","passive","life"].includes(skillTab)?skillTab:"equip";
-  const tabBar=`<div class="invtabs">`+[["equip","🎯 장착",P.loadout.length],["active","⚔️ 액티브",actives.length],["passive","🛡 패시브",passives.length],["life","🌲 생활",Object.keys(LIFE).length]]
+  let slotCards="";
+  for(let i=0;i<cap;i++){ const k=P.loadout[i];
+    if(k&&SKILLS[k]){ const s=SKILLS[k]; slotCards+=`<div class="slotcard filled" title="${chipTip(k)} — 클릭하면 해제" onclick="skillUnequip('${k}')"><span class="slotno">${i+1}</span><span class="slotemo">${s.emoji}</span><span class="slotname">${s.n}</span><span class="slotx">✕</span></div>`; }
+    else slotCards+=`<div class="slotcard empty"><span class="slotno">${i+1}</span><span class="slotempty">빈 슬롯</span></div>`; }
+  const eqBar=`<div class="ih"><span>🎯 장착 슬롯 <span style="color:var(--dim);font-size:11px;font-weight:400">(카드 클릭 = 해제)</span></span><span class="cnt">${P.loadout.length}/${cap}${cap<SLOT_MAX?" · 🔵오브로 최대 "+SLOT_MAX:""}</span></div><div class="slotrow">${slotCards}</div>`;
+  // 계열(근접/원거리/마법)별 본문 — 각 계열 안에서 액티브/패시브 구분
+  const catBody=(cat)=>{ const mine=P.skills.filter(k=>SKILLS[k]&&skillCat(k)===cat);
+    if(!mine.length)return `<div class="inv-empty">이 계열에서 배운 스킬이 없다. 📖 수련관·스킬북에서 배운다.</div>`;
+    const byLoad=(a,b)=>(P.loadout.includes(b)?1:0)-(P.loadout.includes(a)?1:0);
+    const act=mine.filter(k=>SKILLS[k].type==="active").sort(byLoad);
+    const pas=mine.filter(k=>SKILLS[k].type==="passive");
+    let h="";
+    if(act.length)h+=`<div class="skclass"><div class="skclabel">⚔️ 액티브 <i>${act.length}</i> <span style="color:var(--dim);font-weight:400;font-size:11px">· 슬롯에 장착</span></div><div class="glist">${act.map(skillCard).join("")}</div></div>`;
+    if(pas.length)h+=`<div class="skclass"><div class="skclabel">🛡 패시브 <i>${pas.length}</i> <span style="color:var(--dim);font-weight:400;font-size:11px">· 배우면 자동 적용</span></div><div class="glist">${pas.map(skillCard).join("")}</div></div>`;
+    return h; };
+  const st=[...SKILL_CAT_ORDER,"life"].includes(skillTab)?skillTab:"melee";
+  const catCount=(cat)=>P.skills.filter(k=>SKILLS[k]&&skillCat(k)===cat).length;
+  const tabBar=`<div class="invtabs">`+[["melee",SKILL_CAT_LABEL.melee,catCount("melee")],["ranged",SKILL_CAT_LABEL.ranged,catCount("ranged")],["magic",SKILL_CAT_LABEL.magic,catCount("magic")],["life","🌲 생활",Object.keys(LIFE).length]]
     .map(([t,lab,n])=>`<button type="button" class="invtab ${st===t?'on':''}" onclick="setSkillTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`).join("")+`</div>`;
-  const body = st==="equip" ? (P.loadout.filter(k=>SKILLS[k]).length?`<div class="glist">${P.loadout.filter(k=>SKILLS[k]).map(skillCard).join("")}</div>`:`<div class="inv-empty">장착한 액티브 스킬이 없다 — '⚔️ 액티브' 탭에서 장착하세요</div>`)
-    : st==="active" ? `<div class="ge" style="color:var(--dim);margin-bottom:4px">액티브 슬롯 ${P.loadout.length}/${cap}${cap<SLOT_MAX?` · 🔵 마나 오브로 최대 ${SLOT_MAX}`:" (최대)"}</div>${classGroups(actives,"배운 액티브 스킬이 없다. 수련관·스킬북에서 배운다.")}`
-    : st==="passive" ? `<div class="ge" style="color:var(--dim);margin-bottom:4px">패시브는 배우면 자동 적용 (슬롯 불필요)</div>${classGroups(passives,"배운 패시브 스킬이 없다.")}`
-    : `<div class="ge" style="color:var(--dim);margin-bottom:4px">${lifeSum?"생활 누적 "+lifeSum:"채집할수록 Lv↑ · 정해진 스탯 상승"}</div><div class="glist">${lifeRows}</div>`;
+  const body = st==="life"
+    ? `<div class="ge" style="color:var(--dim);margin-bottom:4px">${lifeSum?"생활 누적 "+lifeSum:"채집할수록 Lv↑ · 정해진 스탯 상승"}</div><div class="glist">${lifeRows}</div>`
+    : catBody(st);
   $("log").innerHTML=`<div class="invv">
     ${eqBar}
     ${tabBar}
@@ -1076,8 +1115,8 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
     : (typeof townReturn==="function"
         ? [{label:"← 돌아가기",full:true,act:townReturn},{label:"📖 수련관 (스킬 습득)",act:skillMenu},{label:"🏘 마을로",act:townMenu}]
         : [{label:"📖 수련관 (스킬 습득)",act:skillMenu},{label:"🏘 마을로",full:true,act:townMenu}])); }
-window.skillEquip=k=>{ equipSkill(k); skillWindow(); };
-window.skillUnequip=k=>{ unequipSkill(k); skillWindow(); };
+window.skillEquip=k=>{ _skillSlotPick=(_skillSlotPick===k)?null:k; skillWindow(); };   // 🎯 장착 = 슬롯 피커 토글(유저가 슬롯 선택)
+window.skillUnequip=k=>{ unequipSkill(k); if(_skillSlotPick===k)_skillSlotPick=null; skillWindow(); };
 function learnSkill(k){ if(canLearn(k)!=="ok"){ toast("조건이 부족하다"); return; } const s=SKILLS[k];
   P.gold-=s.cost.gold||0; for(const m in s.cost){ if(m==="gold")continue; P.mats[m]-=s.cost[m]; }
   P.skills.push(k);

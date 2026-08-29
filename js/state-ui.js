@@ -180,18 +180,31 @@ let _bmLines=[]; const BM_MAX=4;   // 💬 전투 메시지 박스에 쌓이는 
 let _bmLog=[]; const BM_LOG_MAX=40;   // 📜 확대 보기용 전체 전투 로그(최근 40줄)
 let _bmExpanded=false;   // ⤢ 메시지 박스 확대 상태
 let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
+/* 💬 전투로그 순차 연출 — 줄을 큐에 넣고 하나씩 팝하며 등장(타격감↑). 클릭으로 즉시 스킵. 설정 토글(기본 켜짐) */
+let _bmQueue=[], _bmPacer=null;
+let _bmPaced=(()=>{ try{ return localStorage.getItem("nt_combat_pace")!=="off"; }catch(e){ return true; } })();
+function combatPaceSetOn(b){ _bmPaced=!!b; try{ localStorage.setItem("nt_combat_pace", b?"on":"off"); }catch(e){} if(!b)flushBM(); }
+function _bmReveal(it){ _bmLines.push(it); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); }
+function startBMPacer(){ if(_bmPacer)return; const step=()=>{ _bmPacer=null; if(!_bmQueue.length)return; _bmReveal(_bmQueue.shift()); if(_bmQueue.length)_bmPacer=setTimeout(step,190); }; _bmPacer=setTimeout(step,70); }   // 첫 줄 70ms, 이후 190ms 간격
+function flushBM(){ if(_bmPacer){ clearTimeout(_bmPacer); _bmPacer=null; } while(_bmQueue.length)_bmReveal(_bmQueue.shift()); }   // 대기 줄 즉시 전부 표시(스킵/전환/전투종료 시)
 function renderBattleMsg(){ const bm=$("battlemsg"); if(!bm)return;
   bm.classList.toggle("big",_bmExpanded);
+  const pend=_bmQueue.length>0; bm.classList.toggle("pacing",pend);   // 💬 대기 줄 있으면 클릭으로 스킵 가능
   const src=_bmExpanded?_bmLog:_bmLines;
   const rows=src.map((l,i)=>`<div class="bm-txt ${l.c}${(!_bmExpanded&&i===src.length-1)?' cur':''}">${l.h}</div>`).join("");
-  bm.innerHTML=`<button class="bmexp" onmousedown="event.stopPropagation()" onclick="toggleBM(event)" title="${_bmExpanded?'접기':'전투 로그 넓게 보기'}">${_bmExpanded?'⤡ 접기':'⤢'}</button>${rows}`;
+  const moreHint = (pend&&!_bmExpanded) ? `<span class="bmmore">▾ ${_bmQueue.length}줄 더 · 탭하면 스킵</span>` : "";
+  bm.innerHTML=`<button class="bmexp" onmousedown="event.stopPropagation()" onclick="toggleBM(event)" title="${_bmExpanded?'접기':'전투 로그 넓게 보기'}">${_bmExpanded?'⤡ 접기':'⤢'}</button>${rows}${moreHint}`;
+  bm.onclick=(e)=>{ if(e&&e.target&&e.target.closest&&e.target.closest(".bmexp"))return; if(_bmQueue.length||_bmPacer)flushBM(); };   // 박스 탭 = 남은 줄 즉시 표시
   if(_bmExpanded)bm.scrollTop=bm.scrollHeight; }
 function toggleBM(e){ if(e){ e.stopPropagation(); e.preventDefault(); } _bmExpanded=!_bmExpanded; renderBattleMsg(); }
 function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); return; }   // 🎁 전리품은 버퍼에 모아 승리 패널에서 한 번에
   const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
-  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger"); _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); _bmLog.push({h:html,c:cls||""}); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift(); renderBattleMsg(); } }   // 💬 전투 중: 위 박스에 최근 줄 누적
+  if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger");
+    _bmLog.push({h:html,c:cls||""}); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift();   // 📜 전체 로그(확대뷰)는 즉시 누적
+    if(_bmPaced && !globalThis.__SIM__ && typeof setTimeout==="function"){ _bmQueue.push({h:html,c:cls||""}); startBMPacer(); }   // 💬 연출: 큐에 넣고 순차 등장
+    else { _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } } }   // ⚡ 빠르게: 즉시
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
-function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big"); }
+function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmQueue=[]; if(_bmPacer){ clearTimeout(_bmPacer); _bmPacer=null; } _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big","pacing"); }
   const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark").forEach(n=>n.remove()); }   // 🧹 남은 상자/반짝이 연출 정리(잔상 방지)
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
@@ -286,8 +299,11 @@ function dropChestFx(boss){ const s=$("stage"); if(!s||typeof document==="undefi
   if(boss){ for(let i=0;i<6;i++){ setTimeout(()=>{ if(!s.isConnected)return; const sp=document.createElement("div"); sp.className="chestspark"; sp.textContent=pick(["✨","⭐","💫"]);
     if(spot.px){ sp.style.left=spot.x+"px"; sp.style.top=(spot.y-14)+"px"; } else { sp.style.left=spot.x+"%"; sp.style.top=spot.y+"%"; }
     sp.style.setProperty("--sx",(rnd(80)-40)+"px"); sp.style.setProperty("--sy",(-30-rnd(40))+"px"); s.appendChild(sp); setTimeout(()=>{ if(sp.parentNode)sp.remove(); },900); }, 720+i*90); } } }
-function fxShake(){ const s=$("stage"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
-function fxShakeHard(){ const s=$("stage"); if(!s)return; s.classList.remove("shake-hard"); void s.offsetWidth; s.classList.add("shake-hard"); }
+/* 🌐 화면 효과 설정 — 지진(흔들림) on/off (설정에서 토글, localStorage 보존) */
+const FX={ shake: (()=>{ try{ return localStorage.getItem("nt_shake")!=="off"; }catch(e){ return true; } })() };
+function fxShakeSetOn(b){ FX.shake=!!b; try{ localStorage.setItem("nt_shake", b?"on":"off"); }catch(e){} }
+function fxShake(){ if(!FX.shake)return; const s=$("stage"); if(!s)return; s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
+function fxShakeHard(){ if(!FX.shake)return; const s=$("stage"); if(!s)return; s.classList.remove("shake-hard"); void s.offsetWidth; s.classList.add("shake-hard"); }
 function fxSlash(dir){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="slashfx"; d.style.setProperty("--sl",((dir<0?-1:1)*(28+rnd(12)))+"deg"); s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },320); }
 function fxBigHit(){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="hitflash"; s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },440); if(typeof fxHit==="function")fxHit(); }
 function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } fxLunge($("foeArt"),"lungeFoe"); if(typeof sfx==="function")sfx("hurt"); }   // 👹 적이 때리면 적도 앞으로 나옴
