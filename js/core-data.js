@@ -180,9 +180,9 @@ function foodBond(fk,role){ if(fk==="food_any")return 15; const f=FOODS[fk]; if(
 function compOwned(key){ return !!(P&&P.comps&&P.comps[key]); }
 function ensureComp(key){ if(!P.comps)P.comps={}; if(!P.comps[key])P.comps[key]={bond:0,lv:1,awk:0}; return P.comps[key]; }
 /* 🐾 동료 성장(유대/각성) — 동료별로 기록(P.comps[key]={bond,lv,awk}) */
-const COMP_LV_CAP=30, AWAKEN_LV=[12,24];   // 각성 티어 경계(0/1/2)
-function compBondNeed(lv){ return 18+(lv-1)*11; }          // lv→lv+1 필요 유대치
-function compTier(lv){ return lv>=AWAKEN_LV[1]?2 : lv>=AWAKEN_LV[0]?1 : 0; }
+const COMP_LV_CAP=100, AWAKEN_LV=[20,40,60,80,100];   // 최대 100레벨 · 각성 5단계(Lv20/40/60/80/100)
+function compBondNeed(lv){ return Math.round(20 + (lv-1)*10 + Math.pow(lv-1,2)*0.5); }   // lv→lv+1 필요 유대치 — 가파른 곡선(고레벨일수록 급증)
+function compTier(lv){ let t=0; for(const b of AWAKEN_LV){ if((lv||1)>=b)t++; } return t; }   // 통과한 각성 경계 수(0~5)
 function compRec(key){ key=key||(P&&P.companion); if(!P)return{bond:0,lv:1,awk:0}; if(!P.comps)P.comps={}; return P.comps[key]||(P.comps[key]={bond:0,lv:1,awk:0}); }
 function compDisp(key,lv){ const d=COMPANIONS[key]; if(!d)return{n:"동료",emoji:"❓",ic:null}; const t=compTier(lv||1); const e=(d.evo&&d.evo[t])?d.evo[t]:{n:d.n,emoji:d.emoji}; return {n:e.n,emoji:e.emoji,ic:d.ic,tier:t}; }
 /* 🔩 동료 룬 — 각성 티어만큼 슬롯 개방(0→1·1→2·2→3칸). 제작소서 제작, 동료 메뉴서 장착 */
@@ -197,12 +197,12 @@ const RUNES={
   rune_aegis:{n:"철벽의 룬",emoji:"🛡️",note:"동행 중 내 방어 +4",eff:{pDef:4},cost:{gold:180,mats:{ore:3}}},
   rune_tempo:{n:"기세의 룬",emoji:"🌟",note:"동료 행동마다 기세 +6",eff:{mom:6},cost:{gold:220,mats:{mana:2,herb:2}}},
 };
-function compRuneSlots(key){ return 1+compTier((compRec(key).lv)||1); }   // 각성 티어만큼 +1(최대 3)
+function compRuneSlots(key){ return Math.min(3, 1+compTier((compRec(key).lv)||1)); }   // 각성 티어만큼 +1(최대 3)
 function compRuneEff(key){ const rec=compRec(key); const list=(rec&&rec.runes)||[]; const s={healPct:0,dpsPct:0,tankRed:0,cdCut:0,vamp:0,mom:0,pAtk:0,pCrit:0,pDef:0,elem:null};
   for(const rk of list){ const r=RUNES[rk]; if(!r)continue; const e=r.eff||{}; for(const k in e){ if(k==="elem"){ if(!s.elem)s.elem=e.elem; } else s[k]=(s[k]||0)+e[k]; } } return s; }
 function buildComp(key){ const d=COMPANIONS[key]; if(!d)return null; const rec=compRec(key); const lv=rec.lv||1; const tier=compTier(lv); const disp=compDisp(key,lv);
-  const rune=compRuneEff(key); const baseMax=tier>=2?2:3;
-  return {key,ic:d.ic,n:disp.n,emoji:disp.emoji,role:d.role,lv,tier,energy:0,max:Math.max(2,baseMax-(rune.cdCut||0)),rune}; }
+  const rune=compRuneEff(key);
+  return {key,ic:d.ic,n:disp.n,emoji:disp.emoji,role:d.role,lv,tier,energy:0,max:Math.max(2,4-(rune.cdCut||0)),rune}; }   // max=특수기 주기(4턴 · 신속 룬으로 단축). 일반 공격은 2턴마다
 /* 장비: slot = weapon | armor | accessory (착용해야 효과) */
 const RELICS={
   "녹슨 단검":{slot:"weapon",wt:"dagger",atk:2,note:"공격 +2",ic:"dagger",val:40,shop:"weapon"}, "낡은 단궁":{slot:"weapon",wt:"bow",atk:3,note:"공격 +3 · 원거리",ic:"bow",val:55,shop:"weapon"},

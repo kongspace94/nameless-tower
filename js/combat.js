@@ -884,7 +884,7 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
   if(typeof sfx==="function")sfx(color==="#ff8f3c"?"crit":"attack");   // 🔊 타격음(치명타=주황이면 크리트)
   if(B&&B.charge){                                        // 충전(궁극기) 중: 피해가 HP가 아니라 파훼 게이지로 → 다 채우면 저지
     B.charge.filled=(B.charge.filled||0)+dmg;
-    line(`${label} — <b style="color:#8fd0ff">충전 저지! 파훼 +${dmg}</b>`,"heal"); fxHit(); spawnFloat("+"+dmg,"#8fd0ff","foe"); setSceneFoe();
+    fxHit(); spawnFloat("파훼+"+dmg,"#8fd0ff","foe"); setSceneFoe();   // 🧹 로그 도배 방지 — 매 타격 줄 대신 플로팅 숫자+게이지바로만 표시(저지 성공 줄은 breakCharge에서)
     if(B.charge.filled>=B.charge.need) breakCharge();
     return false; }
   if(elem && enemy){                                       // 🔥 속성 상성
@@ -926,18 +926,20 @@ function toEnemyPhase(){ if(!enemy||P.hp<=0)return; setActions([]);   // 적 턴
   render(); turnBanner("ENEMY TURN","foe");   // 🎬 턴 표시는 배너 애니로만
   setTimeout(()=>{ if(enemy&&P.hp>0)enemyPhase(); }, 600); }
 
-function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; const lv=c.lv||1, tier=c.tier||0, ru=c.rune||{}; c.energy=Math.min(c.max,c.energy+1);
+function companionPhase(next){ if(!B.comp){ next(); return; } const c=B.comp; const lv=c.lv||1, tier=c.tier||0, ru=c.rune||{};
   if(ru.mom&&typeof gainMomentum==="function")gainMomentum(ru.mom);   // 🌟 기세의 룬
-  if(c.energy>=c.max){ c.energy=0; compSpecial(c,next); return; }
-  if(c.role==="heal"){ if(P.hp<MAXHP()){ line(`${c.emoji} ${c.n}의 치유 빛.`,"sys"); heal(Math.max(2,Math.round(MAXHP()*(0.04+lv*0.005+tier*0.02+(ru.healPct||0))))); } }
-  else if(c.role==="dps"){ line(`${c.emoji} ${c.n}의 지원 공격!`,"sys"); const dmg=Math.round(ATK()*(0.12+lv*0.015+tier*0.06+(ru.dpsPct||0)))+rnd(4); const dead=hitEnemy(dmg,`${c.emoji} 일격`,"#ffb060",ru.elem); if(ru.vamp&&P.hp<MAXHP())heal(Math.max(1,Math.round(dmg*ru.vamp))); if(dead)return; }
+  c.energy=(c.energy||0)+1; const specialAt=c.max||4;
+  if(c.energy>=specialAt){ c.energy=0; compSpecial(c,next); return; }   // ⭐ 특수기: 4턴마다
+  if(c.energy%2!==0){ next(); return; }                                  // 🐾 일반 지원: 2턴마다만(나머지 턴은 대기)
+  if(c.role==="heal"){ if(P.hp<MAXHP()){ line(`${c.emoji} ${c.n}의 치유 빛.`,"sys"); heal(Math.max(2,Math.round(MAXHP()*(0.03+lv*0.0012+tier*0.015+(ru.healPct||0))))); } }
+  else if(c.role==="dps"){ line(`${c.emoji} ${c.n}의 지원 공격!`,"sys"); const dmg=Math.round(ATK()*(0.10+lv*0.004+tier*0.05+(ru.dpsPct||0)))+rnd(3); const dead=hitEnemy(dmg,`${c.emoji} 일격`,"#ffb060",ru.elem); if(ru.vamp&&P.hp<MAXHP())heal(Math.max(1,Math.round(dmg*ru.vamp))); if(dead)return; }
   render(); updateFoeBar(); next(); }
 function compSpecial(c,next){ const lv=c.lv||1, tier=c.tier||0, ru=c.rune||{}; line(`✦ <b>${c.n}</b>의 특수 지원!`,"heal");
-  if(c.role==="heal"){ heal(Math.round(MAXHP()*(0.35+lv*0.01+tier*0.06+(ru.healPct||0)))); if(B.poison>0){ B.poison=0; line("독이 정화됐다.","heal"); }
+  if(c.role==="heal"){ heal(Math.round(MAXHP()*(0.22+lv*0.003+tier*0.05+(ru.healPct||0)))); if(B.poison>0){ B.poison=0; line("독이 정화됐다.","heal"); }
     if(tier>=2){ B.shield=true; line("여명의 가호 — 다음 적 공격을 막는다.","heal"); } }
-  else if(c.role==="dps"){ const dmg=Math.round(ATK()*(1.5+lv*0.03+tier*0.4+(ru.dpsPct||0)*2))+rnd(6); const dead=hitEnemy(dmg,`${c.emoji} 대폭발`,"#ff8a3a",ru.elem); if(ru.vamp&&P.hp<MAXHP())heal(Math.max(1,Math.round(dmg*ru.vamp))); if(dead)return; }
+  else if(c.role==="dps"){ const dmg=Math.round(ATK()*(0.7+lv*0.010+tier*0.20+(ru.dpsPct||0)*2))+rnd(5); const dead=hitEnemy(dmg,`${c.emoji} 대폭발`,"#ff8a3a",ru.elem); if(ru.vamp&&P.hp<MAXHP())heal(Math.max(1,Math.round(dmg*ru.vamp))); if(dead)return; }
   else if(c.role==="tank"){ B.shield=true; line(`${c.n} 방패 전개 — 다음 적 공격을 막고 반사한다.`,"heal");
-    if(tier>=1&&P.hp<MAXHP()){ heal(Math.round(MAXHP()*(0.08+tier*0.05+(ru.healPct||0)))); } }
+    if(tier>=1&&P.hp<MAXHP()){ heal(Math.round(MAXHP()*(0.08+tier*0.04+(ru.healPct||0)))); } }
   render(); if(enemy&&enemy.hp>0)next(); }
 /* 🐾 유대 획득 → 레벨업 → 각성(진화) */
 function gainCompBond(n){ if(!P||!P.companion||n<=0)return; const rec=compRec(P.companion); if((rec.lv||1)>=COMP_LV_CAP)return;
@@ -966,11 +968,13 @@ function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(
   let raw=enemy.atk*mult*aw*fr+rnd(4)-1; let dmg=Math.max(1,Math.round(raw)-DEF());   // 약화: 적 공격력↓
   const gp=hasSkill("guard_up");
   if(B.block==="perfect")dmg=Math.round(dmg*(gp?0:0.05)); else if(B.block==="good")dmg=Math.round(dmg*(gp?0.35:0.5)); else if(B.block==="weak")dmg=Math.round(dmg*0.85);
-  if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.55,0.18+(B.comp.lv||1)*0.004+(B.comp.tier||0)*0.04+((B.comp.rune&&B.comp.rune.tankRed)||0)); dmg=Math.round(dmg*(1-red)); }
+  if(B.comp&&B.comp.role==="tank"){ const red=Math.min(0.5,0.15+(B.comp.lv||1)*0.0025+(B.comp.tier||0)*0.03+((B.comp.rune&&B.comp.rune.tankRed)||0)); dmg=Math.round(dmg*(1-red)); }   // 🛡 방어형 피해감소(최대 50%) — 100레벨 스케일 재조정
   if(B.dmgTakenPct)dmg=Math.round(dmg*(1+B.dmgTakenPct));   // 🌫 지역 디버프(내성 없음): 받는 피해 증가
   if(dmg>0 && typeof setGim==="function"){ const g=setGim(); if(g.dodge && chance(g.dodge)){ line("✨ <b>공허 세트 — 피해를 무효화했다!</b>","heal"); bigPop("무적!","#c9a9ff"); return 0; } }   // ✦ 공허 세트: 확률 피해 무효
   return Math.max(0,dmg); }
-function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; } P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
+function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; }
+  if(typeof fxIncoming==="function")fxIncoming(enemy&&enemy.atkElem);   // 💫 적→플레이어 투사체/검격 연출
+  P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
 function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
 /* 🔥 몬스터 속성 공격 → 플레이어 지속피해(도트) 부여 · 매 턴 틱 */
 function applyMonsterAil(elem){ if(!B||!elem||typeof ELEMENTS==="undefined"||!ELEMENTS[elem])return; if(B.pdot&&B.pdot.t>0)return; const el=ELEMENTS[elem];

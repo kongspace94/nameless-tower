@@ -4,19 +4,32 @@
    ============================================================ */
 function die(){ if(P&&P._duel){ if(typeof pvpLoss==="function")return pvpLoss(P._duel); P._duel=null; }   // ⚔ PvP 결투 패배는 완전 사망이 아니라 손실만
   stopAuctionTimer();
-  let lastLog=[]; try{ const lg=$("log"); if(lg){ lastLog=[...lg.querySelectorAll("p")].slice(-4).map(p=>(p.textContent||"").trim()).filter(Boolean); } }catch(e){}   // 죽기 직전 로그(맥락) 보존 — 전투 중 #log는 display:none이라 innerText가 줄바꿈을 잃음 → <p>별 textContent로 안전하게
+  let deathLog=[]; try{ if(typeof _bmLog!=="undefined" && _bmLog.length) deathLog=_bmLog.slice();   // 📜 죽기 직전 전투 기록 보존('전투로그 보기'용) — 전투 로그 우선, 없으면 #log에서
+    else { const lg=$("log"); if(lg) deathLog=[...lg.querySelectorAll("p")].map(p=>({h:p.innerHTML,c:p.className||""})); } }catch(e){}
   const cause=(typeof deathCause==="string"&&deathCause)?deathCause:"";
   enemy=null; B=null; if(typeof sfx==="function")sfx("defeat"); if(typeof bgm==="function")bgm("town"); clearLog(); setScene("💀","");   // 🎵 패배 즉시 전투/보스 BGM 종료 → 마을 테마(마을로 귀환하므로)
   let place=`탑 ${P.floor}층`;   // 🧭 개척(대륙) 중 사망이면 '탑 N층'이 아니라 대륙·구역명으로
   try{ if(typeof EXP!=="undefined" && EXP && typeof CONT==="function"){ const c=CONT(); if(c){ place = EXP.tower ? `${(typeof towerName==="function"?towerName(EXP.ci):c.name)} ${EXP.floor||1}층` : `${c.name}${(c.areas&&c.areas[EXP.ai])?` · ${c.areas[EXP.ai].n}`:""}`; } } }catch(e){}   // 🗼 탑=탑이름+층 · 🧭 개척=대륙+구역
   line(`<b style="color:var(--danger)">${place}에서 정신을 잃었다…</b>`);
   if(cause)line(`<b>사인:</b> ${cause}`,"dmg");   // 💀 무엇에 쓰러졌는지 명확히
-  if(lastLog.length)line(`<div style="font-size:11.5px;color:var(--dim);margin-top:2px">— 마지막 순간 —<br>${lastLog.map(s=>s.replace(/</g,"&lt;")).join("<br>")}</div>`,"quote");
-  line("눈을 떠보니 마을 어귀였다. 누군가 당신을 옮겨준 모양이다.","quote");
   const loss=Math.floor(P.gold*0.1); if(loss>0){ P.gold-=loss; line(`정신없는 사이 금화 ${loss}를 잃었다.`,"dmg"); }
   line("얻은 재료와 스킬, 스탯은 그대로다.","sys");
   if(typeof deathCause!=="undefined")deathCause="";   // 초기화
-  render(); setActions([{label:"🏘 마을로 돌아간다",full:true,act:townMenu}]); }
+  render();
+  const acts=[];
+  if(deathLog.length)acts.push({label:"📜 전투로그 보기",desc:"쓰러지기까지의 전투 기록",act:()=>showDeathLog(deathLog)});
+  acts.push({label:"🏘 마을로 돌아간다",full:true,act:townMenu});
+  setActions(acts); }
+/* 📜 사망(또는 아무 때나) 전투 기록 보기 — 모달로 마지막 전투 로그를 구분선 포함해 표시 */
+function showDeathLog(items){ if(document.querySelector(".setmodal.loghud"))return; if(typeof sfx==="function")sfx("click");
+  const rows=(items&&items.length)? items.map((l,i)=>`${(l.beat&&i>0)?'<div class="bm-div"></div>':''}<div class="bm-txt ${l.c||''}">${l.h}</div>`).join("") : '<div class="setnote">기록된 전투 로그가 없다.</div>';
+  const ov=document.createElement("div"); ov.className="setmodal loghud";
+  ov.innerHTML=`<div class="setbox"><div class="settitle">📜 마지막 전투 기록</div><div class="deathlog">${rows}</div><div class="setbtns"><button type="button" class="setbtn setclose">닫기</button></div></div>`;
+  document.body.appendChild(ov);
+  const close=()=>{ try{ document.body.removeChild(ov); }catch(e){} };
+  ov.addEventListener("click",e=>{ if(e.target===ov)close(); });
+  const cb=ov.querySelector(".setclose"); if(cb)cb.onclick=close; }
+window.showDeathLog=showDeathLog;
 /* 🔓 기능 해금 안내 — 눈에 띄게 알림 */
 function unlockAnnounce(icon, title, desc){ if(typeof toast==="function")toast(icon+" "+title+" 잠금해제!");
   line(`🔓 <b style="color:var(--gold)">${icon} ${title}</b> — <b style="color:var(--gold)">잠금 해제!</b> ${desc}`,"loot"); if(typeof sfx==="function")sfx("victory"); }
@@ -471,8 +484,25 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.14 · 8/29", title:"적 공격 연출 + 전투로그 간결화", items:[
+      "💫 <b>적 공격 연출</b> — 몬스터가 때릴 때 플레이어 쪽으로 <b>투사체(속성=구체)·검격</b>이 날아오는 이펙트 추가",
+      "🧹 <b>전투로그 간결화</b> — 보스 충전 저지 중 매 타격마다 줄이 도배되던 것 제거(플로팅 숫자·파훼 게이지바로 표시)",
+    ]},
+  { ver:"v2.13 · 8/29", title:"동료(펫) 밸런스 대개편", items:[
+      "⏱ <b>동료 공격 주기 조정</b> — 일반 지원은 <b>2턴마다</b>, 특수기는 <b>4턴마다</b>(예전엔 매 턴 때려서 과함)",
+      "⚖️ <b>동료 피해량 하향</b> — 100레벨 스케일에 맞춰 재조정, 이제 <b>플레이어보다 세지 않은 강한 서포트</b>",
+      "🐾 <b>최대 100레벨 · 각성 5단계</b>(Lv20/40/60/80/100)로 확장",
+      "📈 <b>경험치(유대) 곡선 가파르게</b> — 고레벨일수록 급증(먹이가 너무 잘 차던 것 조정)",
+      "🍖 <b>먹이 주기 1·5·10·전부 버튼</b> — 원하는 만큼 한 번에 먹이기",
+    ]},
+  { ver:"v2.12 · 8/29", title:"동료·소환수 표시 버그 + 사망 화면 정리", items:[
+      "🐾 <b>동료 펫·소환수가 안 보이던 버그 수정</b> — 전투 메시지 박스에 가려져 있던 걸 <b>좌상단</b>으로 옮겨 항상 보이게",
+      "💀 <b>사망 화면 정리</b> — '마지막 순간' 로그 도배·'눈을 떠보니' 문구 제거, 대신 <b>'📜 전투로그 보기'</b> 버튼으로 마지막 전투 기록을 따로 확인",
+    ]},
   { ver:"v2.11 · 8/29", title:"전투 연출 옵션 (순차 로그 · 흔들림)", items:[
       "🎬 <b>전투로그 순차 연출</b> — 전투 메시지가 <b>한 줄씩 팝하며 등장</b>해 타격감↑(관련 타격이 차례로 뜬다). <b>박스를 탭하면 즉시 스킵</b>, 전체 로그는 ⤢로 열람. 설정에서 끄면 예전처럼 한 번에 표시",
+      "🔸 <b>비트 구분선</b> — 행위자·행동이 바뀔 때(나 → 펫 → 적) 구분선으로 나눠 한눈에 보기 좋게. 같은 연타는 한 묶음",
+      "🔒 전투 메시지 박스 <b>높이 고정</b> — 줄 수에 따라 박스가 위로 커지던 현상 제거",
       "📳 <b>화면 흔들림(지진) on/off</b> — 타격·강타·패링 때 화면 흔들림 효과를 끌 수 있어요. ⚙ 설정 → 🖥 화면 효과 (설정은 저장됨)",
     ]},
   { ver:"v2.10 · 8/29", title:"스킬 창 개편 (슬롯 지정·카테고리)", items:[
@@ -601,7 +631,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29m",
+  id:"2026-08-29q",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

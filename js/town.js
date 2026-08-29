@@ -204,8 +204,10 @@ function companionMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; 
   const ownedFood=feedList.filter(fk=>(P.food[fk]||0)>0);
   if(maxed)acts.push({label:"이미 최대 성장",disabled:true,act:()=>{}});
   else if(!ownedFood.length)acts.push({label:"줄 먹이가 없다",desc:"던전 몬스터가 먹이를 떨궈요 · 공용사료는 📦통신판매",disabled:true,act:()=>{}});
-  else ownedFood.forEach(fk=>{ const f=FOODS[fk], have=P.food[fk]||0, per=foodBond(fk,role), batch=Math.min(have,5), match=(fk===roleFood);
-    acts.push({label:`${f.emoji} ${f.n} 먹이기 (보유 ${have})${match?" ⭐전용":""}`,desc:`${batch}개 → 유대 +${batch*per}${fk==="food_any"?" · 공용":""}`,act:()=>feedCompanionFood(fk,batch)}); });
+  else ownedFood.forEach(fk=>{ const f=FOODS[fk], have=P.food[fk]||0, per=foodBond(fk,role), match=(fk===roleFood);
+    acts.push({header:true,label:`${f.emoji} ${f.n} — 보유 ${have}개${match?" ⭐전용":" · 공용"} (개당 유대 +${per})`});
+    const opts=[1,5,10].filter(n=>n<have); opts.push(have);   // 1·5·10·전부(보유 전량) — have보다 작은 값만 + 항상 '전부'
+    opts.forEach(n=>{ const isAll=(n===have); acts.push({label:isAll?`전부 먹이기 (${have}개)`:`${n}개 먹이기`,desc:`유대 +${n*per}`,act:()=>feedCompanionFood(fk,n)}); }); });
   // 🔁 보유 동료 교체
   const ownedKeys=Object.keys(P.comps||{}).filter(k=>COMPANIONS[k]);
   acts.push({header:true,label:`🔁  동료 교체  (보유 ${ownedKeys.length}/${Object.keys(COMPANIONS).length})`});

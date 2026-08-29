@@ -181,7 +181,7 @@ let _bmLog=[]; const BM_LOG_MAX=40;   // 📜 확대 보기용 전체 전투 로
 let _bmExpanded=false;   // ⤢ 메시지 박스 확대 상태
 let _lootCapture=false, _lootBuf=[];   // 🎁 승리 시 전리품(loot)을 모아 별도 패널로 (전투/획득 분리)
 /* 💬 전투로그 순차 연출 — 줄을 큐에 넣고 하나씩 팝하며 등장(타격감↑). 클릭으로 즉시 스킵. 설정 토글(기본 켜짐) */
-let _bmQueue=[], _bmPacer=null;
+let _bmQueue=[], _bmPacer=null, _bmLastLineT=0;   // _bmLastLineT: 직전 전투 줄 시각(비트/구분선 판정용)
 let _bmPaced=(()=>{ try{ return localStorage.getItem("nt_combat_pace")!=="off"; }catch(e){ return true; } })();
 function combatPaceSetOn(b){ _bmPaced=!!b; try{ localStorage.setItem("nt_combat_pace", b?"on":"off"); }catch(e){} if(!b)flushBM(); }
 function _bmReveal(it){ _bmLines.push(it); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); }
@@ -191,7 +191,7 @@ function renderBattleMsg(){ const bm=$("battlemsg"); if(!bm)return;
   bm.classList.toggle("big",_bmExpanded);
   const pend=_bmQueue.length>0; bm.classList.toggle("pacing",pend);   // 💬 대기 줄 있으면 클릭으로 스킵 가능
   const src=_bmExpanded?_bmLog:_bmLines;
-  const rows=src.map((l,i)=>`<div class="bm-txt ${l.c}${(!_bmExpanded&&i===src.length-1)?' cur':''}">${l.h}</div>`).join("");
+  const rows=src.map((l,i)=>`${(l.beat&&i>0)?'<div class="bm-div"></div>':''}<div class="bm-txt ${l.c}${(!_bmExpanded&&i===src.length-1)?' cur':''}">${l.h}</div>`).join("");   // 🔸 비트 시작 줄 앞에 구분선(맨 위 제외)
   const moreHint = (pend&&!_bmExpanded) ? `<span class="bmmore">▾ ${_bmQueue.length}줄 더 · 탭하면 스킵</span>` : "";
   bm.innerHTML=`<button class="bmexp" onmousedown="event.stopPropagation()" onclick="toggleBM(event)" title="${_bmExpanded?'접기':'전투 로그 넓게 보기'}">${_bmExpanded?'⤡ 접기':'⤢'}</button>${rows}${moreHint}`;
   bm.onclick=(e)=>{ if(e&&e.target&&e.target.closest&&e.target.closest(".bmexp"))return; if(_bmQueue.length||_bmPacer)flushBM(); };   // 박스 탭 = 남은 줄 즉시 표시
@@ -200,11 +200,15 @@ function toggleBM(e){ if(e){ e.stopPropagation(); e.preventDefault(); } _bmExpan
 function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); return; }   // 🎁 전리품은 버퍼에 모아 승리 패널에서 한 번에
   const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
   if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger");
-    _bmLog.push({h:html,c:cls||""}); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift();   // 📜 전체 로그(확대뷰)는 즉시 누적
-    if(_bmPaced && !globalThis.__SIM__ && typeof setTimeout==="function"){ _bmQueue.push({h:html,c:cls||""}); startBMPacer(); }   // 💬 연출: 큐에 넣고 순차 등장
-    else { _bmLines.push({h:html,c:cls||""}); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } } }   // ⚡ 빠르게: 즉시
+    const now=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
+    const beat=(_bmLog.length>0)&&(now-_bmLastLineT>40);   // 🔸 이전 줄과 시간 간격>40ms = 새 행동(행위자) 시작 → 구분선. 같은 행동의 연타는 동기 호출(간격≈0)이라 안 나뉨
+    _bmLastLineT=now;
+    const item={h:html,c:cls||"",beat};
+    _bmLog.push(item); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift();   // 📜 전체 로그(확대뷰)는 즉시 누적
+    if(_bmPaced && !globalThis.__SIM__ && typeof setTimeout==="function"){ _bmQueue.push(item); startBMPacer(); }   // 💬 연출: 큐에 넣고 순차 등장
+    else { _bmLines.push(item); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } } }   // ⚡ 빠르게: 즉시
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
-function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmQueue=[]; if(_bmPacer){ clearTimeout(_bmPacer); _bmPacer=null; } _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big","pacing"); }
+function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmQueue=[]; _bmLastLineT=0; if(_bmPacer){ clearTimeout(_bmPacer); _bmPacer=null; } _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big","pacing"); }
   const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark").forEach(n=>n.remove()); }   // 🧹 남은 상자/반짝이 연출 정리(잔상 방지)
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
@@ -307,6 +311,17 @@ function fxShakeHard(){ if(!FX.shake)return; const s=$("stage"); if(!s)return; s
 function fxSlash(dir){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="slashfx"; d.style.setProperty("--sl",((dir<0?-1:1)*(28+rnd(12)))+"deg"); s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },320); }
 function fxBigHit(){ const s=$("stage"); if(!s)return; const d=document.createElement("div"); d.className="hitflash"; s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); },440); if(typeof fxHit==="function")fxHit(); }
 function fxPlayerHurt(){ const c=$("meArt")||$("por").firstElementChild; if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } fxLunge($("foeArt"),"lungeFoe"); if(typeof sfx==="function")sfx("hurt"); }   // 👹 적이 때리면 적도 앞으로 나옴
+/* 💫 적 공격 투사체/검격 — 적 스프라이트에서 플레이어 쪽으로 날아오는 연출(속성=구체, 무속성=검격) */
+function fxIncoming(elem){ const s=$("stage"); if(!s||typeof document==="undefined")return;
+  const foe=$("foeArt"), me=$("meArt"); let x0="66%",y0="24%",x1="24%",y1="60%";
+  if(foe&&me&&foe.getBoundingClientRect){ const sr=s.getBoundingClientRect(),fr=foe.getBoundingClientRect(),mr=me.getBoundingClientRect();
+    if(fr.width>0&&mr.width>0){ x0=(fr.left-sr.left+fr.width*0.5)+"px"; y0=(fr.top-sr.top+fr.height*0.42)+"px"; x1=(mr.left-sr.left+mr.width*0.5)+"px"; y1=(mr.top-sr.top+mr.height*0.42)+"px"; } }
+  const map={fire:{ic:"🔥",c:"#ff8a3a"},frost:{ic:"❄️",c:"#8fd0ff"},shock:{ic:"⚡",c:"#ffe08a"},poison:{ic:"🟢",c:"#8fdf6a"},venom:{ic:"🟢",c:"#8fdf6a"}};
+  const p=elem&&map[elem];
+  const d=document.createElement("div"); d.className="projfx"+(p?"":" slash"); d.textContent=p?p.ic:"⚔️";
+  d.style.setProperty("--x0",x0); d.style.setProperty("--y0",y0); d.style.setProperty("--x1",x1); d.style.setProperty("--y1",y1);
+  if(p)d.style.color=p.c;
+  s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); }, 460); }
 
 /* ---------- HUD ---------- */
 function render(){ if(!P)return; $("hud").hidden=false; { const ub=$("uibar"); if(ub)ub.hidden=false; } regenStamina();
