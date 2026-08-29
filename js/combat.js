@@ -1350,13 +1350,31 @@ function bossPrep(onStart){ if(!B||!B.prebuff)B={comp:null,prebuff:true,atkPct:0
   if(!avail.length)acts.push({label:"장착한 버프 스킬이 없다",desc:"전투 함성·강철 의지·마력 방벽·집중·전투 찬가 장착 시 미리 걸 수 있음",disabled:true,act:()=>{}});
   acts.push({label:"⚔ 문을 열고 결전!",full:true,act:()=>onStart()});
   setActions(acts); }
+/* 🎬 웅장한 보스 등장 — 최상층/최종보스는 전체화면 시네마틱으로 (거대한 실루엣 + 이름 + 서사) */
+function isGrandBoss(b,f){ return !!(b&&(b.final || b.grand)) || f===30 || f===50; }
+function grandBossIntro(be, floorLabel, story, onStart){
+  if(globalThis.__SIM__ || typeof document==="undefined" || typeof requestAnimationFrame!=="function"){ onStart(); return; }
+  if(typeof bgm==="function")bgm(be.final?"finalboss":"boss");
+  const sprite=(typeof ico==="function")?ico(be.ic,220):"👑";
+  const ov=document.createElement("div"); ov.className="grandboss";
+  ov.innerHTML=`<div class="gb-aura"></div><div class="gb-sprite">${sprite}</div>`+
+    `<div class="gb-floor">${floorLabel||""}</div><div class="gb-name">${be.n}</div>`+
+    (story?`<div class="gb-story">${story}</div>`:"")+
+    `<div class="gb-btns"><button type="button" class="gb-go">⚔ 결전 — 문을 연다</button><button type="button" class="gb-buff">🧪 버프 걸고 들어가기</button></div>`;
+  document.body.appendChild(ov); requestAnimationFrame(()=>{ if(ov)ov.classList.add("show"); }); setTimeout(()=>{ if(ov)ov.classList.add("show"); },40);   // 페이드인(이중 보장)
+  if(typeof sfx==="function")sfx("heavy");
+  const close=()=>{ try{ document.body.removeChild(ov); }catch(e){} };
+  const go=ov.querySelector(".gb-go"); if(go)go.onclick=()=>{ close(); onStart(); };
+  const bf=ov.querySelector(".gb-buff"); if(bf)bf.onclick=()=>{ close(); if(typeof bossPrep==="function")bossPrep(onStart); else onStart(); }; }
 function enterFloor(){ const f=P.floor; P.flags.maxFloor=Math.max(P.flags.maxFloor||0,f); P.runPeakFloor=Math.max(P.runPeakFloor||0,f); checkQuests();
   if(typeof bgm==="function")bgm("tower");   // 🪜 층 탐험 앰비언트(전투 시작 시 startCombat이 전투/보스 BGM으로 전환)
   if(CHECKPOINTS[f]){ checkpointTown(f); return; }
   clearLog(); line(`<span class="sys">— 탑 ${f}층 —</span>`);
-  if(BOSSES[f]){ const b=BOSSES[f]; setScene(IX[b.ic][1],"이 층에는 거대한 것이 기다리고 있다.");
+  if(BOSSES[f]){ const b=BOSSES[f]; const be=makeEnemy();
+    if(isGrandBoss(b,f)){ grandBossIntro(be, `탑 ${f}층 · 결전`, bossStory(f,"approach"), ()=>startCombat(be,"")); return; }   // 🎬 최상층·최종보스는 웅장한 풀뷰 등장
+    setScene(IX[b.ic][1],"이 층에는 거대한 것이 기다리고 있다.");
     line(bossStory(f,"approach"));   // 데이터 기반 보스 서사
-    const be=makeEnemy(); setActions([{label:"⚔ 문을 열고 들어간다",full:true,act:()=>startCombat(be,"")},{label:"🧪 버프 걸고 들어가기",desc:"보스전 전 자기 버프 준비",act:()=>bossPrep(()=>startCombat(be,""))}]); return; }
+    setActions([{label:"⚔ 문을 열고 들어간다",full:true,act:()=>startCombat(be,"")},{label:"🧪 버프 걸고 들어가기",desc:"보스전 전 자기 버프 준비",act:()=>bossPrep(()=>startCombat(be,""))}]); return; }
   if(f>=3 && f<=9 && !P.quests.q_tower1 && chance(0.25)){ floorQuestNPC(); return; }
   const r=Math.random();   // 전투 비중 유지 + 이벤트 다양화
   if(r<0.50)floorCombat();
@@ -1552,6 +1570,19 @@ const CONTINENTS=[
 function CONT(){ return CONTINENTS[(EXP&&EXP.ci)||0]; }
 const TOWER_NAMES=["석화의 탑","용암의 탑","빙하의 탑","창궁의 탑","근원의 탑"];   // 🗼 대륙별 80층 탑 이름(환경 테마)
 function towerName(ci){ return TOWER_NAMES[ci] || (CONTINENTS[ci]?CONTINENTS[ci].name:"대륙 탑"); }
+/* 🏘️ 마을 — 거점 + 대륙별 테마 마을(개척 중 발견). 분위기·특산품이 다르고, 마지막에 있던 마을에서 재접속 시작 */
+const TOWNS={
+  base:{n:"거점 마을",ic:"🏘️",flavor:"탑에 오를 준비를 하자.",cont:-1,special:null},
+  t0:{n:"잿빛 교역소",ic:"🏜️",flavor:"부식 안개 너머 개척민들이 세운 교역소. 낡았지만 활기가 있다.",cont:0,special:"서리 단검"},
+  t1:{n:"용암 대장간 마을",ic:"🌋",flavor:"용암 열기로 무기를 벼리는 대장장이들의 마을. 쇳소리가 끊이지 않는다.",cont:1,special:"화염의 장검"},
+  t2:{n:"설빙 항구",ic:"❄️",flavor:"얼어붙은 바다에 걸린 고요한 항구 마을. 입김이 하얗게 서린다.",cont:2,special:"뇌전의 활"},
+  t3:{n:"밀림 은신처",ic:"🌿",flavor:"부패의 밀림 속 숨겨진 사냥꾼들의 은신처. 독향이 옅게 감돈다.",cont:3,special:"룬각인 지팡이"},
+  t4:{n:"공허의 안식처",ic:"🌌",flavor:"모든 것의 끝에 남은 마지막 안식처. 별빛만이 위로한다.",cont:4,special:"야수왕의 뿔피리"},
+};
+function townId(){ return (P&&P.town&&TOWNS[P.town])?P.town:"base"; }
+function curTown(){ return TOWNS[townId()]; }
+function seenTowns(){ if(!P.townsSeen||!Array.isArray(P.townsSeen))P.townsSeen=["base"]; if(P.townsSeen.indexOf("base")<0)P.townsSeen.unshift("base"); return P.townsSeen; }
+function discoverTown(id){ if(!TOWNS[id])return; const s=seenTowns(); if(s.indexOf(id)<0){ s.push(id); if(typeof line==="function")line(`🏘️ <b>새 마을 발견 — ${TOWNS[id].ic} ${TOWNS[id].n}</b>! 이제 '마을 이동'으로 오갈 수 있다.`,"loot"); if(typeof toast==="function")toast("새 마을 발견: "+TOWNS[id].n); if(typeof sfx==="function")sfx("loot"); } }
 function contUnlockedCount(){ return Math.min(CONTINENTS.length, (P.flags.contCleared||0)+1); }
 const REGION_TOP=80;   // 🗼 대륙 탑은 80층까지 (이름 없는 탑=50, 대륙 탑=80·환경별)
 const REGION_BOSS_EVERY=10;   // 10층마다 지역 보스, 80층=대륙 수호체
@@ -1583,6 +1614,7 @@ function beginContinent(ci){ mode="dive"; const sv=(P.expProg&&P.expProg[ci])||n
   P.dives++; P.hp=MAXHP(); P.mp=MAXMP(); enemy=null; B=null; if(P.buffs)P.buffs.regionResist=null; P.floor=expDifficulty();
   const total=(P.potions||0)+(P._divePotBank||0); P._divePotBank=Math.max(0,total-DIVE_POTION_MAX); P.potions=Math.min(total,DIVE_POTION_MAX);
   const c=CONT(), d=regionDebuff(); render(); clearLog(); setScene(c.ic,c.name);
+  if(typeof discoverTown==="function")discoverTown("t"+ci);   // 🏘️ 이 대륙에 도착하면 그 대륙의 마을을 발견
   line(`🗺️ <b>${c.name}</b> — ${c.intro}`,"sys");
   line(`${d.icon} <b>지역 디버프: ${d.n}</b> — ${d.desc}. <b>${CONS[d.resist].n}</b>(잡화점)으로 무효화 가능.`,"dmg");
   if(P._divePotBank>0)line(`🧪 물약은 최대 ${DIVE_POTION_MAX}개만 반입 (나머지 ${P._divePotBank}개 마을 보관).`,"sys");
@@ -1716,9 +1748,9 @@ function afterRegionBoss(f){ if(!EXP)return; const c=CONT(); clearLog(); setScen
   saveRegionProg(); showRegionClimb(); }
 /* 👑 80층 — 대륙 수호체 결전 (마지막 대륙은 최종보스) */
 function regionContBossIntro(){ if(!EXP)return; const c=CONT(); EXP._resume=regionContBossIntro; expReturn=afterRegionTowerClear;
-  clearLog(); setScene("👑",`${towerName(EXP.ci)} · ${REGION_TOP}층 — 대륙 수호체`); line(`탑의 정점. <b>${c.contBoss.n}</b>이(가) 깨어난다!`,"dmg");
+  clearLog();
   const e=expBoss(c.contBoss,expDifficulty(),true); if(EXP.ci>=CONTINENTS.length-1)e.final=true;   // 🔥 마지막 대륙 보스 = 최종보스
-  setActions([{label:"⚔ 결전",full:true,act:()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)},{label:"🧪 버프 걸고 들어가기",act:()=>bossPrep(()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`))},{label:"🎒 소지품",act:inventoryMenu}]); }
+  grandBossIntro(e, `${towerName(EXP.ci)} · ${REGION_TOP}층 — 대륙 수호체`, `탑의 정점. ${c.contBoss.n}이(가) 깨어난다.`, ()=>startCombat(e,`${c.contBoss.n}이(가) 모습을 드러낸다!`)); }   // 🎬 대륙 수호체 = 웅장한 풀뷰
 /* 🗼 대륙 탑 정복(80층 클리어) — 재도전 파밍 방지 80% 감산. 대륙 해금 등은 건드리지 않음 */
 function afterRegionTowerClear(){ if(!EXP)return; const ci=EXP.ci, c=CONTINENTS[ci];
   if(!P.flags.towerClearCount)P.flags.towerClearCount={};

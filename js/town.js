@@ -30,11 +30,14 @@ function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuc
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
   if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
   if(P._divePotBank){ P.potions+=P._divePotBank; P._divePotBank=0; }   // 다이브 때 마을에 맡겨둔 물약 회수
-  P.hp=MAXHP(); P.mp=MAXMP(); render(); clearLog(); setScene("🏘️","거점 마을 — 준비를 갖추고 탑으로.");
-  line("거점 마을. 탑에 오를 준비를 하자.","sys"); save(true);
+  P.hp=MAXHP(); P.mp=MAXMP(); render(); clearLog();
+  const _tw=(typeof curTown==="function")?curTown():{n:"거점 마을",ic:"🏘️",flavor:"탑에 오를 준비를 하자."};
+  setScene(_tw.ic||"🏘️", `${_tw.n} — 준비를 갖추고 탑으로.`);
+  line(`<b>${_tw.ic||"🏘️"} ${_tw.n}</b>. ${_tw.flavor||""}`,"sys"); save(true);
   const contUnlocked = (P.flags.cleared||0)>0 || P.flags.continentUnlocked;
   setActions([
     {label:"🗺 마을 둘러보기 (지도)",desc:"걸어다니며 건물 방문 · 미리보기",full:true,act:townMap},
+    ...((typeof seenTowns==="function"&&seenTowns().length>1)?[{label:`🧭 마을 이동 (현재: ${(typeof curTown==="function"?curTown().n:"거점 마을")})`,desc:`발견한 마을 ${seenTowns().length}곳 · 분위기·특산품이 다르다`,full:true,act:townTravelMenu}]:[]),
     {header:true,label:"⚔  모  험"},
     {label:"🗼 탑 등반",desc:(P.flags.contCleared||0)>0?"이름 없는 탑 + 정복한 대륙의 탑 포탈":"이름 없는 탑을 오른다 · 전투로 성장",full:true,act:towerList},
     contUnlocked
@@ -60,6 +63,17 @@ function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuc
   ]);
   startTownChat();   // 상시 광장 채팅 독
   if(typeof maybeShowNotice==="function")maybeShowNotice(); }   // 📢 접속 후 첫 마을 진입 시 공지 팝업(1회)
+/* 🧭 마을 이동 — 발견한 마을 사이를 오간다(현재 마을은 저장되어 재접속 시 그 마을에서 시작) */
+function townTravelMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } mode="town"; render(); clearLog();
+  const cur=curTown(); setScene("🧭","마을 이동 — 어디로 갈까?");
+  line("발견한 마을 사이를 오갈 수 있다. 마을마다 <b>분위기</b>와 <b>특산품 상점</b>이 다르다. 마지막에 머문 마을에서 다시 시작한다.","sys");
+  const acts=[]; seenTowns().forEach(id=>{ const tw=TOWNS[id]; if(!tw)return; const here=(id===townId());
+    const sp=tw.special&&RELICS[tw.special]?` · 특산품: ${tw.special}`:"";
+    acts.push({label:`${tw.ic} ${tw.n}${here?"  (현재 위치)":""}`,desc:`${tw.flavor}${sp}`,disabled:here,act:()=>setActiveTown(id)}); });
+  acts.push({label:"← 마을로 돌아가기",full:true,act:townMenu}); setActions(acts); }
+function setActiveTown(id){ if(!TOWNS[id]||seenTowns().indexOf(id)<0){ toast("아직 갈 수 없는 마을"); return; } if(id===townId()){ townMenu(); return; }
+  P.town=id; if(typeof sfx==="function")sfx("click"); if(typeof save==="function")save(true); toast(`${TOWNS[id].ic} ${TOWNS[id].n}(으)로 이동`); townMenu(); }
+window.townTravelMenu=townTravelMenu; window.setActiveTown=setActiveTown;
 /* 🎨 캔버스 타일 마을 렌더러 — 잔디 타일·광장·연못·나무·모닥불·집 스프라이트를 그린다 */
 function drawTownCanvas(cv, blds){
   const w=cv.clientWidth||600, h=cv.clientHeight||340, dpr=Math.min(2,window.devicePixelRatio||1);
@@ -501,11 +515,19 @@ function gearShop(){ if(enemy)return; stopAuctionTimer(); auction=null; mode="to
   ]); }
 function buyGear(name,price,back){ const g=RELICS[name]; if(!g)return; if(P.gold<price){ toast("금화 부족"); return; }
   P.gold-=price; addRelic(name); toast("구매: "+name); render(); if(back)back(); }
-function weaponShop(){ if(enemy)return; render(); clearLog(); setScene("🗡","무기 상점");
+function weaponShop(){ if(enemy)return; render(); clearLog(); const tw=(typeof curTown==="function")?curTown():{n:"거점 마을",special:null};
+  setScene("🗡",`${tw.n} · 무기 상점`);
   line(`보유 금화 💰 <b>${P.gold}</b> · 무기마다 전투 방식(미니게임)이 달라요.`,"sys");
-  const list=Object.entries(RELICS).filter(([n,g])=>g.shop==="weapon").sort((a,b)=>(a[1].val||0)-(b[1].val||0));
-  const acts=list.map(([n,g])=>{ const w=WEAPONS[g.wt]; const price=g.val||50;
-    return {label:`${n} — ${price}G`,desc:`${g.note}${w?` · ${MG_NAME[w.mg]}`:""}`,disabled:P.gold<price,act:()=>buyGear(n,price,weaponShop)}; });
+  let list=Object.entries(RELICS).filter(([n,g])=>g.shop==="weapon");
+  const spKey=(tw.special&&RELICS[tw.special]&&RELICS[tw.special].shop==="weapon")?tw.special:null;
+  const acts=[];
+  if(spKey){ const g=RELICS[spKey], price=Math.round((g.val||50)*0.85), w=WEAPONS[g.wt];   // ⭐ 마을 특산품(15% 할인)
+    acts.push({header:true,label:`⭐ ${tw.n} 특산품 · 15% 할인`});
+    acts.push({label:`${spKey} — ${price}G`,desc:`${g.note}${w?` · ${MG_NAME[w.mg]}`:""} · ⭐이 마을 특산품`,disabled:P.gold<price,act:()=>buyGear(spKey,price,weaponShop)});
+    acts.push({header:true,label:"🗡 일반 무기"});
+    list=list.filter(([n])=>n!==spKey); }
+  list.sort((a,b)=>(a[1].val||0)-(b[1].val||0)).forEach(([n,g])=>{ const w=WEAPONS[g.wt], price=g.val||50;
+    acts.push({label:`${n} — ${price}G`,desc:`${g.note}${w?` · ${MG_NAME[w.mg]}`:""}`,disabled:P.gold<price,act:()=>buyGear(n,price,weaponShop)}); });
   acts.push({label:"← 장비 상점",act:gearShop},{label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }
 function armorShop(){ if(enemy)return; render(); clearLog(); setScene("🛡","방어구 상점");
   line(`보유 금화 💰 <b>${P.gold}</b>`,"sys");
@@ -826,16 +848,32 @@ function craftConsCost(k){ const v=CONS[k].val||150; return {gold:Math.round(v*0
 function canAfford(cost){ if(P.gold<cost.gold)return false; for(const m in cost.mats){ if((P.mats[m]||0)<cost.mats[m])return false; } return true; }
 function payCost(cost){ P.gold-=cost.gold; for(const m in cost.mats)P.mats[m]=Math.max(0,(P.mats[m]||0)-cost.mats[m]); }
 function craftCostText(cost){ let s=`💰${cost.gold}`; for(const m in cost.mats)s+=` ${MATS[m][0]}${cost.mats[m]}`; return s; }
+let workshopTab="gear", workshopSet="";   // 🔨 제작소 탭(gear/resist/rune) + 세트 필터
+function setWorkshopTab(t){ workshopTab=t; workshopSet=""; workshopMenu(); }
+function setWorkshopSet(s){ workshopSet=(workshopSet===s?"":s); workshopMenu(); }
+window.setWorkshopTab=setWorkshopTab; window.setWorkshopSet=setWorkshopSet;
 function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; townReturn=workshopMenu; render(); clearLog(); setScene("🔨","제작소 — 재료로 장비를 만든다");
   line(`보유 💰 <b>${P.gold}</b> · 재료 ${Object.entries(MATS).map(([k,[e]])=>`${e}${P.mats[k]||0}`).join(" ")}`,"sys");
+  const setKeys=Object.keys(SETS);
+  const resistN=Object.keys(CONS).filter(k=>CONS[k].use==="resist").length;
+  const runeN=(typeof RUNES!=="undefined")?Object.keys(RUNES).length:0;
+  const tab=["gear","resist","rune"].includes(workshopTab)?workshopTab:"gear";
+  // 탭 바(HTML) — 아이템이 많아져도 카테고리로 정리
+  let head=`<div class="invtabs" style="margin-top:8px">`+[["gear","🗡 세트 장비",setKeys.length],["resist","🧪 내성",resistN],["rune","🔩 동료 룬",runeN]]
+    .map(([t,lab,n])=>`<button type="button" class="invtab ${tab===t?'on':''}" onclick="setWorkshopTab('${t}')">${lab}${n?` <i>${n}</i>`:''}</button>`).join("")+`</div>`;
+  // 세트 장비 탭: 세트 칩으로 한 번 더 좁힘(세트가 많아질 때 대비)
+  if(tab==="gear"){ const cur=workshopSet&&SETS[workshopSet]?workshopSet:setKeys[0];
+    head+=`<div class="setchips">`+setKeys.map(s=>`<button type="button" class="setchip ${cur===s?'on':''}" onclick="setWorkshopSet('${s}')">✦ ${SETS[s].n}</button>`).join("")+`</div>`;
+    workshopSet=cur; }
+  $("log").insertAdjacentHTML("beforeend", head);
   const acts=[];
-  for(const sk in SETS){ acts.push({header:true,label:`✦ ${SETS[sk].n}`});
+  if(tab==="gear"){ const sk=workshopSet||setKeys[0]; acts.push({header:true,label:`✦ ${SETS[sk].n} — ${SETS[sk].note||"세트 장비"}`});
     Object.keys(RELICS).filter(k=>RELICS[k].set===sk).forEach(k=>{ const cost=craftGearCost(k); const owned=P.inv.some(x=>x.k===k)||((P.stash&&P.stash.inv)||[]).some(x=>x.k===k);
-      acts.push({label:k,desc:`${RELICS[k].note} · ${craftCostText(cost)}${owned?" · 보유 중":""}`,disabled:!canAfford(cost),act:()=>craftGear(k)}); }); }
-  acts.push({header:true,label:"🧪 지역 내성 아이템"});
-  Object.keys(CONS).filter(k=>CONS[k].use==="resist").forEach(k=>{ const cost=craftConsCost(k);
-    acts.push({label:`${CONS[k].emoji} ${CONS[k].n}`,desc:`${CONS[k].note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftCons(k)}); });
-  if(typeof RUNES!=="undefined"){ acts.push({header:true,label:"🔩 동료 룬 (동료 슬롯에 장착)"});
+      acts.push({label:`${k}${owned?" ✔":""}`,desc:`${RELICS[k].note} · ${craftCostText(cost)}${owned?" · 보유 중":""}`,disabled:!canAfford(cost),act:()=>craftGear(k)}); }); }
+  else if(tab==="resist"){ acts.push({header:true,label:"🧪 지역 내성 아이템"});
+    Object.keys(CONS).filter(k=>CONS[k].use==="resist").forEach(k=>{ const cost=craftConsCost(k);
+      acts.push({label:`${CONS[k].emoji} ${CONS[k].n}`,desc:`${CONS[k].note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftCons(k)}); }); }
+  else if(tab==="rune"&&typeof RUNES!=="undefined"){ acts.push({header:true,label:"🔩 동료 룬 (동료 슬롯에 장착)"});
     Object.keys(RUNES).forEach(rk=>{ const r=RUNES[rk], cost=r.cost||{gold:150,mats:{}};
       acts.push({label:`${r.emoji} ${r.n}${(P.runes&&P.runes[rk])?` (보유 ${P.runes[rk]})`:""}`,desc:`${r.note} · ${craftCostText(cost)}`,disabled:!canAfford(cost),act:()=>craftRune(rk)}); }); }
   acts.push({label:"🏘 마을로",full:true,act:townMenu}); setActions(acts); }

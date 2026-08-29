@@ -49,6 +49,8 @@ function normalizeP(){ if(!P)return;
   if(P.gems==null)P.gems=5; if(P.avatar===undefined)P.avatar=null;   // 🎭 프로필: 크리스탈 · 아바타
   if(!Array.isArray(P.tamed))P.tamed=[];   // 계약(테이밍)한 소환수 로스터
   if(!P.comps||typeof P.comps!=="object")P.comps={};   // 🐾 동료 성장(유대/각성) 기록
+  if(!P.town||typeof P.town!=="string")P.town="base";   // 🏘️ 현재 마을(재접속 시 이 마을에서 시작)
+  if(!Array.isArray(P.townsSeen)||!P.townsSeen.length)P.townsSeen=["base"]; if(P.townsSeen.indexOf("base")<0)P.townsSeen.unshift("base");   // 발견한 마을 목록
   if(P.companion&&!P.comps[P.companion])P.comps[P.companion]={bond:0,lv:1,awk:0};
   for(const k in P.comps){ const r=P.comps[k]; if(r.lv==null)r.lv=1; if(r.bond==null)r.bond=0; if(r.awk==null)r.awk=compTier(r.lv); if(!Array.isArray(r.runes))r.runes=[]; }
   if(!P.runes||typeof P.runes!=="object")P.runes={};   // 🔩 보유 룬(미장착 풀)
