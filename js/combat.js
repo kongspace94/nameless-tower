@@ -1253,11 +1253,10 @@ function winCombat(){
 /* 🎁 처치 → '전용 승리 필드'(몬스터 상태창은 그대로, 스프라이트 자리는 상자)를 보여준 뒤 클릭/스페이스로 전리품 패널로 */
 function deathDropPause(snap, next){
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ next(); return; }
-  if(document.body)document.body.classList.add("combat");   // 전투 레이아웃 강제 유지(스테이지 크게 · 로그 벽 방지)
-  clearLog();                                               // 🧹 전투 로그 벽 제거 — 필드엔 상태창 + 상자만
+  if(document.body)document.body.classList.add("combat");   // 전투 레이아웃 유지 → #log 벽 숨김, battlemsg(배틀로그)만 표시
   if(typeof victoryField==="function")victoryField(snap);   // 💀 몬스터 상태창(HP 0) 유지 + 그 자리에 상자
-  const bm=$("battlemsg"); if(bm){ bm.classList.add("await");
-    bm.innerHTML=`<div class="bm-txt loot cur">🏆 <b>${snap.boss?"보스를":"적을"} 쓰러뜨렸다!</b> 상자를 열어 전리품을 확인하자.</div>`; }
+  if(typeof renderBattleMsg==="function")renderBattleMsg();  // 💬 방금 싸운 배틀로그를 그대로 유지(⤢로 전체 로그 열람) — '전리품 확인'은 아래 버튼으로
+  const bm=$("battlemsg"); if(bm)bm.classList.add("await");
   let done=false, timer=null;
   const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
     const b=$("battlemsg"); if(b)b.classList.remove("await"); next(); };
