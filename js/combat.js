@@ -1099,9 +1099,13 @@ function endEnemyTurn(){ if(!enemy)return; B.block=null; B.parry=null; B.shield=
   if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); if(P.hp<=0){ die(); return; } }
   if(tickPlayerDot())return;   // 🔥 속성 지속피해(화상/감전/빙결 등)
   render();
-  if(maybeStartCharge()){ startPlayerTurn(); return; }   // 보스: HP 문턱 도달 → 궁극기 충전 개시
+  if(maybeStartCharge()){ toPlayerTurn(); return; }   // 보스: HP 문턱 도달 → 궁극기 충전 개시
   B.enemyIntent=rollIntent();
-  const emCh=enemy.boss?0.2:0.1; if(chance(emCh))triggerEmergency(()=>{ if(enemy&&P.hp>0)startPlayerTurn(); }); else startPlayerTurn(); }
+  const emCh=enemy.boss?0.2:0.1; if(chance(emCh))triggerEmergency(()=>{ if(enemy&&P.hp>0)toPlayerTurn(); }); else toPlayerTurn(); }
+/* ⏳ 적 행동(투사체·피격·체력 감소)이 시각적으로 끝난 뒤 잠깐 텀을 두고 내 턴으로 — 'MY TURN'이 공격 도중 뜨지 않게 */
+function toPlayerTurn(){ if(!enemy||P.hp<=0)return; setActions([]);
+  if(globalThis.__SIM__ || typeof setTimeout!=="function"){ startPlayerTurn(); return; }
+  setTimeout(()=>{ if(enemy&&P.hp>0)startPlayerTurn(); }, 560); }
 
 function triggerEmergency(done){ const luck=LUKv();
   const thr=clamp((enemy?enemy.atk:6)*0.01*(enemy&&enemy.boss?1.3:1) + ((typeof EXP!=="undefined"&&EXP)?0.14:0),0,0.42);   // 적이 강할수록·대륙 탑일수록 회피 어려움
