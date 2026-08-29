@@ -31,7 +31,7 @@ const IX={
   leather:["items/leather_armor.png","🥋"], plate:["items/plate_armor.png","🛡️"], rabbit:["items/rabbit_foot.png","🐰"],
   vring:["items/vampire_ring.png","💍"], key:["items/nameless_key.png","🗝️"], potion:["items/potion.png","🧪"], gold:["items/gold.png","🪙"],
   shield:["items/shield.png","🛡️"], boots:["items/boots.png","👢"], amulet:["items/amulet.png","📿"], offdagger:["items/dagger.png","🗡️"],
-  dice:["items/dice.png","🎲"], card:["items/card.png","🃏"],
+  dice:["items/dice.png","🎲"], card:["items/card.png","🃏"], staff:["items/staff.png","🪄"], lute:["items/lute.png","🎵"], whip:["items/whip.png","🪢"],
   player:["ui/player.png","🧝"], fairy_light:["companions/fairy_light.png","🧚"], fairy_imp:["companions/fairy_imp.png","🔥"], fairy_steel:["companions/fairy_steel.png","🛡️"],
 };
 function ico(key,size=40){ const a=IX[key]; if(!a) return spanEmo("❔",size);
@@ -213,6 +213,13 @@ const RELICS={
   "화염의 장검":{slot:"weapon",wt:"sword",atk:6,elem:"fire",note:"공격 +6 · 🔥화염 부여(화상)",ic:"longsword",val:240,shop:"weapon"},
   "서리 단검":{slot:"weapon",wt:"dagger",atk:5,elem:"frost",note:"공격 +5 · ❄️냉기 부여(빙결)",ic:"dagger",val:230,shop:"weapon"},
   "뇌전의 활":{slot:"weapon",wt:"bow",atk:6,elem:"shock",note:"공격 +6 · ⚡뇌전 부여(감전)",ic:"bow",val:240,shop:"weapon"},
+  /* 🪄🎵🪢 마법사·음유시인·조련사 무기 */
+  "견습 지팡이":{slot:"weapon",wt:"staff",atk:3,mag:4,note:"공격 +3 · 마법력 +4",ic:"staff",val:90,shop:"weapon"},
+  "룬각인 지팡이":{slot:"weapon",wt:"staff",atk:5,mag:9,note:"공격 +5 · 마법력 +9",ic:"staff",val:240,shop:"weapon"},
+  "유랑악사의 류트":{slot:"weapon",wt:"inst",atk:4,note:"공격 +4 · 연주(노래·버프) 무기",ic:"lute",val:85,shop:"weapon"},
+  "은현의 하프":{slot:"weapon",wt:"inst",atk:6,luck:1,note:"공격 +6, 행운 +1 · 연주",ic:"lute",val:225,shop:"weapon"},
+  "조련사의 채찍":{slot:"weapon",wt:"whip",atk:4,note:"공격 +4 · 야수 교감(소환) 무기",ic:"whip",val:85,shop:"weapon"},
+  "야수왕의 뿔피리":{slot:"weapon",wt:"whip",atk:6,note:"공격 +6 · 소환 특화",ic:"whip",val:225,shop:"weapon"},
   "가죽 갑옷":{slot:"armor",def:2,note:"방어 +2",ic:"leather",val:50,shop:"armor"},
   "판금 흉갑":{slot:"armor",def:4,note:"방어 +4",ic:"plate",val:110,shop:"armor"}, "토끼발 부적":{slot:"amulet",luck:3,note:"행운 +3",ic:"rabbit",val:70,shop:"armor"},
   "흡혈의 반지":{slot:"ring",atk:1,note:"공격 +1, 타격 시 회복",ic:"vring",vamp:true,val:150},
@@ -314,11 +321,14 @@ const WEAPONS={
   bow:   {n:"활",    hits:1, mult:1.10, crit:0.12, groggy:8,  gauge:1.00, ic:"🏹", mg:"charge"},  // 활시위 당기기(차지) · 가득 당겨 발사 · 치명 특화
   dice:  {n:"주사위",hits:1, mult:0.85, crit:0.05, groggy:8,  gauge:1.00, ic:"🎲", mg:"dice"},    // 주사위 2개 · 합이 높을수록 대박(도박형)
   card:  {n:"카드",  hits:1, mult:0.90, crit:0.05, groggy:6,  gauge:1.00, ic:"🃏", mg:"card"},    // 랜덤 3장 뽑아 1장으로 공격/버프
+  staff: {n:"지팡이",hits:1, mult:1.15, crit:0.02, groggy:6,  gauge:1.05, ic:"🪄", mg:"charge", patt:"마력 응집(차지)"},   // 🪄 마법사 — 마력 모아 방출 · 마법 피해(mag) 특화
+  inst:  {n:"악기",  hits:1, mult:0.85, crit:0.04, groggy:7,  gauge:1.00, ic:"🎵", mg:"gauge",  patt:"연주 박자(타이밍)"},  // 🎵 음유시인 — 연주로 지원 · 노래(버프) 특화
+  whip:  {n:"교감 무기",hits:1, mult:0.95, crit:0.06, groggy:10, gauge:0.95, ic:"🪢", mg:"twinbar", patt:"야수 교감(2영역)"},// 🪢 조련사 — 야수와 교감 · 소환 특화
 };
 const MG_NAME={gauge:"타이밍 게이지",slash:"연속 베기 콤보",figure:"급소 주사위(도박)",charge:"활시위 당기기",aim:"접근원 조준",twinbar:"2영역 급소 연격",dice:"주사위 굴리기",card:"카드 뽑기"};
 /* 🗡️ 무기별 스킬 게이팅 — 물리 스킬은 맞는 무기 타입이 있어야 사용 가능 (마법·버프는 무기 무관) */
-const WEP_GROUPS={ melee:["sword","saber","dagger","fist","dice","card"], blade:["sword","saber","dagger"], sword:["sword","saber"], dagger:["dagger"], bow:["bow"], precise:["bow","dagger"] };
-const WEP_REQ_LABEL={ melee:"근접(검·단검 등)", blade:"검·단검", sword:"검", dagger:"단검", bow:"활", precise:"활·단검" };
+const WEP_GROUPS={ melee:["sword","saber","dagger","fist","dice","card"], blade:["sword","saber","dagger"], sword:["sword","saber"], dagger:["dagger"], bow:["bow"], precise:["bow","dagger"], staff:["staff"], inst:["inst"], beast:["whip"] };
+const WEP_REQ_LABEL={ melee:"근접(검·단검 등)", blade:"검·단검", sword:"검", dagger:"단검", bow:"활", precise:"활·단검", staff:"지팡이", inst:"악기", beast:"교감 무기" };
 function weaponOkForSkill(k){ const s=SKILLS[k]; if(!s||!s.wep)return true; const wt=(typeof weaponType==="function")?weaponType():"fist"; const grp=WEP_GROUPS[s.wep]||[s.wep]; return grp.indexOf(wt)>=0; }
 function wepReqLabel(k){ const s=SKILLS[k]; return s&&s.wep?(WEP_REQ_LABEL[s.wep]||s.wep):""; }
 
@@ -398,7 +408,7 @@ const INSTRUCTORS={
   gambler:{n:"도박사 교관 포춘",emoji:"🎲",note:"운·도박 · 일확천금",skills:["lucky_strike","loaded_dice","all_in","wild_card"]},
   bard:   {n:"음유시인 교관 리라",emoji:"🎵",note:"노래 · 버프/디버프",skills:["battle_hymn","dissonance","hymn_valor","lullaby","encore"]},
 };
-const weaponPatternText = wt => { const w=WEAPONS[wt]||WEAPONS.sword; const mg=MG_NAME[w.mg]?` · ${MG_NAME[w.mg]}`:"";
+const weaponPatternText = wt => { const w=WEAPONS[wt]||WEAPONS.sword; const mgn=w.patt||MG_NAME[w.mg]; const mg=mgn?` · ${mgn}`:"";
   return (w.hits>1 ? `${w.n} · ${w.hits}연타 · 치명 +${Math.round(w.crit*100)}%p`
     : `${w.n} · 단타 ×${w.mult.toFixed(2)}${w.groggy>=15?" · 그로기↑":""}${w.crit?` · 치명 +${Math.round(w.crit*100)}%p`:""}`)+mg; };
 /* 소비품 (먹는 아이템). use: heal | stat | buff */
@@ -548,9 +558,9 @@ const UP_PER=[2,2,2,2,3, 6,4,4,4,5, 9,6,6,6,8, 13,8,8,8,11];   // 각 강화레�
 function upMainBonus(up){ let t=0; for(let i=0;i<up;i++)t+=(i<UP_PER.length?UP_PER[i]:12); return t; }
 function upBonus(it){ const g=it&&RELICS[it.k]; const up=(it&&it.up)||0; if(!g||!up)return {atk:0,def:0,luck:0};
   const o={atk:0,def:0,luck:0}; o[gearMainStat(g)]=upMainBonus(up); return o; }
-function relicBonus(){ let b={atk:0,def:0,luck:0,vamp:false};
+function relicBonus(){ let b={atk:0,def:0,luck:0,mag:0,vamp:false};
   for(const s of SLOTS){ if(s[0]==="weapon" && typeof B!=="undefined" && B && B.disarmed) continue; /* 무장 해제 시 무기 무효 */
-    const it=equippedItem(s[0]); const r=it&&RELICS[it.k]; if(!r)continue; b.atk+=r.atk||0; b.def+=r.def||0; b.luck+=r.luck||0; b.vamp=b.vamp||!!r.vamp;
+    const it=equippedItem(s[0]); const r=it&&RELICS[it.k]; if(!r)continue; b.atk+=r.atk||0; b.def+=r.def||0; b.luck+=r.luck||0; b.mag+=r.mag||0; b.vamp=b.vamp||!!r.vamp;
     const u=upBonus(it); b.atk+=u.atk; b.def+=u.def; b.luck+=u.luck;
     if(it.extra){ b.atk+=it.extra.atk||0; b.def+=it.extra.def||0; b.luck+=it.extra.luck||0; } }   // 🎲 강화 랜덤 추가스탯
   const sb=setBonus(); b.atk+=sb.atk; b.def+=sb.def; b.luck+=sb.luck; b.vamp=b.vamp||sb.vamp;   // 세트 효과(스탯)
@@ -564,6 +574,6 @@ const MAXMP=()=> Math.round((6 + Math.floor(estat("int")*1.5) + (passiveEquipped
 const ATK  =()=> Math.round((4 + Math.floor(estat("str")*1.2) + relicBonus().atk) * (1+((P.buffs&&P.buffs.atkPct)||0)+((typeof B!=="undefined"&&B&&B.atkPct)||0)+(jobMods().atkPct||0)+setBonus().atkPct));
 const DEF  =()=> 1 + Math.floor(estat("str")*0.15) + relicBonus().def + ((P.buffs&&P.buffs.defBonus)||0) + ((typeof B!=="undefined"&&B&&B.defB)||0);
 const LUKv =()=> estat("luk") + relicBonus().luck + (jobMods().luck||0) + ((typeof B!=="undefined"&&B&&B.lukB)||0) + ((P.buffs&&P.buffs.luck)||0);
-const magicPow =()=> Math.round((3 + Math.floor(estat("int")*1.3)) * (1+(jobMods().magic||0)+((P.buffs&&P.buffs.magicPct)||0)));
+const magicPow =()=> Math.round((3 + Math.floor(estat("int")*1.3) + relicBonus().mag) * (1+(jobMods().magic||0)+((P.buffs&&P.buffs.magicPct)||0)));   // 🪄 지팡이의 마법력(mag) 반영
 const critChance =()=> clamp(0.04 + estat("dex")*0.005 + LUKv()*0.005 + (passiveEquipped("crit_focus")?0.10:0) + (jobMods().crit||0) + ((P.buffs&&P.buffs.critBonus)||0) + ((typeof B!=="undefined"&&B&&B.critB)||0) + setBonus().crit, 0, 0.60);   // 밸런스: 치명 계수↓(dex/luk 0.008→0.005) + 상한 60%
 

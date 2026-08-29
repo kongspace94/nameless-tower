@@ -1031,6 +1031,21 @@ function skillCat(k){ const s=(typeof SKILLS!=="undefined")&&SKILLS[k]; if(!s)re
   const r=s.req||{}; if(r.int)return "magic"; if(r.dex||r.luk)return "ranged"; if(r.str||r.vit)return "melee"; return "magic"; }
 const SKILL_CAT_LABEL={melee:"🗡️ 근접전투",ranged:"🏹 원거리",magic:"🔮 마법"};
 const SKILL_CAT_ORDER=["melee","ranged","magic"];
+/* 🔧 스킬 무기 세부 그룹 — 계열 안에서 무기별로(검/단검/지팡이/악기/조련…) 나눠 보여주기 */
+const SUMMON_SKILLS=["summon","tame_mastery","beast_bond","wild_call"];
+const SONG_SKILLS=["battle_hymn","dissonance","hymn_valor","lullaby","encore"];
+function skillWepGroup(k){ const s=SKILLS[k]||{};
+  if(s.wep==="dagger")return "🗡 단검";
+  if(s.wep==="sword")return "⚔ 검";
+  if(s.wep==="blade")return "⚔ 검·단검";
+  if(s.wep==="melee")return "🥊 근접(검류)";
+  if(s.wep==="bow"||s.wep==="precise")return "🏹 활";
+  if(SUMMON_SKILLS.includes(k))return "🪢 조련(소환)";
+  if(SONG_SKILLS.includes(k))return "🎵 악기(노래)";
+  const c=skillCat(k);
+  if(c==="magic")return "🪄 지팡이(마법)";
+  if(c==="ranged")return "🎲 행운·술수";
+  return "✨ 공용"; }
 let _skillSlotPick=null;   // 🎯 슬롯 지정 UI: 현재 슬롯 선택 중인 스킬 키(없으면 null)
 function assignSkillSlot(k,idx){ if(!SKILLS[k]||SKILLS[k].type!=="active")return; const cap=activeCap(); if(!Array.isArray(P.loadout))P.loadout=[];
   P.loadout=P.loadout.filter(x=>x!==k);                         // 중복 제거
@@ -1096,9 +1111,12 @@ function skillWindow(){ if(enemy){ toast("전투 중엔 볼 수 없다"); return
     const byLoad=(a,b)=>(P.loadout.includes(b)?1:0)-(P.loadout.includes(a)?1:0);
     const act=mine.filter(k=>SKILLS[k].type==="active").sort(byLoad);
     const pas=mine.filter(k=>SKILLS[k].type==="passive");
+    // 무기 세부 그룹으로 묶기(검/단검/지팡이/악기/조련…)
+    const bucketize=(arr)=>{ const g={},order=[]; arr.forEach(k=>{ const w=skillWepGroup(k); if(!g[w]){g[w]=[];order.push(w);} g[w].push(k); });
+      return order.map(w=>`<div class="skwepgrp"><div class="skweplabel">${w} <i>${g[w].length}</i></div><div class="glist">${g[w].map(skillCard).join("")}</div></div>`).join(""); };
     let h="";
-    if(act.length)h+=`<div class="skclass"><div class="skclabel">⚔️ 액티브 <i>${act.length}</i> <span style="color:var(--dim);font-weight:400;font-size:11px">· 슬롯에 장착</span></div><div class="glist">${act.map(skillCard).join("")}</div></div>`;
-    if(pas.length)h+=`<div class="skclass"><div class="skclabel">🛡 패시브 <i>${pas.length}</i> <span style="color:var(--dim);font-weight:400;font-size:11px">· 배우면 자동 적용</span></div><div class="glist">${pas.map(skillCard).join("")}</div></div>`;
+    if(act.length)h+=`<div class="skclass"><div class="skclabel">⚔️ 액티브 <i>${act.length}</i> <span style="color:var(--dim);font-weight:400;font-size:11px">· 무기별 · 슬롯에 장착</span></div>${bucketize(act)}</div>`;
+    if(pas.length)h+=`<div class="skclass"><div class="skclabel">🛡 패시브 <i>${pas.length}</i> <span style="color:var(--dim);font-weight:400;font-size:11px">· 배우면 자동 적용</span></div>${bucketize(pas)}</div>`;
     return h; };
   const st=[...SKILL_CAT_ORDER,"life"].includes(skillTab)?skillTab:"melee";
   const catCount=(cat)=>P.skills.filter(k=>SKILLS[k]&&skillCat(k)===cat).length;

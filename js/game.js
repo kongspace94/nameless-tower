@@ -484,6 +484,10 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.15 · 8/29", title:"신규 무기 3종 + 스킬 무기별 분류", items:[
+      "🪄🎵🪢 <b>무기 3종 추가</b> — <b>지팡이</b>(마법력↑·마력 응집), <b>악기</b>(연주 박자), <b>교감 무기</b>(야수 교감·소환). 장비 상점에서 구매",
+      "🗂 <b>스킬 창 무기별 세부 분류</b> — 각 계열 안에서 <b>검·단검·지팡이·악기·조련</b> 등 무기별로 묶어서 표시(검스킬/단검스킬 한눈에)",
+    ]},
   { ver:"v2.14 · 8/29", title:"적 공격 연출 + 전투로그 간결화", items:[
       "💫 <b>적 공격 연출</b> — 몬스터가 때릴 때 플레이어 쪽으로 <b>투사체(속성=구체)·검격</b>이 날아오는 이펙트 추가",
       "🧹 <b>전투로그 간결화</b> — 보스 충전 저지 중 매 타격마다 줄이 도배되던 것 제거(플로팅 숫자·파훼 게이지바로 표시)",
@@ -631,7 +635,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29q",
+  id:"2026-08-29r",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
