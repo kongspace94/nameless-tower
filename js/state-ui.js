@@ -202,7 +202,7 @@ function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
     return; }
   $("floortag").textContent = mode==="dive"?(`탑 ${P.floor}/${TOP}층`+turn):"거점 마을"; }
 function porMini(){ $("porMini").innerHTML = (P&&!enemy) ? playerIco(22)+`<span>${P.name}</span>` : ""; }
-function setSceneFoe(){ if(!enemy)return;
+function setSceneFoe(){ if(!enemy)return; if(document.body)document.body.classList.remove("climbview");   // 전투 진입 시 등반 결과카드 해제
   const ew=clamp(enemy.hp/enemy.hpMax*100,0,100), mhp=MAXHP(), mmp=MAXMP();
   const intentHtml="";   // 몬스터 행동 미리보기 패널 제거 — 강한 공격은 로그 텍스트로만 예고(긴장감↑)
   const chg=B&&B.charge;
@@ -260,7 +260,7 @@ function updateBattleBars(){ if(!enemy)return;
   const om=$("meMomBar"); if(om){ const full=(B&&(B.momentum||0)>=MOM_MAX); om.style.width=clamp((B&&B.momentum||0)/MOM_MAX*100,0,100)+"%"; om.parentElement.classList.toggle("full",full); const onn=$("meMomNum"); if(onn)onn.textContent=full?'🌟':Math.floor((B&&B.momentum)||0); }
   updateGroggyBar(); }
 function updateFoeBar(){ updateBattleBars(); }
-function setScene(emoji,caption){ if(document.body)document.body.classList.remove("mapview");   // 지도 뷰 이탈 시 상단 씬 복구(townMap이 자기 setScene 직후 다시 켬)
+function setScene(emoji,caption){ if(document.body)document.body.classList.remove("mapview","climbview");   // 지도 뷰 이탈 시 상단 씬 복구 + 등반 결과카드 해제(showClimb 등이 직후 다시 켬)
   $("stageContent").innerHTML=`<div><div class="scene-ico">${emoji}</div>`+(caption?`<div class="scene-cap">${caption}</div>`:"")+`</div>`; setFloorTag(); porMini(); }
 let _floatActive={me:0,foe:0,mid:0};   // 같은 위치에 동시에 뜬 플로트 수 → 세로로 어긋나게 쌓아 겹침 방지
 function spawnFloat(text,color,side){ const s=$("stage"); const f=document.createElement("div"); f.className="float"; f.style.color=color; f.textContent=text;

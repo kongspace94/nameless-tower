@@ -1293,7 +1293,8 @@ function bossReward(){ const f=P.floor;
   if(f>=45){ addRelic(pick(GEAR_TIERS.myth)); toast("✦ 신화 장비 획득!"); }   // 정점 보스: 신화 확정(획득 라인은 addRelic이 표시)
   else if(f>=31){ if(chance(0.6))addRelic(pick(GEAR_TIERS.rift)); }   // 상위 장비는 60% (매번 확정 X)
   else if(f>=16){ if(chance(0.6))addRelic(pick(GEAR_TIERS.sky)); } }   // 랜덤 소비품 지급 제거(퍼주기 방지)
-function showClimb(){ setActions([
+function showClimb(){ if(document.body)document.body.classList.add("climbview");   // 🪜 등반 결과카드 — 전투 필드와 별개 화면
+  setActions([
   {label:`계단을 올라 ${P.floor+1}층으로`,full:true,act:nextFloor},
   {label:"🎒 소지품 (장비 착용)",desc:"드랍 장비 착용·정리",act:inventoryMenu},
   {label:"📋 스킬 (장착 변경)",desc:"액티브·패시브 교체",act:skillWindow},
@@ -1316,7 +1317,8 @@ function checkpointMenu(f,firstPortal){ const c=CHECKPOINTS[f]; clearLog();
     {label:"🎒 소지품 (장비 착용)",act:inventoryMenu},
     {label:"📋 스킬 (장착 변경)",act:skillWindow},
     {label:"🌀 포탈로 마을 귀환",desc:"파밍·제작 후 이 포탈로 복귀 · 획득물 유지",act:returnToTown},
-  ]); }
+  ]);
+  if(document.body)document.body.classList.add("climbview"); }   // 🪜 거점도 전투 필드와 별개 결과카드로
 /* 🧪 보스 방 앞 버프 준비 — 자기 버프를 미리 걸고 들어간다(startCombat이 이어받음) */
 const PREBUFF_SKILLS=["war_cry","iron_will","barrier","focus","battle_hymn"];
 function prebuffCast(k){ const s=SKILLS[k]; if(!s||!B||P.mp<s.mp)return; const bm=(typeof passiveEquipped==="function"&&passiveEquipped("encore"))?1.25:1;
@@ -1657,7 +1659,8 @@ function showRegionClimb(){ if(!EXP)return; EXP._resume=showRegionClimb; mode="d
     {label:"🎒 소지품 (장비 착용)",desc:"드랍 장비 착용·정리",act:inventoryMenu},
     {label:"📋 스킬 (장착 변경)",act:skillWindow},
     {label:"🚪 마을로 귀환",desc:"탑 등반 종료 · 획득물 유지 (관문에서 재시작)",act:returnToTown},
-  ]); }
+  ]);
+  if(document.body)document.body.classList.add("climbview"); }   // 🪜 대륙탑 계단 화면도 전투 필드와 별개 결과카드로
 function regionNextFloor(){ if(!EXP)return; EXP.floor=Math.min((EXP.floor||1)+1,REGION_TOP); saveRegionProg(); P.mp=clamp(P.mp+2,0,MAXMP()); render(); enterRegionFloor(); }
 /* 지역 층 이벤트 — 대륙 개척(구역)/대륙 탑(층) 공용. 진행 버튼만 모드별로 분기 */
 function expResumeAct(){ return (EXP&&EXP.tower)?showRegionClimb:expeditionHub; }

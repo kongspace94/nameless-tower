@@ -26,7 +26,7 @@ function setSellTab(t){ sellTab=t; storeSell(); }
 window.setSellTab=setSellTab;
 window.setWhTab=setWhTab;
 function townMenu(){ mode="town"; enemy=null; B=null; if(P)P._duel=null; stopAuctionTimer(); stopChatTimer(); auction=null; EXP=null; expReturn=null; P.buffs={}; townReturn=null;
-  if(document.body)document.body.classList.remove("lootview","combat");   // 🧹 전투/전리품 잔상 클래스 정리(마을 진입 시 겹침 방지)
+  if(document.body)document.body.classList.remove("lootview","combat","climbview");   // 🧹 전투/전리품/등반 잔상 클래스 정리(마을 진입 시 겹침 방지)
   if(window.__fromMap){ window.__fromMap=false; if(typeof bgm==="function")bgm("town"); render(); townMap(); return; }   // 🗺 지도에서 들어간 건물을 나오면 지도로 복귀
   if(typeof bgm==="function")bgm("town"); if(typeof amb==="function")amb("town"); checkTitleUnlocks(); checkQuests();
   if(P._divePotBank){ P.potions+=P._divePotBank; P._divePotBank=0; }   // 다이브 때 마을에 맡겨둔 물약 회수
