@@ -486,6 +486,10 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.32 · 8/30", title:"큰 공격 방어 선택 (3초)", items:[
+      "💥 <b>큰 공격(강타·필살기)엔 방어 선택지</b> — 난데없이 즉사하지 않게, <b>3초 안에 ⚔패링 / 🤸구르기 / 🛡방어</b> 중 선택. 근접만 패링, 원거리·마법은 구르기·방어. 안 고르면 직격",
+      "🛡 <b>방어(블록)</b> — 타이밍 게이지로 피해 경감(완벽 85%↓ · 양호 55%↓). 즉사급 큰 공격의 안전한 선택지",
+    ]},
   { ver:"v2.31 · 8/30", title:"방어 개편 — 패링/회피 + 적 턴 무버튼", items:[
       "🛡 <b>공격 종류별 방어</b> — <b>근접 물리 = ⚔ 패링 또는 🤸 회피</b> / <b>원거리·투척·마법 = 🤸 회피만</b>. 마법·장판은 패링 불가(회피는 모든 공격 가능)",
       "🤸 <b>회피(구르기)는 좌/우 방향 선택</b>(←/→/스페이스), 회피 성공은 <b>민첩·행운</b> 비례 — 기존 돌발 이벤트 구르기와 방식 통일",
@@ -694,7 +698,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30i",
+  id:"2026-08-30j",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

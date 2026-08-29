@@ -269,6 +269,12 @@
   .ecdown .et{color:#ffb3b3; font-size:16px; font-weight:600}
   .ecbar{width:70%; height:8px; border-radius:5px; background:#2a3143; overflow:hidden} .ecbar>i{display:block; height:100%; background:var(--danger); width:100%}
   .ecbtns{display:flex; gap:8px; flex-wrap:wrap; justify-content:center} .ecbtns button{background:#1d2432}
+  /* 💥 큰 공격 방어 선택(패링/구르기/방어) */
+  .ecbar.big{height:11px; box-shadow:0 0 12px rgba(220,50,50,.5)}
+  .ecbtns.choice3{gap:10px} .ecbtns.choice3 button{display:flex; flex-direction:column; align-items:center; gap:3px; min-width:104px; padding:11px 14px; font-size:15px; font-weight:800; border:1px solid #4a5674; border-radius:11px; cursor:pointer; color:#eaf1ff}
+  .ecbtns.choice3 button:hover{border-color:var(--gold); filter:brightness(1.15)}
+  .ecbtns.choice3 button[data-c="parry"]{border-color:#8a6a3a} .ecbtns.choice3 button[data-c="dodge"]{border-color:#3a6a8a} .ecbtns.choice3 button[data-c="block"]{border-color:#3a5a3f}
+  .ecbtns.choice3 .cdesc{font-size:10.5px; font-weight:500; color:#9fb0d6; letter-spacing:.02em}
   /* 급소 포인트 미니게임 (단검) — 가운데 인간형 + 빨간 급소 */
   .ecdown.seq{justify-content:flex-start; padding-top:8px}
   .ecdown.seq .seqarea{position:relative; width:100%; flex:1; display:flex; align-items:center; justify-content:center}
