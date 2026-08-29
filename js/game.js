@@ -486,6 +486,9 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.30 · 8/30", title:"속공 확률 추가 하향", items:[
+      "⚡ <b>속공 '진짜 간혹' 수준으로 재하향</b> — 민첩 비례는 유지(저 ~1.7% · 극민첩+집중 ~8%). 상한 14%→8%",
+    ]},
   { ver:"v2.29 · 8/30", title:"턴 전환 타이밍 수정", items:[
       "⏳ <b>'내 턴'이 적 공격 도중 뜨던 문제 수정</b> — 적의 투사체가 날아오는데 미리 넘어가던 것을, <b>피격·체력 감소까지 끝난 뒤</b> 잠깐 텀을 두고 내 턴으로 넘김(자연스러운 흐름)",
     ]},
@@ -685,7 +688,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30g",
+  id:"2026-08-30h",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

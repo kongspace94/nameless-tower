@@ -923,7 +923,7 @@ function hitEnemy(dmg,label,color,elem){ dmg=Math.max(1,dmg);
 function checkEnrage(){ if(!enemy||enemy.mech!=="enrage"||enemy.enraged)return; if(enemy.hp/enemy.hpMax<=0.30){ enemy.enraged=true; enemy.atk=Math.round(enemy.atk*1.5);
     line(`💢 <b>${enemy.n}이(가) 광폭화했다!</b> 공격이 사나워진다.`,"dmg"); bigPop("ENRAGE!","#ff5a5a"); fxShake(); setSceneFoe(); } }
 /* ⚡ 속공(턴 쪼개기) — 행동 후 확률 발동. 민첩·행운 기반 · 턴당 발동 상한 */
-function quickProcChance(){ return clamp(0.025 + estat("dex")*0.0022 + LUKv()*0.001 + (passiveEquipped("crit_focus")?0.02:0), 0.025, 0.14); }   // 밸런스: 속공 확률 대폭↓(틈만 나면 터지던 것 완화 · base 5→2.5% · 상한 26→14%)
+function quickProcChance(){ return clamp(0.008 + estat("dex")*0.0012 + LUKv()*0.0006 + (passiveEquipped("crit_focus")?0.015:0), 0.008, 0.08); }   // 밸런스: 속공 '진짜 간혹' 수준으로 재하향 — 민첩 비례 유지(저 ~1.7% · 고 ~5~8%) · 상한 14→8%
 function quickProcCheck(){ if(!enemy||enemy.hp<=0)return false; if((B.quickProcs||0)>=1)return false; return chance(quickProcChance()); }   // 턴당 1회로 제한
 function afterPlayerAction(){ if(!enemy)return;
   if(quickProcCheck()){ B.quickProcs=(B.quickProcs||0)+1; line("⚡ <b>속공 발동!</b> 빈틈을 파고들어 한 번 더 행동한다!","loot"); bigPop("SPEED!","#8fd0ff"); fxShake(); render(); playerPhase(); return; }
