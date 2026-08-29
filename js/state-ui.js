@@ -211,7 +211,7 @@ function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); 
     else { _bmLines.push(item); if(_bmLines.length>BM_MAX)_bmLines.shift(); renderBattleMsg(); } } }   // ⚡ 빠르게: 즉시
   if(cls==="loot"&&typeof sfx==="function")sfx("loot"); }   // 🔊 획득 라인엔 루팅 사운드
 function clearLog(){ $("log").innerHTML=""; _bmLines=[]; _bmLog=[]; _bmQueue=[]; _bmLastLineT=0; if(_bmPacer){ clearTimeout(_bmPacer); _bmPacer=null; } _bmExpanded=false; const bm=$("battlemsg"); if(bm){ bm.innerHTML=""; bm.classList.remove("await","danger","big","pacing"); }
-  const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark").forEach(n=>n.remove()); }   // 🧹 남은 상자/반짝이 연출 정리(잔상 방지)
+  const s=$("stage"); if(s)s.querySelectorAll(".chestfx,.chestspark,.projfx,.slashfx,.hitflash,.float,.bigpop").forEach(n=>n.remove()); }   // 🧹 남은 전투 연출(상자·투사체·베기·플로트 등) 정리 — 다음 화면으로 새지 않게
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 function setFloorTag(){ if(!P){ $("floortag").textContent=""; return; }
   const turn=(enemy&&B&&B.turn)?` · ${B.turn}턴`:"";

@@ -486,6 +486,9 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.22 · 8/29", title:"이펙트 잔상 버그 수정", items:[
+      "🧹 <b>전투 이펙트가 다음 화면으로 새던 버그 수정</b> — 죽음·승리·이동 화면에 <b>투사체·베기·타격 연출이 날아다니던</b> 문제 해결(씬 전환 시 전부 정리)",
+    ]},
   { ver:"v2.21 · 8/29", title:"피격·처치 연출 강화", items:[
       "👹 <b>몬스터 피격 연출</b> — 맞을 때 <b>빨갛게 물들며 흔들리는</b> 반응 추가(기존 흰 플래시 → 붉은 흔들림)",
       "💀 <b>처치 연출</b> — 바로 사라지지 않고 <b>빨갛게 맞고 휘청이다 스러지듯 페이드아웃</b>된 뒤 상자가 나온다",
@@ -659,7 +662,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29y",
+  id:"2026-08-29z",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
