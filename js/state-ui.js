@@ -290,7 +290,7 @@ function spawnFloat(text,color,side){ const s=$("stage"); const f=document.creat
   else { f.style.left=(38+rnd(24))+"%"; f.style.top=`calc(46% - ${up}px)`; }
   s.appendChild(f); setTimeout(()=>{ f.remove(); _floatActive[key]=Math.max(0,_floatActive[key]-1); },1000); }
 function fxLunge(el,cls){ if(!el)return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(()=>{ if(el)el.classList.remove(cls); },300); }
-function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } fxLunge($("meArt"),"lungeMe"); }   // 🗡 내가 때리면 나도 앞으로 치고 나감
+function fxHit(){ const el=$("foeArt"); if(el){ el.classList.remove("foehurt"); void el.offsetWidth; el.classList.add("foehurt"); } fxLunge($("meArt"),"lungeMe"); }   // 🗡 내가 때리면 몬스터는 빨갛게 흔들리고, 나도 앞으로 치고 나감
 /* 🎁 처치 시 상자/장비 드랍 연출 — 쓰러진 몬스터(적 스프라이트) 자리에 떨어뜨림. 보스는 큰 선물상자+반짝이, 일반은 나무상자 */
 function chestSpot(boss){ const s=$("stage"), foe=$("foeArt");   // 적 스프라이트 실제 위치 계산(없으면 % 폴백)
   if(s&&foe&&foe.getBoundingClientRect){ const fr=foe.getBoundingClientRect(), sr=s.getBoundingClientRect();

@@ -229,6 +229,15 @@
   @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
   .shake{animation:shake .4s} .flash{animation:flash .3s}
   @keyframes flash{0%{filter:brightness(3) drop-shadow(0 0 8px #fff)}100%{filter:none}}
+  /* 👹 몬스터 피격 — 빨갛게 물들며 흔들림 */
+  .bart.foehurt{ animation:foeHurt .3s ease-out !important }
+  @keyframes foeHurt{ 0%{filter:sepia(1) saturate(6) hue-rotate(-35deg) brightness(1.5)} 25%{transform:translateX(-6px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-3px)} 100%{filter:none; transform:translateX(0)} }
+  /* 💀 몬스터 처치 — 빨갛게 맞고 휘청이다 페이드아웃(스러짐) */
+  .bart.foedeath{ animation:foeDeath .6s ease-in forwards !important; pointer-events:none }
+  @keyframes foeDeath{ 0%{filter:sepia(1) saturate(6) hue-rotate(-35deg) brightness(1.5); transform:translateX(0) scale(1); opacity:1}
+    14%{transform:translateX(-9px)} 28%{transform:translateX(8px)} 42%{filter:sepia(1) saturate(5) hue-rotate(-35deg) brightness(1.25); transform:translateX(-6px)}
+    56%{transform:translateX(4px)} 68%{filter:brightness(1.7) drop-shadow(0 0 16px #ff3a3a); transform:translateX(0) scale(1.03)}
+    100%{opacity:0; transform:translateY(20px) scale(.55); filter:brightness(2) drop-shadow(0 0 12px #ff3a3a)} }
   /* 💥 강타 강한 흔들림 + 베기 스트릭 + 붉은 임팩트 (타격감) */
   .shake-hard{animation:shakeHard .5s}
   @keyframes shakeHard{0%,100%{transform:translate(0,0) rotate(0)}12%{transform:translate(-15px,4px) rotate(-1.1deg)}26%{transform:translate(13px,-4px) rotate(1.1deg)}42%{transform:translate(-11px,3px) rotate(-.7deg)}58%{transform:translate(9px,-2px) rotate(.6deg)}76%{transform:translate(-5px,1px) rotate(0)}}
@@ -451,6 +460,7 @@
   .authrow label{font-size:12px; color:var(--dim); font-family:var(--mono); letter-spacing:.05em}
   .authin{width:100%; box-sizing:border-box; background:#0a0d13; border:1px solid var(--line); border-radius:9px; padding:11px 12px; color:var(--ink); font-size:15px; outline:none; transition:border-color .15s}
   .authin:focus{border-color:var(--gold)}
+  .capslock{font-size:11.5px; color:#e8b04a; font-family:var(--mono); letter-spacing:.03em; margin-top:1px}   /* 🔠 Caps Lock 경고 */
   .authpwmask{ -webkit-text-security: disc; text-security: disc; }   /* 텍스트 필드를 ●로 마스킹(한글 IME 정상·비번매니저 간섭 없음) */
   .reccode{font-family:var(--mono); font-size:22px; letter-spacing:.12em; font-weight:700; color:var(--gold); text-align:center; background:#0a0d13; border:1px dashed var(--gold); border-radius:10px; padding:16px 10px; user-select:all; -webkit-user-select:all; word-break:break-all}
   /* 🗺 마을 지도(걸어다니는 프리뷰) */

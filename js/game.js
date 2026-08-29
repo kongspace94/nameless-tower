@@ -371,13 +371,15 @@ async function onlineScreen(){ if(typeof NET==="undefined"){ toast("온라인 �
 const EYE_ON_SVG=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const EYE_OFF_SVG=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 /* 🔒 비번 입력칸 1개 마크업 — 눈 토글 버튼 포함 */
-function pwFieldHtml(id, ac, ph){ return `<div class="authpw"><input id="${id}" class="authin" type="password" autocomplete="${ac}" autocapitalize="off" spellcheck="false" placeholder="${ph}"><button type="button" class="eyebtn" id="${id}Eye" title="표시/숨기기" tabindex="-1">${EYE_OFF_SVG}</button></div>`; }
+function pwFieldHtml(id, ac, ph){ return `<div class="authpw"><input id="${id}" class="authin" type="password" autocomplete="${ac}" autocapitalize="off" spellcheck="false" placeholder="${ph}"><button type="button" class="eyebtn" id="${id}Eye" title="표시/숨기기" tabindex="-1">${EYE_OFF_SVG}</button></div><div class="capslock" id="${id}Caps" hidden>⚠ Caps Lock이 켜져 있어요</div>`; }
 /* 눈 토글 + 한글→QWERTY 실시간 변환 + 엔터 콜백 을 비번칸에 부착 (여러 폼에서 재사용) */
 function wirePw(id, onEnter){ const pw=$(id), eye=$(id+"Eye"); if(!pw)return null;
   if(eye){ eye.onmousedown=(e)=>e.preventDefault(); eye.onclick=()=>{ const show=pw.type==="password"; pw.type=show?"text":"password"; eye.innerHTML=show?EYE_ON_SVG:EYE_OFF_SVG; }; }
   if(typeof pwNormalize==="function"){ let composing=false; const normPw=()=>{ try{ const v=pw.value,n=pwNormalize(v); if(n!==v)pw.value=n; }catch(e){} };
     pw.addEventListener("compositionstart",()=>composing=true); pw.addEventListener("compositionend",()=>{composing=false;normPw();}); pw.addEventListener("input",()=>{ if(!composing)normPw(); }); }
   if(onEnter)pw.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); onEnter(); } });
+  { const caps=$(id+"Caps"); if(caps){ const upd=(e)=>{ let on=false; try{ on=!!(e&&e.getModifierState&&e.getModifierState("CapsLock")); }catch(_){} caps.hidden=!on; };   // 🔠 캡스락 켜져 있으면 경고
+      pw.addEventListener("keydown",upd); pw.addEventListener("keyup",upd); pw.addEventListener("blur",()=>{ caps.hidden=true; }); } }
   return pw; }
 /* 게임 내 로그인/회원가입 폼 (팝업 대신) — 비번 마스킹 + 눈 토글 + 엔터 제출 */
 function authForm(mode){ if(typeof NET==="undefined")return; const isLogin=(mode==="login");
@@ -484,6 +486,19 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.21 · 8/29", title:"피격·처치 연출 강화", items:[
+      "👹 <b>몬스터 피격 연출</b> — 맞을 때 <b>빨갛게 물들며 흔들리는</b> 반응 추가(기존 흰 플래시 → 붉은 흔들림)",
+      "💀 <b>처치 연출</b> — 바로 사라지지 않고 <b>빨갛게 맞고 휘청이다 스러지듯 페이드아웃</b>된 뒤 상자가 나온다",
+    ]},
+  { ver:"v2.20 · 8/29", title:"제작소 일반 장비 세부 분류", items:[
+      "🔧 <b>일반 장비 제작 세분화</b> — 무기는 <b>종류별(검·세이버·단검·활…)</b>, 방어구는 <b>갑옷/신발</b> 분리, 악세는 <b>반지/목걸이</b> 분리, <b>보조무기(방패)</b> 별도 칩",
+    ]},
+  { ver:"v2.19 · 8/29", title:"로그인 편의 — Caps Lock 경고", items:[
+      "🔠 비밀번호 입력 중 <b>Caps Lock이 켜져 있으면 경고</b> 표시(로그인·가입·복구 모든 비번 칸)",
+    ]},
+  { ver:"v2.18 · 8/29", title:"강화 성공률 하향 (밸런스)", items:[
+      "🔨 <b>장비 강화 성공률 하향</b> — 너무 잘 오르던 것 조정(+4 72→56% · +9 48→30% · +15 32→17% · +20 16→6%). 고강일수록 확 어려워짐 → ⚜️강화의 축복 가치↑",
+    ]},
   { ver:"v2.17 · 8/29", title:"다른 마을 · 보스 풀뷰 · 제작소 정리", items:[
       "🏘️ <b>다른 마을 시스템</b> — 대륙 개척 중 <b>테마 마을</b>(용암 대장간·설빙 항구 등)을 발견. 분위기·특산품 상점이 다르고 '마을 이동'으로 오간다. <b>마지막에 머문 마을에서 재접속 시작</b>",
       "🎬 <b>보스 풀뷰</b> — 최상층(30·50층)·최종보스·대륙 수호체는 <b>웅장한 전체화면 등장 연출</b>(거대 실루엣·오라·이름 연출)",
@@ -644,7 +659,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-29u",
+  id:"2026-08-29y",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`

@@ -1266,16 +1266,24 @@ function deathDropPause(snap, next){
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ next(); return; }
   if(typeof flushBM==="function")flushBM();   // 💬 대기 중인 전투 연출 줄을 모두 표시(승리 필드로 넘어가기 전)
   if(document.body)document.body.classList.add("combat");   // 전투 레이아웃 유지 → #log 벽 숨김, battlemsg(배틀로그)만 표시
-  if(typeof victoryField==="function")victoryField(snap);   // 💀 몬스터 상태창(HP 0) 유지 + 그 자리에 상자
-  if(typeof renderBattleMsg==="function")renderBattleMsg();  // 💬 방금 싸운 배틀로그를 그대로 유지(⤢로 전체 로그 열람) — '전리품 확인'은 아래 버튼으로
-  const bm=$("battlemsg"); if(bm)bm.classList.add("await");
-  let done=false, timer=null;
-  const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
-    const b=$("battlemsg"); if(b)b.classList.remove("await"); next(); };
-  const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
-  document.addEventListener("keydown",key);
-  setActions([{label:"▶ 전리품 확인  (클릭 / 스페이스)",full:true,act:go}]);
-  // ⏸ 자동 진행 제거 — 유저가 직접 눌러 전리품으로 넘어간다
+  const setup=()=>{
+    if(typeof victoryField==="function")victoryField(snap);   // 💀 몬스터 상태창(HP 0) 유지 + 그 자리에 상자
+    if(typeof renderBattleMsg==="function")renderBattleMsg();  // 💬 방금 싸운 배틀로그를 그대로 유지(⤢로 전체 로그 열람) — '전리품 확인'은 아래 버튼으로
+    const bm=$("battlemsg"); if(bm)bm.classList.add("await");
+    let done=false, timer=null;
+    const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
+      const b=$("battlemsg"); if(b)b.classList.remove("await"); next(); };
+    const key=(e)=>{ if(e.code==="Space"||e.key===" "||e.key==="Enter"){ e.preventDefault(); go(); } };
+    document.addEventListener("keydown",key);
+    setActions([{label:"▶ 전리품 확인  (클릭 / 스페이스)",full:true,act:go}]);
+  };
+  // 💀 죽기 직전 몬스터 스프라이트: 빨갛게 맞고 → 휘청 → 페이드아웃(스러짐) 연출 후 승리 필드
+  const st=$("stage"), foeArt=st?st.querySelector("#foeArt"):null;
+  if(foeArt){ setActions([]);   // 연출 동안 커맨드 비활성
+    foeArt.classList.remove("foehurt","foedeath"); void foeArt.offsetWidth; foeArt.classList.add("foedeath");
+    if(typeof fxShake==="function")fxShake(); if(typeof sfx==="function")sfx("hurt");
+    setTimeout(setup, 620); }
+  else setup();
 }
 /* 🎁 전리품 패널 — 전투 끝나면 스테이지(트로피) 자리에 크게 (스크롤 없이 '계속' 보이게) */
 function showVictoryLoot(wasBoss, foeName, loot, cont){ render(); clearLog();

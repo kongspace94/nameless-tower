@@ -422,7 +422,7 @@ const UP_MAX=20, UP_SAFE=10;   // +10까지 안전(실패해도 유지) · +11�
 function upCostGold(up){ return 25 + up*up*8; }                  // 고강일수록 급증
 function upCostMat(it){ const g=RELICS[it.k]; return (g.slot==="ring"||g.slot==="amulet")?"mana":"ore"; }
 function upCostMatN(up){ return 2 + Math.floor(up*1.6); }
-function upChance(up){ if(up<5)return clamp(0.92-up*0.05,0.6,0.92); if(up<UP_SAFE)return clamp(0.72-(up-5)*0.06,0.4,0.72); return clamp(0.48-(up-UP_SAFE)*0.032,0.12,0.48); }
+function upChance(up){ if(up<5)return clamp(0.88-up*0.08,0.48,0.88); if(up<UP_SAFE)return clamp(0.52-(up-5)*0.055,0.26,0.52); return clamp(0.30-(up-UP_SAFE)*0.026,0.06,0.30); }   // 🔨 강화 하향(더 어렵게) — +0:88 +4:56 +9:30 +10:30 +20:6%
 function upDestroyChance(up){ return up<UP_SAFE?0:clamp((up-(UP_SAFE-1))*0.07,0,0.55); }   // 실패 시 파괴 확률(+11부터)
 function upRandStat(){ const pool=[["atk",1+rnd(3)],["def",1+rnd(3)],["luck",1+rnd(2)]]; return pool[rnd(pool.length)]; }   // 🎲 강화 랜덤 추가스탯
 function upStatText(it){ const st=gearMainStat(RELICS[it.k]); return st==="atk"?"공격":st==="def"?"방어":"행운"; }
@@ -855,6 +855,12 @@ function setWorkshopCat(c){ workshopCat=c; workshopMenu(); }
 window.setWorkshopTab=setWorkshopTab; window.setWorkshopSet=setWorkshopSet; window.setWorkshopCat=setWorkshopCat;
 const GEAR_SLOTS_ALL=["weapon","offhand","armor","boots","ring","amulet"];
 function craftableGear(){ return Object.keys(RELICS).filter(k=>{ const g=RELICS[k]; return g&&!g.set && GEAR_SLOTS_ALL.indexOf(g.slot)>=0 && !g.shop; }); }   // 🗡 일반(비세트·비상점 = 드랍/제작 티어) 장비
+/* 🔧 일반 장비 세부 분류 — 무기는 종류별(검/단검/활/지팡이…), 방어구 갑옷/신발, 악세 반지/목걸이, 보조무기 별도 */
+const GEAR_DETAIL_ORDER=["w_sword","w_saber","w_dagger","w_bow","w_dice","w_card","w_staff","w_inst","w_whip","w_fist","offhand","armor","boots","ring","amulet","etc"];
+function gearDetailKey(g){ if(!g)return "etc"; if(g.slot==="weapon")return "w_"+(g.wt||"etc");
+  return ({offhand:"offhand",armor:"armor",boots:"boots",ring:"ring",amulet:"amulet"})[g.slot]||"etc"; }
+function gearDetailLabel(key){ if(key&&key.indexOf("w_")===0){ const w=(typeof WEAPONS!=="undefined")&&WEAPONS[key.slice(2)]; return w?`${w.ic} ${w.n}`:"⚔ 무기"; }
+  return ({offhand:"🔰 보조무기",armor:"🛡 갑옷",boots:"👢 신발",ring:"💍 반지",amulet:"📿 목걸이",etc:"📦 기타"})[key]||"장비"; }
 function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; } stopAuctionTimer(); auction=null; mode="town"; townReturn=workshopMenu; render(); clearLog(); setScene("🔨","제작소 — 재료로 장비를 만든다");
   line(`보유 💰 <b>${P.gold}</b> · 재료 ${Object.entries(MATS).map(([k,[e]])=>`${e}${P.mats[k]||0}`).join(" ")}`,"sys");
   const setKeys=Object.keys(SETS);
@@ -869,18 +875,20 @@ function workshopMenu(){ if(enemy){ toast("전투 중엔 안 돼요"); return; }
   if(tab==="gear"){ const cur=workshopSet&&SETS[workshopSet]?workshopSet:setKeys[0];
     head+=`<div class="setchips">`+setKeys.map(s=>`<button type="button" class="setchip ${cur===s?'on':''}" onclick="setWorkshopSet('${s}')">✦ ${SETS[s].n}</button>`).join("")+`</div>`;
     workshopSet=cur; }
-  // 일반 장비 탭: 무기/방어구/악세 칩
-  if(tab==="gear2"){ const cur=["wpn","arm","acc"].includes(workshopCat)?workshopCat:"wpn";
-    head+=`<div class="setchips">`+[["wpn","🗡 무기"],["arm","🛡 방어구"],["acc","💍 악세"]].map(([c,lab])=>`<button type="button" class="setchip ${cur===c?'on':''}" onclick="setWorkshopCat('${c}')">${lab}</button>`).join("")+`</div>`;
+  // 일반 장비 탭: 세부 분류 칩(무기 종류별 · 갑옷/신발 · 반지/목걸이 · 보조무기) — 보유 항목 있는 분류만
+  if(tab==="gear2"){ const keys=[]; gen.forEach(k=>{ const dk=gearDetailKey(RELICS[k]); if(keys.indexOf(dk)<0)keys.push(dk); });
+    keys.sort((a,b)=>{ const ia=GEAR_DETAIL_ORDER.indexOf(a), ib=GEAR_DETAIL_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+    const cur=keys.indexOf(workshopCat)>=0?workshopCat:(keys[0]||"etc");
+    head+=`<div class="setchips">`+keys.map(dk=>`<button type="button" class="setchip ${cur===dk?'on':''}" onclick="setWorkshopCat('${dk}')">${gearDetailLabel(dk)}</button>`).join("")+`</div>`;
     workshopCat=cur; }
   $("log").insertAdjacentHTML("beforeend", head);
   const acts=[];
   if(tab==="gear"){ const sk=workshopSet||setKeys[0]; acts.push({header:true,label:`✦ ${SETS[sk].n} — ${SETS[sk].note||"세트 장비"}`});
     Object.keys(RELICS).filter(k=>RELICS[k].set===sk).forEach(k=>{ const cost=craftGearCost(k); const owned=P.inv.some(x=>x.k===k)||((P.stash&&P.stash.inv)||[]).some(x=>x.k===k);
       acts.push({label:`${k}${owned?" ✔":""}`,desc:`${RELICS[k].note} · ${craftCostText(cost)}${owned?" · 보유 중":""}`,disabled:!canAfford(cost),act:()=>craftGear(k)}); }); }
-  else if(tab==="gear2"){ const cat=workshopCat||"wpn"; const CATLAB={wpn:"🗡 무기",arm:"🛡 방어구",acc:"💍 악세사리"};
-    acts.push({header:true,label:`${CATLAB[cat]} 제작 (드랍 티어 · 세트 외)`});
-    const items=gen.filter(k=>gearCat3(RELICS[k])===cat).sort((a,b)=>(RELICS[a].val||0)-(RELICS[b].val||0));
+  else if(tab==="gear2"){ const cat=workshopCat;
+    acts.push({header:true,label:`${gearDetailLabel(cat)} 제작 (드랍 티어 · 세트 외)`});
+    const items=gen.filter(k=>gearDetailKey(RELICS[k])===cat).sort((a,b)=>(RELICS[a].val||0)-(RELICS[b].val||0));
     if(!items.length)acts.push({label:"제작 가능한 항목이 없다",disabled:true,act:()=>{}});
     items.forEach(k=>{ const g=RELICS[k], cost=craftGearCost(k), owned=P.inv.some(x=>x.k===k)||((P.stash&&P.stash.inv)||[]).some(x=>x.k===k);
       acts.push({label:`${k}${owned?" ✔":""}`,desc:`${g.note} · ${craftCostText(cost)}${owned?" · 보유 중":""}`,disabled:!canAfford(cost),act:()=>craftGear(k)}); }); }
