@@ -160,6 +160,12 @@
   @keyframes chestGlow{0%,100%{filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}50%{filter:drop-shadow(0 0 17px rgba(255,214,106,.92)) brightness(1.18)}}
   .chestspark{position:absolute; z-index:6; pointer-events:none; font-size:16px; animation:chestSpark .9s ease-out forwards}
   @keyframes chestSpark{0%{opacity:0; transform:translate(0,0) scale(.4)}25%{opacity:1}100%{opacity:0; transform:translate(var(--sx),var(--sy)) scale(1)}}
+  /* 🏆 승리 필드: 몬스터 스프라이트 자리에 놓이는 상자(상태창은 .ubox 그대로 유지) */
+  .bunit.bfoe.defeated .bart{ display:flex; align-items:center; justify-content:center }
+  .vchest{ font-size:64px; line-height:1; filter:drop-shadow(0 6px 10px rgba(0,0,0,.55)); animation:chestGlow 1.3s ease-in-out infinite }
+  .vchest.boss{ font-size:82px }
+  .vchest.drop{ animation:chestDrop .72s cubic-bezier(.3,1.5,.5,1) both, chestGlow 1.3s ease-in-out .72s infinite }
+  @media (min-width:821px){ body.combat .bunit.bfoe.defeated .vchest{ font-size:88px } body.combat .bunit.bfoe.defeated .vchest.boss{ font-size:112px } }
   .summ{position:absolute; left:18px; bottom:104px; display:flex; align-items:center; gap:6px; z-index:3; background:#171326cc; border:1px solid #4a3d6e; border-radius:10px; padding:4px 8px; backdrop-filter:blur(2px); animation:bob 2.8s ease-in-out infinite; max-width:170px}
   .summ.guarding{border-color:#7ad6c0; box-shadow:0 0 9px #7ad6c0aa}
   .summ .se{font-size:22px; line-height:1; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}

@@ -236,6 +236,21 @@ function setSceneFoe(){ if(!enemy)return;
   if(typeof updateBattleBars==="function")updateBattleBars();   // 🟢 HP바 색(비율) 초기 반영
   setFloorTag(); $("porMini").innerHTML=""; }
 function hpColor(frac){ return frac>0.5?"#4fbf7a":frac>0.2?"#e8c56a":"#e2574a"; }   // 🟢 HP 비율 색: 초록→노랑→빨강
+/* 🏆 전용 승리 필드 — 몬스터 상태창(HP 0)은 그대로 남기고, 스프라이트 자리에만 상자를 놓는다. 플레이어 상태창도 유지 */
+function victoryField(snap){ const sc=$("stageContent"); if(!sc||!P)return;
+  const mhp=MAXHP(),mmp=MAXMP(), chest=snap.boss?"🎁":"📦";
+  const foe = `<div class="bunit bfoe defeated"><div class="bart" id="foeArt"><div class="vchest${snap.boss?' boss':''}">${chest}</div></div>`+
+    `<div class="ubox"><div class="un">${snap.n} <span style="color:var(--danger)">💀 처치</span></div>`+
+    `<div class="hprow"><span class="tag">HP</span><div class="hpbar2 hp"><i style="width:0%;background:#e2574a"></i></div><span class="hpnum">0/${snap.hpMax}</span></div></div></div>`;
+  const mf=clamp(P.hp/mhp,0,1);
+  const me = `<div class="bunit bme"><div class="bart" id="meArt">${playerIco(100)}</div>`+
+    `<div class="ubox"><div class="un">${P.name}</div>`+
+    `<div class="hprow"><span class="tag">HP</span><div class="hpbar2 hp"><i style="width:${mf*100}%;background:${hpColor(mf)}"></i></div><span class="hpnum">${Math.max(0,P.hp)}/${mhp}</span></div>`+
+    `<div class="hprow"><span class="tag">기력</span><div class="hpbar2 mp"><i style="width:${clamp(P.mp/mmp*100,0,100)}%"></i></div><span class="hpnum">${P.mp}/${mmp}</span></div></div></div>`;
+  sc.innerHTML = foe + me; setFloorTag(); $("porMini").innerHTML="";
+  const vc=sc.querySelector(".vchest"); if(vc){ vc.classList.remove("drop"); void vc.offsetWidth; vc.classList.add("drop"); }
+  if(snap.boss){ const s=$("stage"); if(s)for(let i=0;i<6;i++){ setTimeout(()=>{ if(!s.isConnected)return; const sp=document.createElement("div"); sp.className="chestspark"; sp.textContent=pick(["✨","⭐","💫"]);
+    sp.style.left="68%"; sp.style.top="30%"; sp.style.setProperty("--sx",(rnd(80)-40)+"px"); sp.style.setProperty("--sy",(-30-rnd(40))+"px"); s.appendChild(sp); setTimeout(()=>{ if(sp.parentNode)sp.remove(); },900); }, 200+i*90); } } }
 function updateBattleBars(){ if(!enemy)return;
   const ef=clamp(enemy.hp/enemy.hpMax,0,1); const eb=$("ebar"); if(eb){ eb.style.width=ef*100+"%"; eb.style.background=hpColor(ef); }
   const en=$("ehpnum"); if(en)en.textContent=`${Math.max(0,enemy.hp)}/${enemy.hpMax}`;
@@ -267,7 +282,7 @@ function dropChestFx(boss){ const s=$("stage"); if(!s||typeof document==="undefi
   const foeUnit=s.querySelector(".bfoe"); if(foeUnit)foeUnit.classList.add("foedie");   // 💀 쓰러진 몬스터는 스르륵 사라지고 그 자리에 상자만 남긴다
   const d=document.createElement("div"); d.className="chestfx"+(boss?" boss":""); d.textContent=boss?"🎁":"📦";
   if(spot.px){ d.style.left=(spot.x-off)+"px"; d.style.top=(spot.y-off)+"px"; } else { d.style.left=spot.x+"%"; d.style.top=spot.y+"%"; }
-  s.appendChild(d); setTimeout(()=>{ if(d.parentNode)d.remove(); }, 2600);
+  s.appendChild(d);   // ⏸ 자동 제거 안 함 — 유저가 '전리품 확인'을 누를 때(clearLog)까지 상자는 그대로 남는다
   if(boss){ for(let i=0;i<6;i++){ setTimeout(()=>{ if(!s.isConnected)return; const sp=document.createElement("div"); sp.className="chestspark"; sp.textContent=pick(["✨","⭐","💫"]);
     if(spot.px){ sp.style.left=spot.x+"px"; sp.style.top=(spot.y-14)+"px"; } else { sp.style.left=spot.x+"%"; sp.style.top=spot.y+"%"; }
     sp.style.setProperty("--sx",(rnd(80)-40)+"px"); sp.style.setProperty("--sy",(-30-rnd(40))+"px"); s.appendChild(sp); setTimeout(()=>{ if(sp.parentNode)sp.remove(); },900); }, 720+i*90); } } }

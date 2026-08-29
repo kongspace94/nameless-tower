@@ -107,9 +107,10 @@ const TOP=50;
 function makeEnemy(){ const f=P.floor; const ng=ngMul();
   if(BOSSES[f]){ const b=BOSSES[f]; const hp=Math.round(b.hp*ng); return {...b,hp,atk:Math.round(b.atk*ng),hpMax:hp,groggy:0,groggyMax:Math.round((40+f*2)*2.2),staggered:false,stagUsed:false}; }
   let base,s;
-  if(f<=15){ const tierMax=f<4?1:f<8?2:3; base=pick(ENEMIES.filter(e=>e.tier<=tierMax)); s=1+(f-1)*0.14; }
-  else if(f<=30){ const tierMax=f<20?4:f<25?5:6; base=pick(ENEMIES2.filter(e=>e.tier<=tierMax)); s=1+(f-16)*0.10; }   // 천공존
-  else { const tierMax=f<40?7:f<45?8:9; base=pick(ENEMIES3.filter(e=>e.tier<=tierMax)); s=1+(f-31)*0.08; }             // 시공존
+  const tierPick=(pool,lo,hi)=>{ let c=pool.filter(e=>e.tier>=lo&&e.tier<=hi); if(!c.length)c=pool.filter(e=>e.tier<=hi); return pick(c); };   // 층에 맞는 상위 티어만 — 높은 층에서 약한 잡몹 배제(몬스터가 '다 비슷' 문제 해소)
+  if(f<=15){ const hi=f<4?1:f<8?2:3, lo=Math.max(1,hi-1); base=tierPick(ENEMIES,lo,hi); s=1+(f-1)*0.15; }
+  else if(f<=30){ const hi=f<20?4:f<25?5:6, lo=Math.max(4,hi-1); base=tierPick(ENEMIES2,lo,hi); s=1+(f-16)*0.12; }   // 천공존
+  else { const hi=f<40?7:f<45?8:9, lo=Math.max(7,hi-1); base=tierPick(ENEMIES3,lo,hi); s=1+(f-31)*0.10; }             // 시공존
   const e={...base,hp:Math.round(base.hp*s*ng),atk:Math.round(base.atk*s*ng),def:base.def+Math.floor(f/6),g:Math.round(base.g*(1+(f-1)*0.12))};
   e.hpMax=e.hp; e.groggy=0; e.groggyMax=40+f*2; e.staggered=false; e.stagUsed=false; return e; }
 
@@ -978,7 +979,7 @@ function applyMonsterAil(elem){ if(!B||!elem||typeof ELEMENTS==="undefined"||!EL
 function tickPlayerDot(){ if(!B||!B.pdot||(B.pdot.t||0)<=0)return false; const el=(typeof ELEMENTS!=="undefined"&&ELEMENTS[B.pdot.elem])||{ic:"☣",n:"이상"}; const d=B.pdot.dmg;
   P.hp-=d; B.pdot.t--; deathCause=`${el.ic} ${el.n} 지속피해 (${d})`; line(`${el.ic} ${el.n}으로 ${d} 피해 (남은 ${B.pdot.t}턴)`,"dmg"); if(typeof spawnFloat==="function")spawnFloat("-"+d,"#ff8a8a","me");
   if(B.pdot.t<=0)B.pdot=null; render(); if(P.hp<=0){ die(); return true; } return false; }
-function chargeNeed(){ return Math.max(40, Math.round(ATK()*4.0)); }   // 3턴 안에 집중 화력(약 2~3방)을 퍼부어야 저지 — 아슬아슬하게(예전 2.3배는 한 방에 참)
+function chargeNeed(){ return Math.max(55, Math.round(ATK()*5.5)); }   // 3턴 안에 거의 풀화력(치명 3방급)을 쏟아야 저지 — 더 빡세게(4.0→5.5). 못 채워도 부분 저지로 위력↓
 /* 보스 궁극기 충전 시작 — HP 문턱을 넘을 때마다 (총 2회) */
 function maybeStartCharge(){ if(!enemy||!enemy.boss||B.charge)return false;
   const frac=enemy.hp/enemy.hpMax, done=B.chargeCount||0, thr=[0.62,0.30];
@@ -1134,8 +1135,15 @@ function reactiveParry(mult,it){ awaiting=null;
   s.appendChild(box); const ring=box.querySelector("#pring");
   const t0=performance.now(); let raf=null,done=false;
   const finish=(q)=>{ if(done)return; done=true; cancelAnimationFrame(raf); document.removeEventListener("keydown",key); box.remove();
-    if(q==="perfect"){ bigPop("PARRY!","#ffd36a"); fxShake(); fxHit(); gainMomentum(18); if(typeof bumpFeat==="function")bumpFeat("perfectParry"); }
-    else if(q==="good"){ bigPop("GUARD!","#8fd0ff"); fxShake(); gainMomentum(10); }
+    if(q==="perfect"){ bigPop("PARRY!","#ffd36a");   // ⚔️ 완벽 패링: 묵직한 타격감 — 강진동+대형 히트+양방향 베기+묵직/치명 사운드
+      if(typeof fxShakeHard==="function")fxShakeHard(); else fxShake();
+      if(typeof fxBigHit==="function")fxBigHit(); else fxHit();
+      if(typeof fxSlash==="function"){ fxSlash(-1); fxSlash(1); }
+      if(typeof sfx==="function"){ sfx("heavy"); sfx("crit"); }
+      gainMomentum(18); if(typeof bumpFeat==="function")bumpFeat("perfectParry"); }
+    else if(q==="good"){ bigPop("GUARD!","#8fd0ff"); fxShake();   // 🛡 양호 패링: 중간 타격감
+      if(typeof fxSlash==="function")fxSlash(-1); if(typeof sfx==="function")sfx("slash");
+      gainMomentum(10); }
     render(); resolveEnemyAttack(mult,it,q); };
   const judge=()=>{ const t=performance.now()-t0;   // 경과 시간(ms)으로 판정
     if(t>=PARRY_PERF_MIN && t<=PARRY_PERF_MAX)return "perfect";
@@ -1236,16 +1244,20 @@ function winCombat(){
   flushMatBuf();   // 📦 모은 재료를 한 줄로 (같은 재료 중복 합산)
   _lootCapture=false;
   checkTitleUnlocks(); checkQuests();
+  const foeSnap={n:foeName, hpMax:enemy.hpMax, ic:enemy.ic, boss:wasBoss};   // 🎁 처치 직전 몬스터 정보 스냅샷 — 상태창을 그대로 유지해 보여주기 위함
   const loot=_lootBuf.slice(); enemy=null; B=null; save(true);
   const cont = expReturn ? (()=>{ const r=expReturn; expReturn=null; render(); setTimeout(r,120); })
     : (wasBoss&&floor>=TOP) ? (()=>{ setTimeout(victory,120); })
     : (()=>{ clearLog(); setScene("🏆","적을 물리쳤다. 위층 계단이 보인다."); showClimb(); });
-  deathDropPause(wasBoss, ()=>showVictoryLoot(wasBoss, foeName, loot, cont)); }
-/* 🎁 처치 → 상자/장비 드랍 연출을 잠깐 보여준 뒤(클릭/스페이스) 전리품 패널로 */
-function deathDropPause(wasBoss, next){
+  deathDropPause(foeSnap, ()=>showVictoryLoot(wasBoss, foeName, loot, cont)); }
+/* 🎁 처치 → '전용 승리 필드'(몬스터 상태창은 그대로, 스프라이트 자리는 상자)를 보여준 뒤 클릭/스페이스로 전리품 패널로 */
+function deathDropPause(snap, next){
   if(globalThis.__SIM__ || typeof requestAnimationFrame!=="function"){ next(); return; }
-  if(typeof dropChestFx==="function")dropChestFx(wasBoss);   // 스테이지에 상자 떨구기
-  const bm=$("battlemsg"); if(bm)bm.classList.add("await");
+  if(document.body)document.body.classList.add("combat");   // 전투 레이아웃 강제 유지(스테이지 크게 · 로그 벽 방지)
+  clearLog();                                               // 🧹 전투 로그 벽 제거 — 필드엔 상태창 + 상자만
+  if(typeof victoryField==="function")victoryField(snap);   // 💀 몬스터 상태창(HP 0) 유지 + 그 자리에 상자
+  const bm=$("battlemsg"); if(bm){ bm.classList.add("await");
+    bm.innerHTML=`<div class="bm-txt loot cur">🏆 <b>${snap.boss?"보스를":"적을"} 쓰러뜨렸다!</b> 상자를 열어 전리품을 확인하자.</div>`; }
   let done=false, timer=null;
   const go=()=>{ if(done)return; done=true; if(timer)clearTimeout(timer); document.removeEventListener("keydown",key);
     const b=$("battlemsg"); if(b)b.classList.remove("await"); next(); };
