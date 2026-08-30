@@ -206,7 +206,8 @@ function line(html,cls){ if(_lootCapture && cls==="loot"){ _lootBuf.push(html); 
   const p=document.createElement("p"); if(cls)p.className=cls; p.innerHTML=html; $("log").appendChild(p); $("log").scrollTop=$("log").scrollHeight;
   if(typeof enemy!=="undefined" && enemy){ const bm=$("battlemsg"); if(bm){ bm.classList.remove("await","danger");
     const now=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now();
-    const beat=(cls!=="turn")&&(_bmLog.length>0)&&(now-_bmLastLineT>40);   // 🔸 이전 줄과 시간 간격>40ms = 새 행동(행위자) 시작 → 구분선(턴 구분선 자체엔 중복 안 붙임). 연타는 동기 호출이라 안 나뉨
+    const prevTurn=(_bmLog.length>0)&&(_bmLog[_bmLog.length-1].c==="turn");   // 직전이 턴 구분선이면 비트선 생략(빗금 이중선 방지)
+    const beat=(cls!=="turn")&&!prevTurn&&(_bmLog.length>0)&&(now-_bmLastLineT>40);   // 🔸 이전 줄과 시간 간격>40ms = 새 행동(행위자) 시작 → 구분선. 턴 구분선 자체/직후엔 안 붙임
     _bmLastLineT=now;
     const item={h:html,c:cls||"",beat};
     _bmLog.push(item); if(_bmLog.length>BM_LOG_MAX)_bmLog.shift();   // 📜 전체 로그(확대뷰)는 즉시 누적

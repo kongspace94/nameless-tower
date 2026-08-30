@@ -980,8 +980,12 @@ function incoming(mult){ const aw=(B&&B.enemyWeak)?(1-B.enemyWeak):1; const fr=(
   if(dmg>0 && typeof setGim==="function"){ const g=setGim(); if(g.dodge && chance(g.dodge)){ line("✨ <b>공허 세트 — 피해를 무효화했다!</b>","heal"); bigPop("무적!","#c9a9ff"); return 0; } }   // ✦ 공허 세트: 확률 피해 무효
   return Math.max(0,dmg); }
 function applyPlayerDamage(d,msg){ if(d<=0){ line(msg+" 하지만 완벽히 막아냈다!","heal"); return; }
-  if(typeof fxIncoming==="function")fxIncoming(enemy&&enemy.atkElem);   // 💫 적→플레이어 투사체/검격 연출
-  P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg"); fxPlayerHurt(); spawnFloat("-"+d,"#ff8a8a","me"); }
+  P.hp-=d; deathCause=`⚔ ${msg.replace(/<[^>]+>/g,"")} (${d} 피해)`; line(`${msg} <b>${d}</b> 피해.`,"dmg");
+  // 🎬 순서: ① 적 공격 모션(달려듦) → ② 투사체/검격 발사 → ③ 착탄 시 피격(플래시+숫자)
+  const elem = enemy && enemy.atkElem;
+  if(typeof fxLunge==="function")fxLunge($("foeArt"),"lungeFoe");   // ① 공격 모션 먼저
+  setTimeout(()=>{ if(enemy && P.hp>0 && typeof fxIncoming==="function")fxIncoming(elem); }, 130);   // ② 모션 뒤 투사체 발사(죽었으면 스킵 — 죽음화면 잔상 방지)
+  setTimeout(()=>{ if(!enemy||P.hp<=0)return; const c=$("meArt")||($("por")&&$("por").firstElementChild); if(c){ c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } if(typeof spawnFloat==="function")spawnFloat("-"+d,"#ff8a8a","me"); if(typeof sfx==="function")sfx("hurt"); }, 520); }   // ③ 착탄 → 피격
 function tickPoison(){ if(B.poison>0){ const pd=3+Math.floor(P.floor/3); P.hp-=pd; B.poison--; deathCause=`☣️ 중독 (${pd} 피해)`; line(`독으로 ${pd} 피해 (남은 ${B.poison}턴)`,"dmg"); spawnFloat("-"+pd,"#9bd36b","me"); render(); } }
 /* 🔥 몬스터 속성 공격 → 플레이어 지속피해(도트) 부여 · 매 턴 틱 */
 function applyMonsterAil(elem){ if(!B||!elem||typeof ELEMENTS==="undefined"||!ELEMENTS[elem])return; if(B.pdot&&B.pdot.t>0)return; const el=ELEMENTS[elem];

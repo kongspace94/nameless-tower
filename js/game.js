@@ -486,6 +486,10 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.33 · 8/30", title:"연출 정리 — 공격 순서 · 턴 구분선", items:[
+      "🎬 <b>적 공격 순서 수정</b> — 투사체가 먼저 날아가던 것 → <b>공격 모션(달려듦) 먼저 → 투사체 발사 → 착탄 시 피격</b> 순으로",
+      "🔀 <b>턴 구분선 이중선(빗금) 제거</b> — 내 턴/상대 턴 구분선 바로 아래에 붙던 여분의 선 정리",
+    ]},
   { ver:"v2.32 · 8/30", title:"큰 공격 방어 선택 (3초)", items:[
       "💥 <b>큰 공격(강타·필살기)엔 방어 선택지</b> — 난데없이 즉사하지 않게, <b>3초 안에 ⚔패링 / 🤸구르기 / 🛡방어</b> 중 선택. 근접만 패링, 원거리·마법은 구르기·방어. 안 고르면 직격",
       "🛡 <b>방어(블록)</b> — 타이밍 게이지로 피해 경감(완벽 85%↓ · 양호 55%↓). 즉사급 큰 공격의 안전한 선택지",
@@ -698,7 +702,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30j",
+  id:"2026-08-30k",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
