@@ -486,6 +486,9 @@ function onServerUpdated(){
    · 공지/이벤트 내용은 NOTICE.tabs 의 notice/event 탭 html 수정
    · 자동 팝업을 다시 띄우려면 NOTICE.id 를 새 값으로 변경 ('오늘 안 보기' 무시하고 재노출) */
 const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에 추가만 하면 기록이 누적된다.
+  { ver:"v2.34 · 9/4", title:"최종보스 등장 연출 — 카드 테두리 제거", items:[
+      "🎬 <b>웅장한 보스 등장(풀뷰)에서 보스 이미지 카드 테두리·배경·그림자 제거</b> — 이제 보스가 배경에 자연스럽게 녹아들어 등장",
+    ]},
   { ver:"v2.33 · 8/30", title:"연출 정리 — 공격 순서 · 턴 구분선", items:[
       "🎬 <b>적 공격 순서 수정</b> — 투사체가 먼저 날아가던 것 → <b>공격 모션(달려듦) 먼저 → 투사체 발사 → 착탄 시 피격</b> 순으로",
       "🔀 <b>턴 구분선 이중선(빗금) 제거</b> — 내 턴/상대 턴 구분선 바로 아래에 붙던 여분의 선 정리",
@@ -702,7 +705,7 @@ const PATCH_NOTES=[   // ⬆ 최신이 위. 새 패치 때 이 배열 맨 위에
 function patchNotesHtml(){ return PATCH_NOTES.map(p=>`<div class="ntc-sec"><b>🆕 ${p.ver} — ${p.title}</b><ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")
   + `<p class="ntc-foot">지난 패치 기록도 여기에 계속 쌓여요.</p>`; }
 const NOTICE={
-  id:"2026-08-30k",
+  id:"2026-09-04a",
   title:"📢 공지사항",
   tabs:[
     {key:"notice", label:"📢 공지", html:`
